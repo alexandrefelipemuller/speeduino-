@@ -46,6 +46,7 @@ static decoder_init_func_t getDecoderInitFunc(uint8_t decoderIndex)
     triggerSetup_SuzukiK6A,
     triggerSetup_HondaJ32,
     triggerSetup_FordTFI,
+    triggerSetup_VWAPMi,
   };
   if (decoderIndex<DECODER_MAX)
   {

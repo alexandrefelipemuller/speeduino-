@@ -90,6 +90,11 @@ static byte checkSyncToothCount; //How many teeth must've been seen on this revo
 static unsigned long elapsedTime;
 static unsigned long lastCrankAngleCalc;
 static unsigned long lastVVTtime; //The time between the vvt reference pulse and the last crank pulse
+static volatile unsigned long vwApMiLastGap = 0;
+static volatile uint8_t vwApMiPhase = 0; // 1 = cyl 1 reference, then 2 = cyl 3, 3 = cyl 4, 4 = cyl 2
+
+static constexpr uint16_t VW_AP_MI_REFERENCE_GAP_PERCENT = 107U; // The unique 72 degree window is slightly longer than the repeating 66 degree windows
+static constexpr uint16_t VW_AP_MI_MISSED_GAP_PERCENT = 160U; // Large enough to catch a missed pulse or heavy noise without tripping on normal variation
 
 TESTABLE_STATIC uint16_t ignition1EndTooth = 0;
 TESTABLE_STATIC uint16_t ignition2EndTooth = 0;
@@ -6139,6 +6144,179 @@ decoder_t  __attribute__((optimize("Os"))) triggerSetup_SuzukiK6A(void)
                   .setGetRPM(getRPM_SuzukiK6A)
                   .setGetCrankAngle(getCrankAngle_SuzukiK6A)
                   .setSetEndTeeth(triggerSetEndTeeth_SuzukiK6A)
+                  .setReset(sharedDecoderReset)
+                  .setIsEngineRunning(sharedEngineIsRunning)
+                  .setGetStatus(sharedGetStatus)
+                  .setGetFeatures(sharedGetDecoderFeatures)
+                  .build();
+}
+
+/** @} */
+
+/** VW AP Mi / Bosch Motronic MP9.0 Hall distributor.
+ * The reference cylinder (#1) is identified by the unique 72 degree Hall window relationship.
+ * Once the reference pulse is found the remaining distributor events repeat in 1-3-4-2 order.
+ *
+ * @defgroup dec_vwapmi VW AP Mi Hall distributor
+ * @{
+ */
+static void triggerPri_VWAPMi(void)
+{
+  curTime = micros();
+  curGap = curTime - toothLastToothTime;
+
+  if (curGap >= triggerFilterTime)
+  {
+    decoderStatus.validTrigger = true;
+
+    bool referencePulse = false;
+    if ((toothLastToothTime != 0U) && (vwApMiLastGap != 0U))
+    {
+      const uint32_t referenceThreshold = percentage(VW_AP_MI_REFERENCE_GAP_PERCENT, vwApMiLastGap);
+      const uint32_t missedThreshold = percentage(VW_AP_MI_MISSED_GAP_PERCENT, vwApMiLastGap);
+
+      // The Hall signal uses one wider reference section to identify cylinder #1.
+      // If the gap is far larger than the normal 66 degree spacing, treat it as a missed pulse/noise event.
+      if (curGap >= missedThreshold)
+      {
+        if (decoderStatus.syncStatus == SyncStatus::Full)
+        {
+          currentStatus.syncLossCounter++;
+        }
+        decoderStatus.syncStatus = SyncStatus::None;
+        vwApMiPhase = 0U;
+        triggerFilterTime = 0;
+      }
+      else if (curGap >= referenceThreshold)
+      {
+        referencePulse = true;
+      }
+    }
+
+    if (referencePulse)
+    {
+      if ((decoderStatus.syncStatus == SyncStatus::Full) && (vwApMiPhase != 4U) && (currentStatus.startRevolutions > 1U))
+      {
+        // A reference gap was seen out of sequence, so we likely skipped a pulse.
+        currentStatus.syncLossCounter++;
+      }
+
+      vwApMiPhase = 1U; // Phase 1 is cylinder #1 reference, then 3, 4 and 2 repeat.
+      toothCurrentCount = 1U;
+      toothOneMinusOneTime = toothOneTime;
+      toothOneTime = curTime;
+      decoderStatus.syncStatus = SyncStatus::Full;
+      currentStatus.startRevolutions++;
+      revolutionOne = true;
+      setFilter(curGap);
+    }
+    else if (decoderStatus.syncStatus == SyncStatus::Full)
+    {
+      if (vwApMiPhase == 0U)
+      {
+        vwApMiPhase = 1U;
+      }
+      else
+      {
+        ++vwApMiPhase;
+        if (vwApMiPhase > 4U) { vwApMiPhase = 1U; }
+      }
+      toothCurrentCount = vwApMiPhase;
+      setFilter(curGap);
+    }
+    else
+    {
+      toothCurrentCount = 0U;
+      triggerFilterTime = 0;
+    }
+
+    if (decoderStatus.syncStatus == SyncStatus::Full)
+    {
+      decoderStatus.toothAngleIsCorrect = true;
+
+      // Per-tooth ignition is intentionally left disabled for now. The fixed 180 degree spacing is
+      // still accurate enough for standard ignition scheduling and sequential fuel phasing.
+    }
+
+    vwApMiLastGap = curGap;
+    toothLastMinusOneToothTime = toothLastToothTime;
+    toothLastToothTime = curTime;
+  }
+}
+
+static uint16_t getRPM_VWAPMi(void)
+{
+  uint16_t tempRPM;
+
+  if (currentStatus.RPM < currentStatus.crankRPM)
+  {
+    tempRPM = crankingGetRPM(4U, CAM_SPEED);
+  }
+  else
+  {
+    tempRPM = stdGetRPM(CAM_SPEED);
+  }
+
+  MAX_STALL_TIME = currentStatus.revolutionTime << 1;
+  if (MAX_STALL_TIME < 366667UL) { MAX_STALL_TIME = 366667UL; }
+
+  return tempRPM;
+}
+
+static int16_t getCrankAngle_VWAPMi(void)
+{
+  unsigned long tempToothLastToothTime;
+  uint8_t tempToothCurrentCount;
+
+  noInterrupts();
+  tempToothCurrentCount = toothCurrentCount;
+  tempToothLastToothTime = toothLastToothTime;
+  lastCrankAngleCalc = micros();
+  interrupts();
+
+  if (tempToothCurrentCount == 0U)
+  {
+    tempToothCurrentCount = 1U;
+  }
+
+  int crankAngle = (((int16_t)tempToothCurrentCount - 1) * triggerToothAngle) + configPage4.triggerAngle;
+
+  elapsedTime = (lastCrankAngleCalc - tempToothLastToothTime);
+  crankAngle += timeToAngleDegPerMicroSec(elapsedTime);
+
+  if (crankAngle >= 720) { crankAngle -= 720; }
+  if (crankAngle < 0) { crankAngle += 720; }
+
+  return crankAngle;
+}
+
+decoder_t  __attribute__((optimize("Os"))) triggerSetup_VWAPMi(void)
+{
+  decoderFeatures = decoder_features_t();
+  sharedDecoderReset();
+
+  configPage4.TrigSpeed = CAM_SPEED;
+  triggerActualTeeth = 4U;
+  triggerToothAngle = 180U;
+  triggerFilterTime = ((MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) >> 1U);
+  decoderStatus.toothAngleIsCorrect = true;
+  decoderFeatures.supportsSequential = true;
+  decoderFeatures.hasFixedCrankingTiming = true;
+
+  vwApMiPhase = 0U;
+  vwApMiLastGap = 0U;
+  toothCurrentCount = 0U;
+  toothOneTime = 0U;
+  toothOneMinusOneTime = 0U;
+  toothLastMinusOneToothTime = 0U;
+  toothLastToothTime = 0U;
+  revolutionOne = true;
+  MAX_STALL_TIME = ((MICROS_PER_DEG_1_RPM / 90U) * triggerToothAngle);
+
+  return decoder_builder_t()
+                  .setPrimaryTrigger(triggerPri_VWAPMi, getConfigPriTriggerEdge(configPage4))
+                  .setGetRPM(getRPM_VWAPMi)
+                  .setGetCrankAngle(getCrankAngle_VWAPMi)
                   .setReset(sharedDecoderReset)
                   .setIsEngineRunning(sharedEngineIsRunning)
                   .setGetStatus(sharedGetStatus)

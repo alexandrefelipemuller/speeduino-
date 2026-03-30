@@ -112,6 +112,17 @@ static void test_buildDecoder_TurnsOffPerToothIgn(void)
     TEST_ASSERT_FALSE(configPage2.perToothIgn);
 }
 
+static void test_buildDecoder_VWAPMi(void)
+{
+    configPage2.perToothIgn = true;
+    auto decoder = buildDecoder(DECODER_VWAPMI);
+    assert_decoder(decoder);
+    TEST_ASSERT_TRUE(decoder.getFeatures().supportsSequential);
+    TEST_ASSERT_TRUE(decoder.getFeatures().hasFixedCrankingTiming);
+    TEST_ASSERT_FALSE(decoder.getFeatures().supportsPerToothIgnition);
+    TEST_ASSERT_FALSE(configPage2.perToothIgn);
+}
+
 static void test_buildDecoder_OutOfRange(void)
 {
     auto decoder = buildDecoder(DECODER_MAX+1U); // Check this doesn't crash.
@@ -124,6 +135,7 @@ void testDecoderInit(void)
     test_buildDecoder_all();
     RUN_TEST(test_buildDecoder_attachesInterrupts);
     RUN_TEST(test_buildDecoder_TurnsOffPerToothIgn);
+    RUN_TEST(test_buildDecoder_VWAPMi);
     RUN_TEST(test_buildDecoder_OutOfRange);
   }
 }
