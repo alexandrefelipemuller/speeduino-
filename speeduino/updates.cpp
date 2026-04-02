@@ -20,7 +20,7 @@
 // Minimize flash usage of the non-performance critical code in this file.
 #pragma GCC optimize ("Os") 
 
-static constexpr uint8_t CURRENT_DATA_VERSION = 27U;
+static constexpr uint8_t CURRENT_DATA_VERSION = 28U;
 
 TESTABLE_STATIC void updateTableU16toU8(table2D_u16_u8_32 &targetTable, uint16_t u16EEpromBinAddress)
 {
@@ -73,6 +73,16 @@ TESTABLE_STATIC void upgradeV26toV27(void) {
     configPage6.afrLoadSource = AFR_LOAD_PRIMARY;
     saveAllPages();
     saveEEPROMVersion(27);
+  }
+}
+
+TESTABLE_STATIC void upgradeV27toV28(void) {
+  if(loadEEPROMVersion() == 27U)
+  {
+    // Default the new AE blend to TPS-only for existing tunes.
+    configPage2.aeMapWeight = 0;
+    saveAllPages();
+    saveEEPROMVersion(28);
   }
 }
 
@@ -859,6 +869,7 @@ void doUpdates(void)
   }
   upgradeV25toV26();
   upgradeV26toV27();
+  upgradeV27toV28();
 
   //Final check is always for 255 and 0 (Brand new arduino)
   if( (loadEEPROMVersion() == 0) || (loadEEPROMVersion() == 255) )

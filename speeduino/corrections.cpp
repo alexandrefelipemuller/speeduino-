@@ -477,12 +477,29 @@ static inline int16_t computeTPSDOT(void) {
   return tpsDOT;
 }
 
+static inline int16_t computeHybridTpsDot(const int16_t tpsDOT, const int16_t mapDOT) {
+  if (configPage2.aeMapWeight == 0U) {
+    return tpsDOT;
+  }
+
+  // Blend MAPdot into the TPS AE input without changing the TPS AE thresholds or table.
+  return (int16_t)((((int32_t)tpsDOT * (100 - configPage2.aeMapWeight)) + ((int32_t)mapDOT * configPage2.aeMapWeight)) / 100);
+}
+
 static inline uint16_t correctionAccelModeTps(void) {
   uint16_t aeCorrection = currentStatus.AEamount;
 
   // No point in updating faster than the TPS is read
   if (BIT_CHECK(LOOP_TIMER, TPS_READ_TIMER_BIT)) {
-    currentStatus.tpsDOT = computeTPSDOT();
+    const int16_t tpsDOT = computeTPSDOT();
+    int16_t mapDOT = 0;
+
+    if ((configPage2.aeMapWeight > 0U) && BIT_CHECK(LOOP_TIMER, MAP_READ_TIMER_BIT)) {
+      mapDOT = computeMapDot();
+    }
+
+    currentStatus.mapDOT = mapDOT;
+    currentStatus.tpsDOT = computeHybridTpsDot(tpsDOT, mapDOT);
 
     aeCorrection = correctionAccel(tpsOnTimeoutExpired, tpsShouldResetAe, tpsShouldStartAe, tpsComputeAe);
   }

@@ -336,6 +336,7 @@ struct config2 : public config_page_t {
   byte vssAuxCh : 4;
 
   byte decelAmount;
+  byte aeMapWeight;     /**< Percentage of MAPdot blended into TPS based AE. 0 = TPS only, 100 = MAP only */
 
 } __attribute__((packed,aligned(__alignof__(uint16_t)))); //The 32 bit systems require all structs to be fully packed, aligned to their largest member type 
 

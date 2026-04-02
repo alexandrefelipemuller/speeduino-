@@ -92,6 +92,8 @@ constexpr uint16_t EEPROM_CONFIG8_MAP8   = 3151;
 constexpr uint16_t EEPROM_CONFIG15_MAP   = 3199;
 constexpr uint16_t EEPROM_CONFIG15_START = 3281;
 
+static_assert((EEPROM_CONFIG3_MAP - EEPROM_CONFIG2_START) >= sizeof(configPage2), "configPage2 storage exceeds allocated EEPROM space");
+
 #if defined(UNIT_TEST)
 uint16_t MAX_PAGE_ADDRESS = EEPROM_LAST_BARO-sizeof(uint8_t);
 uint16_t STORAGE_SIZE = STORAGE_END;

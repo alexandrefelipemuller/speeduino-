@@ -973,6 +973,8 @@ static void setup_AE(void) {
 	
   currentStatus.coolant = temperatureRemoveOffset(configPage2.aeColdTaperMax) + 1;
   currentStatus.AEEndTime = micros();
+  currentStatus.mapDOT = 0;
+  configPage2.aeMapWeight = 0;
 
   reset_AE();
 }
@@ -1065,6 +1067,53 @@ static void test_corrections_TAE_negative_tpsdot()
   TEST_ASSERT_EQUAL(configPage2.decelAmount, accelValue);
 	TEST_ASSERT_FALSE(currentStatus.isAcceleratingTPS); //Confirm AE is flagged on
 	TEST_ASSERT_TRUE(currentStatus.isDeceleratingTPS); //Confirm AE is flagged on
+}
+
+static void test_corrections_TAE_map_weight_zero_uses_tps_only()
+{
+  setup_TAE();
+  disable_AE_taper();
+
+  BIT_SET(LOOP_TIMER, MAP_READ_TIMER_BIT);
+  configPage2.aeMapWeight = 0;
+  getMapLast().timeDeltaReadings = 25000UL;
+  getMapLast().lastMAPValue = 40;
+
+  currentStatus.TPSlast = 0;
+  currentStatus.TPS = 50;
+  currentStatus.MAP = 50;
+
+  const uint16_t accelValue = correctionAccel();
+
+  TEST_ASSERT_EQUAL(0, currentStatus.mapDOT);
+  TEST_ASSERT_EQUAL(750, currentStatus.tpsDOT);
+  TEST_ASSERT_EQUAL((100 + 132), accelValue);
+  TEST_ASSERT_TRUE(currentStatus.isAcceleratingTPS);
+  TEST_ASSERT_FALSE(currentStatus.isDeceleratingTPS);
+}
+
+static void test_corrections_TAE_map_weight_blends_mapdot()
+{
+  setup_TAE();
+  disable_AE_taper();
+
+  BIT_SET(LOOP_TIMER, MAP_READ_TIMER_BIT);
+  configPage2.aeMapWeight = 30;
+  getMapLast().timeDeltaReadings = 25000UL;
+  getMapLast().lastMAPValue = 40;
+
+  currentStatus.TPSlast = 0;
+  currentStatus.TPS = 50;
+  currentStatus.MAP = 50;
+
+  const uint16_t accelValue = correctionAccel();
+  const int16_t expectedCombinedDot = 645;
+
+  TEST_ASSERT_EQUAL(400, currentStatus.mapDOT);
+  TEST_ASSERT_EQUAL(expectedCombinedDot, currentStatus.tpsDOT);
+  TEST_ASSERT_EQUAL(100 + table2D_getValue(&taeTable, TPS_DOT.toRaw(expectedCombinedDot)), accelValue);
+  TEST_ASSERT_TRUE(currentStatus.isAcceleratingTPS);
+  TEST_ASSERT_FALSE(currentStatus.isDeceleratingTPS);
 }
 
 static void test_corrections_TAE_50pc_rpm_taper()
@@ -1182,6 +1231,8 @@ static void test_corrections_TAE_timout()
 static void test_corrections_TAE()
 {
   RUN_TEST_P(test_corrections_TAE_negative_tpsdot);
+  RUN_TEST_P(test_corrections_TAE_map_weight_zero_uses_tps_only);
+  RUN_TEST_P(test_corrections_TAE_map_weight_blends_mapdot);
   RUN_TEST_P(test_corrections_TAE_no_rpm_taper);
   RUN_TEST_P(test_corrections_TAE_50pc_rpm_taper);
   RUN_TEST_P(test_corrections_TAE_110pc_rpm_taper);
