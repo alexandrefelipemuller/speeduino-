@@ -6,28 +6,35 @@ A full copy of the license may be found in the projects root directory
 /** @file
    * Process Incoming and outgoing serial communications.
  */
-#include "globals.h"
 #include "comms.h"
-#include "comms_secondary.h"
+#include "core_constants.h"
 #include "storage.h"
 #include "maths.h"
 #include "utilities.h"
 #include "decoders.h"
-#include "TS_CommandButtonHandler.h"
+#include "modules/logging/TS_CommandButtonHandler.h"
 #include "pages.h"
 #include "page_crc.h"
-#include "logger.h"
+#include "modules/logging/logger.h"
+#include "modules/logging/logger_controls.h"
 #include "comms_legacy.h"
 #include <FastCRC.h>
 #ifdef RTC_ENABLED
-  #include "rtc_common.h"
+  #include "modules/logging/rtc_common.h"
   #include "comms_sd.h"
 #endif
 #ifdef SD_LOGGING
-  #include "SD_logger.h"
+  #include "modules/logging/SD_logger.h"
 #endif
 #include "units.h"
 #include "sensors.h"
+
+extern struct statuses currentStatus;
+extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];
+extern volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE];
+extern volatile unsigned int toothHistoryIndex;
+extern byte resetControl;
+extern byte pinResetControl;
 
 /** @defgroup group-serial-comms-impl Serial comms implementation
  * @{

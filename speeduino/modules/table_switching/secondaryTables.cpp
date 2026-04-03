@@ -1,9 +1,13 @@
 #include "secondaryTables.h"
+#include "board_definition.h"
 #include "corrections.h"
+#include "core_constants.h"
 #include "load_source.h"
 #include "maths.h"
 #include "unit_testing.h"
-#include "globals.h"
+
+extern byte pinFuel2Input;
+extern byte pinSpark2Input;
 
 /**
  * @brief Looks up and returns the VE value from the secondary fuel table

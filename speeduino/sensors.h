@@ -1,7 +1,10 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#include "globals.h"
+#include "core_constants.h"
+#include "statuses.h"
+#include "config_pages.h"
+#include "table2d.h"
 
 // The following are alpha values for the ADC filters.
 // Their values are from 0 to 240, with 0 being no filtering and 240 being maximum

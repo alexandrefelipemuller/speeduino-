@@ -1,6 +1,7 @@
 // Note that all functions with an underscore prefix are NOT part 
 // of the public API. They are only here so we can inline them.
 
+#include "globals.h"
 #include "scheduler.h"
 #include "crankMaths.h"
 #include "maths.h"

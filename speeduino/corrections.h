@@ -5,6 +5,11 @@ All functions in the gamma file return
 #ifndef CORRECTIONS_H
 #define CORRECTIONS_H
 
+#include <stdint.h>
+#include "statuses.h"
+#include "config_pages.h"
+#include "table3d.h"
+
 void initialiseCorrections(void);
 uint16_t correctionsFuel(void);
 uint8_t calculateAfrTarget(table3d16RpmLoad &afrLookUpTable, const statuses &current, const config2 &page2, const config6 &page6);

@@ -1,14 +1,16 @@
 /** @file
  * Speeduino Initialisation (called at Arduino setup()).
  */
-#include "globals.h"
 #include "init.h"
+#include "core_constants.h"
+#include "pin_registry.h"
+#include "runtime_state.h"
 #include "storage.h"
+#include "table_registry.h"
 #include "updates.h"
+#include "tune_registry.h"
 #include "timers.h"
 #include "comms.h"
-#include "comms_secondary.h"
-#include "comms_CAN.h"
 #include "utilities.h"
 #include "scheduler.h"
 #include "schedule_calcs.h"
@@ -21,12 +23,12 @@
 #include "acc_mc33810.h"
 #include "board_definition.h"
 #include "pages.h"
-#ifdef SD_LOGGING
-  #include "SD_logger.h"
-  #include "rtc_common.h"
-#endif
 #include "fuel_calcs.h"
 #include "decoder_init.h"
+#include "config9_domains.h"
+#include "modules/comms_extended/module_comms_extended.h"
+#include "modules/secondary_serial/module_secondary_serial.h"
+#include "modules/logging/module_logging.h"
 #include "scheduledIO_ign.h"
 #include "scheduledIO_inj.h"
 #include "scheduledIO_direct_ign.h"
@@ -130,11 +132,7 @@ void initialiseAll(void)
     
     initBoard(115200); //This calls the current individual boards init function. See the board_xxx.ino files for these.
     initialiseTimers();
-    
-  #ifdef SD_LOGGING
-    initRTC();
-    if(configPage13.onboard_log_file_style) { initSD(); }
-  #endif
+    module_logging_init(configPage13);
 
     pPrimarySerial = &Serial; //Default to standard Serial interface
     currentStatus.allowLegacyComms = true; //Flag legacy comms as being allowed on startup
@@ -149,14 +147,9 @@ void initialiseAll(void)
     }
     else { setPinMapping(configPage2.pinMapping); }
 
-    // Repeatedly initialising the CAN bus hangs the system when
-    // running initialisation tests on Teensy 3.5
-    #if defined(NATIVE_CAN_AVAILABLE) && !defined(UNIT_TEST)
-      initCAN();
-    #endif
-
-    //Must come after setPinMapping() as secondary serial can be changed on a per board basis
-    if (configPage9.enable_secondarySerial == 1) { secondarySerial.begin(115200); }
+    // Must come after setPinMapping() as secondary serial can be changed on a per board basis.
+    module_secondary_serial_init(get_secondary_serial_config(configPage9));
+    module_comms_extended_init();
 
     //End all coil charges to ensure no stray sparks on startup
     endCoil1Charge();

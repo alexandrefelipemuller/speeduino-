@@ -1,8 +1,7 @@
-#include "globals.h"
+#include "board_definition.h"
+#include "rtc_common.h"
 #include RTC_LIB_H //Defined in each boards .h file
 #ifdef RTC_ENABLED
-#include "rtc_common.h"
-
 
 void initRTC()
 {

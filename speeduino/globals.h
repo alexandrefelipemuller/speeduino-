@@ -28,37 +28,15 @@
 #include "table3d.h"
 #include "statuses.h"
 #include "config_pages.h"
+#include "core_constants.h"
+#include "hw_test_bits.h"
 #include "port_pin.h"
 #include "atomic.h"
 
 #define CRANK_ANGLE_MAX (max(CRANK_ANGLE_MAX_IGN, CRANK_ANGLE_MAX_INJ))
 
-#define MICROS_PER_SEC INT32_C(1000000)
-#define MICROS_PER_MIN INT32_C(MICROS_PER_SEC*60U)
-#define MICROS_PER_HOUR INT32_C(MICROS_PER_MIN*60U)
-#define MILLI_PER_SEC INT32_C(MICROS_PER_SEC/1000)
-
-#define UINT16_HALF_RANGE     0x8000
-
 #define SERIAL_PORT_PRIMARY   0
 #define SERIAL_PORT_SECONDARY 3
-
-#define BIT_TIMER_1HZ             0
-#define BIT_TIMER_4HZ             1
-#define BIT_TIMER_10HZ            2
-#define BIT_TIMER_15HZ            3
-#define BIT_TIMER_30HZ            4
-#define BIT_TIMER_50HZ            5
-#define BIT_TIMER_200HZ           6
-#define BIT_TIMER_1KHZ            7
-
-#ifndef UNIT_TEST 
-#define TOOTH_LOG_SIZE      127U
-#else
-#define TOOTH_LOG_SIZE      1U
-#endif
-// Some code relies on TOOTH_LOG_SIZE being uint8_t.
-static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 
 // note the sequence of these defines which reference the bits used in a byte has moved when the third trigger & engine cycle was incorporated
 #define COMPOSITE_LOG_PRI   0
@@ -70,31 +48,6 @@ static_assert(TOOTH_LOG_SIZE<UINT8_MAX, "Check all uses of TOOTH_LOG_SIZE");
 
 #define OUTPUT_CONTROL_DIRECT   0
 #define OUTPUT_CONTROL_MC33810  10
-
-#define INJ1_CMD_BIT      0
-#define INJ2_CMD_BIT      1
-#define INJ3_CMD_BIT      2
-#define INJ4_CMD_BIT      3
-#define INJ5_CMD_BIT      4
-#define INJ6_CMD_BIT      5
-#define INJ7_CMD_BIT      6
-#define INJ8_CMD_BIT      7
-
-#define IGN1_CMD_BIT      0
-#define IGN2_CMD_BIT      1
-#define IGN3_CMD_BIT      2
-#define IGN4_CMD_BIT      3
-#define IGN5_CMD_BIT      4
-#define IGN6_CMD_BIT      5
-#define IGN7_CMD_BIT      6
-#define IGN8_CMD_BIT      7
-
-#define CALIBRATION_TABLE_SIZE 512 ///< Calibration table size for CLT, IAT, O2
-
-#define OFFSET_FUELTRIM 127U ///< The fuel trim tables are offset by 128 to allow for -128 to +128 values
-#define OFFSET_IGNITION 40 ///< Ignition values from the main spark table are offset 40 degrees downwards to allow for negative spark timing
-
-#define SERIAL_BUFFER_THRESHOLD 32 ///< When the serial buffer is filled to greater than this threshold value, the serial processing operations will be performed more urgently in order to avoid it overflowing. Serial buffer is 64 bytes long, so the threshold is set at half this as a reasonable figure
 
 #define LOGGER_CSV_SEPARATOR_SEMICOLON  0
 #define LOGGER_CSV_SEPARATOR_COMMA      1

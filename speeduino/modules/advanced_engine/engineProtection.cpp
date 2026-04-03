@@ -1,12 +1,15 @@
-#include "globals.h"
 #include "engineProtection.h"
 #include "maths.h"
+#include "table2d.h"
 #include "units.h"
 #include "unit_testing.h"
 #include "preprocessor.h"
 #include "decoder_init.h"
-#include "units.h"
-#include "preprocessor.h"
+
+extern uint8_t softLimitTime;
+extern struct config9 configPage9;
+extern struct config10 configPage10;
+extern struct config15 configPage15;
 
 TESTABLE_STATIC uint32_t oilProtEndTime;
 TESTABLE_CONSTEXPR table2D_u8_u8_4 oilPressureProtectTable(&configPage10.oilPressureProtRPM, &configPage10.oilPressureProtMins);

@@ -7,13 +7,20 @@ A full copy of the license may be found in the projects root directory
 /*
 This is for handling the data broadcasted to various CAN dashes and instrument clusters.
 */
-#include "globals.h"
-
 #if defined(NATIVE_CAN_AVAILABLE)
 #include "comms_CAN.h"
+#include "config9_domains.h"
+#include "config_pages.h"
+#include "statuses.h"
+#include "bit_manip.h"
 #include "utilities.h"
 #include "maths.h"
 #include "units.h"
+
+extern struct statuses currentStatus;
+extern struct config2 configPage2;
+extern struct config4 configPage4;
+extern struct config9 configPage9;
 
 CAN_message_t inMsg;
 CAN_message_t outMsg;
@@ -396,7 +403,9 @@ void DashMessage(uint16_t DashMessageID)
 
 void can_Command(void)
 {
-  if ( (inMsg.id == uint16_t(configPage9.obd_address + TS_CAN_OFFSET))  || (inMsg.id == 0x7DF))      
+  const can_extended_config_t can_config = get_can_extended_config(configPage9);
+
+  if ( (inMsg.id == uint16_t(can_config.obd_address() + TS_CAN_OFFSET))  || (inMsg.id == 0x7DF))
   {
     // The address is the speeduino specific ecu canbus address 
     // or the 0x7df(2015 dec) broadcast address
@@ -415,7 +424,7 @@ void can_Command(void)
       Can0.write(outMsg);       // send the 8 bytes of obd data
     }
   }
-  if (inMsg.id == uint16_t(configPage9.obd_address + TS_CAN_OFFSET))      
+  if (inMsg.id == uint16_t(can_config.obd_address() + TS_CAN_OFFSET))
   {
     // The address is only the speeduino specific ecu canbus address    
     if (inMsg.buf[1] == 0x09)
@@ -777,28 +786,30 @@ void obd_response(uint8_t PIDmode, uint8_t requestedPIDlow, uint8_t requestedPID
 
 void readAuxCanBus()
 {
+  const can_extended_config_t can_config = get_can_extended_config(configPage9);
+
   for (int i = 0; i < 16; i++)
   {
-    uint16_t channelAddress = (configPage9.caninput_source_can_address[i] + TS_CAN_OFFSET);
+    uint16_t channelAddress = (can_config.caninput_source_address(i) + TS_CAN_OFFSET);
     if (inMsg.id == channelAddress ) //Filters frame ID
     {
 
-      if (!BIT_CHECK(configPage9.caninput_source_num_bytes, i))
+      if (!can_config.caninput_is_two_bytes(i))
       {
         // Gets the one-byte value from the Data Field.
-        currentStatus.canin[i] = inMsg.buf[configPage9.caninput_source_start_byte[i]];
+        currentStatus.canin[i] = inMsg.buf[can_config.caninput_start_byte(i)];
       }
       else
       {
-        if (configPage9.caninputEndianess == 1)
+        if (can_config.caninput_endianness() == 1U)
         {
           //Gets the two-byte value from the Data Field in Litlle Endian.
-          currentStatus.canin[i] = ((inMsg.buf[configPage9.caninput_source_start_byte[i]]) | (inMsg.buf[configPage9.caninput_source_start_byte[i] + 1] << 8));
+          currentStatus.canin[i] = ((inMsg.buf[can_config.caninput_start_byte(i)]) | (inMsg.buf[can_config.caninput_start_byte(i) + 1] << 8));
         }
         else
         {
           //Gets the two-byte value from the Data Field in Big Endian.
-          currentStatus.canin[i] = ((inMsg.buf[configPage9.caninput_source_start_byte[i]] << 8) | (inMsg.buf[configPage9.caninput_source_start_byte[i] + 1]));
+          currentStatus.canin[i] = ((inMsg.buf[can_config.caninput_start_byte(i)] << 8) | (inMsg.buf[can_config.caninput_start_byte(i) + 1]));
         }
       }
     }

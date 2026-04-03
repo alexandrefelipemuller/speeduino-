@@ -4,8 +4,12 @@
  * The command handler manages all the inputs FROM TS which are issued when a command button is clicked by the user
  */
 
-#include "globals.h"
 #include "TS_CommandButtonHandler.h"
+#include "bit_manip.h"
+#include "config_pages.h"
+#include "core_constants.h"
+#include "hw_test_bits.h"
+#include "statuses.h"
 #include "utilities.h"
 #include "sensors.h"
 #include "storage.h"
@@ -16,6 +20,11 @@
 #ifdef USE_MC33810
   #include "acc_mc33810.h"
 #endif
+
+extern struct statuses currentStatus;
+extern struct config2 configPage2;
+extern volatile byte HWTest_INJ_Pulsed;
+extern volatile byte HWTest_IGN_Pulsed;
 
 static bool commandRequiresStoppedEngine(uint16_t buttonCommand)
 {

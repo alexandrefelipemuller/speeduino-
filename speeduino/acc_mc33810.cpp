@@ -1,5 +1,4 @@
 #include "acc_mc33810.h"
-#include "globals.h"
 #include <SPI.h>
 
 uint8_t MC33810_BIT_INJ1 = 1;

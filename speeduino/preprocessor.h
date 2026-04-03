@@ -77,3 +77,25 @@
     returnType __attribute__((always_inline)) // cppcheck-suppress misra-c2012-20.7
 #define END_LTO_INLINE() \
     _Pragma("GCC diagnostic pop")
+
+// Optional module feature flags.
+// Phase 1 keeps current behaviour by enabling all modules by default.
+#ifndef FEATURE_MODULE_LOGGING
+#define FEATURE_MODULE_LOGGING 1
+#endif
+
+#ifndef FEATURE_MODULE_SECONDARY_SERIAL
+#define FEATURE_MODULE_SECONDARY_SERIAL 1
+#endif
+
+#ifndef FEATURE_MODULE_COMMS_EXTENDED
+#define FEATURE_MODULE_COMMS_EXTENDED 1
+#endif
+
+#ifndef FEATURE_MODULE_TABLE_SWITCHING
+#define FEATURE_MODULE_TABLE_SWITCHING 1
+#endif
+
+#ifndef FEATURE_MODULE_ADVANCED_ENGINE
+#define FEATURE_MODULE_ADVANCED_ENGINE 1
+#endif

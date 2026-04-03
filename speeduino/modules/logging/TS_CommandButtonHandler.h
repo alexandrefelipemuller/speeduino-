@@ -4,6 +4,8 @@
  * The command handler manages all the inputs FROM TS which are issued when a command button is clicked by the user
  */
 
+#include <stdint.h>
+
 static constexpr uint16_t TS_CMD_TEST_DSBL    = 256;
 static constexpr uint16_t TS_CMD_TEST_ENBL    = 257;
 

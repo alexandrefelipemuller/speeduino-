@@ -8,18 +8,29 @@
  * The config related to Programmable I/O is found on configPage13 (of type @ref config13).
  */
 #include <avr/pgmspace.h>
-#include "globals.h"
 #include "utilities.h"
+#include "config_pages.h"
+#include "statuses.h"
+#include "bit_manip.h"
 #include "decoders.h"
 #include "comms.h"
-#include "logger.h"
+#include "modules/logging/logger.h"
 #include "scheduler.h"
 #include "units.h"
 
-uint8_t ioDelay[sizeof(configPage13.outputPin)];
-uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
+extern byte resetControl;
+extern byte pinResetControl;
+extern struct statuses currentStatus;
+extern struct config13 configPage13;
+extern volatile uint32_t runSecsX10;
+bool pinIsUsed(byte pin);
+
+uint8_t ioDelay[PROGRAMMABLE_IO_CHANNELS];
+uint8_t ioOutDelay[PROGRAMMABLE_IO_CHANNELS];
 uint8_t pinIsValid = 0;
 uint8_t currentRuleStatus = 0;
+
+static_assert(PROGRAMMABLE_IO_CHANNELS == sizeof(configPage13.outputPin), "PROGRAMMABLE_IO_CHANNELS must match configPage13.outputPin");
 
 
 /** Translate between the pin list that appears in TS and the actual pin numbers.

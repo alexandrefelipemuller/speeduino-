@@ -23,8 +23,9 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 */
 //************************************************************************************************************
 
-#include "globals.h"
 #include "corrections.h"
+#include "core_constants.h"
+#include "runtime_state.h"
 #include "timers.h"
 #include "maths.h"
 #include "sensors.h"
@@ -33,6 +34,7 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "src/PID_v1/PID_v1.h"
 #include "units.h"
 #include "fuel_calcs.h"
+#include "tune_registry.h"
 #include "unit_testing.h"
 
 static long PID_O2;

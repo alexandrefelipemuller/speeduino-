@@ -9,11 +9,15 @@ A full copy of the license may be found in the projects root directory
 
 #include "sensors.h"
 #include "crankMaths.h"
-#include "globals.h"
+#include "config_pages.h"
+#include "statuses.h"
+#include "bit_manip.h"
+#include "port_pin.h"
 #include "maths.h"
 #include "storage.h"
 #include "comms.h"
 #include "idle.h"
+#include "table3d.h"
 #include "corrections.h"
 #include "pages.h"
 #include "decoder_init.h"
@@ -28,6 +32,30 @@ A full copy of the license may be found in the projects root directory
 #include "static_for.hpp"
 #include "polling.hpp"
 #include "decoders.h"
+
+extern struct statuses currentStatus;
+extern struct config2 configPage2;
+extern struct config4 configPage4;
+extern struct config6 configPage6;
+extern struct config9 configPage9;
+extern struct config10 configPage10;
+extern byte fpPrimeTime;
+extern volatile uint16_t ignitionCount;
+extern byte pinTPS;
+extern byte pinMAP;
+extern byte pinEMAP;
+extern byte pinIAT;
+extern byte pinCLT;
+extern byte pinO2;
+extern byte pinO2_2;
+extern byte pinBat;
+extern byte pinCTPS;
+extern byte pinFlex;
+extern byte pinBaro;
+extern byte pinFuelPressure;
+extern byte pinOilPressure;
+bool pinIsOutput(byte pin);
+bool pinIsUsed(byte pin);
 
 uint8_t statusSensors = 0;
 

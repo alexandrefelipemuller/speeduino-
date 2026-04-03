@@ -1,8 +1,10 @@
 #include "fuel_calcs.h"
 #include "maths.h"
+#include "table3d.h"
 #include "unit_testing.h"
-#include "globals.h"
 #include "decoders.h"
+
+extern struct table3d8RpmLoad stagingTable;
 
 TESTABLE_INLINE_STATIC uint16_t calculateRequiredFuel(const config2 &page2, const decoder_status_t &decoderStatus) {
   uint16_t reqFuel = page2.reqFuel * 100U; //Convert to uS and an int. This is the only variable to be used in calculations

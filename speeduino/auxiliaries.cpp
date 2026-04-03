@@ -4,7 +4,6 @@ Copyright (C) Josh Stewart
 A full copy of the license may be found in the projects root directory
 */
 #include "auxiliaries.h"
-#include "globals.h"
 #include "maths.h"
 #include "src/PID_v1/PID_v1.h"
 #include "decoders.h"
@@ -13,7 +12,14 @@ A full copy of the license may be found in the projects root directory
 #include "units.h"
 #include "board_definition.h"
 #include "atomic.h"
+#include "pin_registry.h"
 #include "port_pin.h"
+#include "utilities.h"
+#include "runtime_state.h"
+#include "table_registry.h"
+#include "tune_registry.h"
+
+bool pinIsOutput(byte pin);
 
 constexpr uint8_t SIMPLE_BOOST_P = 1U;
 constexpr uint8_t SIMPLE_BOOST_I = 1U;

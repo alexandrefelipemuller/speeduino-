@@ -33,8 +33,12 @@ A full copy of the license may be found in the projects root directory
  * - To compare Speeduino Doxyfile to default config, do: `doxygen -g Doxyfile.default ; diff Doxyfile.default Doxyfile`
  */
 #include <limits.h>
-#include "globals.h"
 #include "decoders.h"
+#include "config_pages.h"
+#include "core_constants.h"
+#include "hw_test_bits.h"
+#include "port_pin.h"
+#include "statuses.h"
 #include "scheduler.h"
 #include "crankMaths.h"
 #include "timers.h"
@@ -44,6 +48,16 @@ A full copy of the license may be found in the projects root directory
 #include "decoder_init.h"
 #include "decoder_builder.h"
 #include "scheduledIO_ign.h"
+
+extern struct statuses currentStatus;
+extern struct config2 configPage2;
+extern struct config4 configPage4;
+extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];
+extern volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE];
+extern volatile unsigned int toothHistoryIndex;
+extern byte pinTrigger;
+extern byte pinTrigger2;
+extern byte pinTrigger3;
 
 static void triggerRoverMEMSCommon(void);
 static inline void triggerRecordVVT1Angle (void);

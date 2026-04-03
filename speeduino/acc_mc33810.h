@@ -2,8 +2,9 @@
 #define MC33810_H
 
 #include <SPI.h>
+#include "bit_manip.h"
+#include "config_pages.h"
 #include "port_pin.h"
-#include "globals.h"
 #include "board_definition.h"
 
 static const uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
@@ -11,6 +12,10 @@ static volatile uint8_t mc33810_1_requestedState; //Current binary state of the 
 static volatile uint8_t mc33810_2_requestedState; //Current binary state of the 2nd ICs IGN and INJ values
 static volatile uint8_t mc33810_1_returnState; //Current binary state of the 1st ICs IGN and INJ values
 static volatile uint8_t mc33810_2_returnState; //Current binary state of the 2nd ICs IGN and INJ values
+
+extern struct config4 configPage4;
+extern byte pinMC33810_1_CS;
+extern byte pinMC33810_2_CS;
 
 void initMC33810(void);
 

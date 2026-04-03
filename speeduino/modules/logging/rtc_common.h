@@ -1,6 +1,8 @@
 #ifndef RTC_H
 #define RTC_H
 
+#include "board_definition.h"
+
 void initRTC();
 uint8_t rtc_getSecond();
 uint8_t rtc_getMinute();
@@ -10,7 +12,5 @@ uint8_t rtc_getDOW();
 uint8_t rtc_getMonth();
 uint16_t rtc_getYear();
 void rtc_setTime(byte, byte, byte, byte, byte, uint16_t);
-
-
 
 #endif

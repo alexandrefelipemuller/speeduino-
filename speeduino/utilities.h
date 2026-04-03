@@ -21,12 +21,13 @@ These are some utility functions and variables used through the main code
 #define BITWISE_XOR 3
 
 #define REUSE_RULES 240
+#define PROGRAMMABLE_IO_CHANNELS 8U
 
-extern uint8_t ioOutDelay[sizeof(configPage13.outputPin)];
-extern uint8_t ioDelay[sizeof(configPage13.outputPin)];
+extern uint8_t ioOutDelay[PROGRAMMABLE_IO_CHANNELS];
+extern uint8_t ioDelay[PROGRAMMABLE_IO_CHANNELS];
 extern uint8_t pinIsValid;
 extern uint8_t currentRuleStatus;
-//uint8_t outputPin[sizeof(configPage13.outputPin)];
+//uint8_t outputPin[PROGRAMMABLE_IO_CHANNELS];
 
 void setResetControlPinState(void);
 byte pinTranslate(byte rawPin);

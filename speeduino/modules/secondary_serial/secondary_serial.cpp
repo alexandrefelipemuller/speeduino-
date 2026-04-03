@@ -5,26 +5,20 @@ A full copy of the license may be found in the projects root directory
 can_comms was originally contributed by Darren Siepka
 */
 
-/*
-secondserial_command is called when a command is received from the secondary serial port
-It parses the command and calls the relevant function.
-
-can_command is called when a command is received by the onboard/attached canbus module
-It parses the command and calls the relevant function.
-
-sendcancommand is called when a command is to be sent either to serial3 
-,to the external Can interface, or to the onboard/attached can interface
-*/
-#include "globals.h"
 #include "comms.h"
-#include "comms_secondary.h"
-#include "comms_CAN.h"
-#include "maths.h"
+#include "secondary_serial.h"
+#include "config9_domains.h"
+#include "config_pages.h"
+#include "statuses.h"
+#include "bit_manip.h"
 #include "preprocessor.h"
 #include "comms_legacy.h"
-#include "logger.h"
+#include "modules/logging/logger.h"
 #include "page_crc.h"
 #include "board_definition.h"
+
+extern struct statuses currentStatus;
+extern struct config9 configPage9;
 
 uint8_t currentSecondaryCommand;
 SECONDARY_SERIAL_T* pSecondarySerial;
@@ -37,15 +31,17 @@ SECONDARY_SERIAL_T* pSecondarySerial;
 
 void secondserial_Command(void)
 {
-  //If the selected protocol is Tuner Studio then everything is routed via the primary serial functions but with the output diverted to the secondary serial interface
-  if(configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_TUNERSTUDIO)
+  const secondary_serial_config_t serial_config = get_secondary_serial_config(configPage9);
+
+  // Primary tuning comms must remain on the primary serial port.
+  if (serial_config.protocol() == SECONDARY_SERIAL_PROTO_TUNERSTUDIO)
   {
-    pPrimarySerial = pSecondarySerial; //Divert the output of all primary serial functions to the secondary serial interface
-    serialReceive();
-    if(serialStatusFlag == SERIAL_INACTIVE) { pPrimarySerial = &Serial; } //Reset serial to primary to ensure other requests can be handled. 
+    if (serialSecondaryStatusFlag == SERIAL_INACTIVE)
+    {
+      (void)secondarySerial.read();
+    }
     return;
   }
-
 
   if ( serialSecondaryStatusFlag == SERIAL_INACTIVE )  { currentSecondaryCommand = secondarySerial.read(); }
 
@@ -53,7 +49,7 @@ void secondserial_Command(void)
   {
     case 'A': 
       // sends a fixed 75 bytes of data. Used by Real Dash (Among others)
-      if(configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_GENERIC_FIXED) { sendValues(0, CAN_PACKET_SIZE, 0x31, secondarySerial, serialSecondaryStatusFlag, &getLegacySecondarySerialLogEntry); } // Send values using the legacy fixed byte order
+      if(serial_config.is_legacy_fixed_protocol()) { sendValues(0, CAN_PACKET_SIZE, 0x31, secondarySerial, serialSecondaryStatusFlag, &getLegacySecondarySerialLogEntry); } // Send values using the legacy fixed byte order
       else { sendValues(0, CAN_PACKET_SIZE, 0x31, secondarySerial, serialSecondaryStatusFlag); } //send values to serial3 using the order in the ini file
       break;
 
@@ -87,12 +83,12 @@ void secondserial_Command(void)
           {
             Gdata[Gx] = secondarySerial.read();
           }
-          Glow = Gdata[(configPage9.caninput_source_start_byte[destcaninchannel]&7)];
-          if ((BIT_CHECK(configPage9.caninput_source_num_bytes,destcaninchannel) > 0))  //if true then num bytes is 2
+          Glow = Gdata[(serial_config.caninput_start_byte(destcaninchannel) & 7U)];
+          if (serial_config.caninput_is_two_bytes(destcaninchannel))
           {
-            if ((configPage9.caninput_source_start_byte[destcaninchannel]&7) < 8)   //you can't have a 2 byte value starting at byte 7(8 on the list)
+            if ((serial_config.caninput_start_byte(destcaninchannel) & 7U) < 8U)
             {
-              Ghigh = Gdata[((configPage9.caninput_source_start_byte[destcaninchannel]&7)+1)];
+              Ghigh = Gdata[((serial_config.caninput_start_byte(destcaninchannel) & 7U) + 1U)];
             }
             else { Ghigh = 0; }
           }
@@ -119,7 +115,7 @@ void secondserial_Command(void)
       
     case 'n': // sends the bytes of realtime values from the NEW CAN list
       //sendValues(0, NEW_CAN_PACKET_SIZE, 0x32, secondarySerial, serialSecondaryStatusFlag); //send values to serial3
-      if(configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_GENERIC_FIXED) { sendValues(0, NEW_CAN_PACKET_SIZE, 0x32, secondarySerial, serialSecondaryStatusFlag, &getLegacySecondarySerialLogEntry); } // Send values using the legacy fixed byte order
+      if(serial_config.is_legacy_fixed_protocol()) { sendValues(0, NEW_CAN_PACKET_SIZE, 0x32, secondarySerial, serialSecondaryStatusFlag, &getLegacySecondarySerialLogEntry); } // Send values using the legacy fixed byte order
       else { sendValues(0, NEW_CAN_PACKET_SIZE, 0x32, secondarySerial, serialSecondaryStatusFlag); } //send values to serial3 using the order in the ini file
       break;
 
@@ -140,7 +136,7 @@ void secondserial_Command(void)
       break;
 
     case 'S': // send code version
-      if(configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_MSDROID) { legacySerialHandler('Q', secondarySerial, serialSecondaryStatusFlag); } //Note 'Q', this is a workaround for msDroid
+      if(serial_config.is_msdroid_protocol()) { legacySerialHandler('Q', secondarySerial, serialSecondaryStatusFlag); } //Note 'Q', this is a workaround for msDroid
       else { legacySerialHandler(currentSecondaryCommand, secondarySerial, serialSecondaryStatusFlag); }
       
       break;
@@ -150,54 +146,6 @@ void secondserial_Command(void)
 
     default:
        break;
-  }
-} 
-    
-// this routine sends a request(either "0" for a "G" , "1" for a "L" , "2" for a "R" to the Can interface or "3" sends the request via the actual local canbus
-void sendCancommand(uint8_t cmdtype, uint16_t canaddress, uint8_t candata1, uint8_t candata2, uint16_t sourcecanAddress)
-{
-  switch (cmdtype)
-  {
-    case 0:
-      secondarySerial.print("G");
-      secondarySerial.write(canaddress);  //tscanid of speeduino device
-      secondarySerial.write(candata1);    // table id
-      secondarySerial.write(candata2);    //table memory offset
-      break;
-
-    case 1:                      //send request to listen for a can message
-      secondarySerial.print("L");
-      secondarySerial.write(canaddress);  //11 bit canaddress of device to listen for
-      break;
-
-    case 2:                                          // requests via serial3
-      secondarySerial.print("R");                         //send "R" to request data from the sourcecanAddress whose value is sent next
-      secondarySerial.write(candata1);                    //the currentStatus.current_caninchannel
-      secondarySerial.write(lowByte(sourcecanAddress) );       //send lsb first
-      secondarySerial.write(highByte(sourcecanAddress) );
-      break;
-
-    case 3:
-      //send to truecan send routine
-      //canaddress == speeduino canid, candata1 == canin channel dest, paramgroup == can address  to request from
-      //This section is to be moved to the correct can output routine later
-      #if defined(NATIVE_CAN_AVAILABLE)
-      outMsg.id = (canaddress);
-      outMsg.len = 8;
-      outMsg.buf[0] = 0x0B ;  //11;   
-      outMsg.buf[1] = 0x15;
-      outMsg.buf[2] = candata1;
-      outMsg.buf[3] = 0x24;
-      outMsg.buf[4] = 0x7F;
-      outMsg.buf[5] = 0x70;
-      outMsg.buf[6] = 0x9E;
-      outMsg.buf[7] = 0x4D;
-      CAN_write();
-      #endif
-      break;
-
-    default:
-      break;
   }
 }
 

@@ -1,7 +1,17 @@
 #include <avr-fast-shift.h>
-#include "globals.h"
+#include "core_constants.h"
 #include "crankMaths.h"
 #include "preprocessor.h"
+
+#if SECOND_DERIV_ENABLED!=0
+#include "config_pages.h"
+#include "statuses.h"
+
+extern struct statuses currentStatus;
+extern struct config4 configPage4;
+extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];
+extern volatile unsigned int toothHistoryIndex;
+#endif
 
 #define SECOND_DERIV_ENABLED                0          
 

@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "scheduler.h"
 #include "comms.h"
 #include "comms_legacy.h"
-#include "comms_secondary.h"
+#include "modules/secondary_serial/secondary_serial.h"
 #include "maths.h"
 #include "corrections.h"
 #include "timers.h"
@@ -37,10 +37,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "crankMaths.h"
 #include "init.h"
 #include "utilities.h"
-#include "engineProtection.h"
-#include "secondaryTables.h"
-#include "comms_CAN.h"
-#include "SD_logger.h"
+#include "modules/advanced_engine/engineProtection.h"
 #include "schedule_calcs.h"
 #include "auxiliaries.h"
 #include "load_source.h"
@@ -50,8 +47,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "units.h"
 #include "fuel_calcs.h"
 #include "preprocessor.h"
+#include "config9_domains.h"
 #include "dwell.h"
 #include "decoder_init.h"
+#include "modules/advanced_engine/module_advanced_engine.h"
+#include "modules/comms_extended/module_comms_extended.h"
+#include "modules/secondary_serial/module_secondary_serial.h"
+#include "modules/logging/module_logging.h"
+#include "modules/table_switching/module_table_switching.h"
 
 #define CRANK_RUN_HYSTER    15
 
@@ -260,28 +263,9 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         serialReceive();
       }
       
-      //Check for any secondary comms requiring action. Note that AVR runs this at a fixed 30Hz. 
-      if (configPage9.enable_secondarySerial == 1)  //secondary serial interface enabled
-      {
-        #ifndef CORE_AVR
-          if (secondarySerial.available() > 0)  { secondserial_Command(); }
-        #else
-          if (secondarySerial.available() > SERIAL_BUFFER_THRESHOLD) { secondserial_Command(); } //Special case for AVR units. This prevents potential overflow of the receive buffer
-        #endif
-      }
-      #if defined (NATIVE_CAN_AVAILABLE)
-        if (configPage9.enable_intcan == 1) // use internal can module
-        {            
-          //check local can module
-          // if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_15HZ) or (CANbus0.available())
-          while (CAN_read()) 
-          {
-            can_Command();
-            readAuxCanBus();
-            if (configPage2.canWBO > 0) { receiveCANwbo(); }
-          }
-        }   
-      #endif
+      // Check for any secondary comms requiring action.
+      module_secondary_serial_poll(get_secondary_serial_config(configPage9));
+      module_comms_extended_poll(configPage9.enable_intcan, configPage2.canWBO);
           
     if(currentLoopTime > micros())
     {
@@ -327,11 +311,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         currentStatus.decoder = buildDecoder(configPage4.TrigPattern);
       }
 
-      vvt1Off();
-      vvt2Off();
-      DISABLE_VVT_TIMER();
-      boostDisable();
-      if(configPage4.ignBypassEnabled > 0) { digitalWrite(pinIgnBypass, LOW); } //Reset the ignition bypass ready for next crank attempt
+      module_advanced_engine_on_engine_stop(configPage4);
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
@@ -349,35 +329,15 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_50HZ);
 
-      #if defined(NATIVE_CAN_AVAILABLE)
-      sendCANBroadcast(50);
-      #endif
+      module_comms_extended_tick_50hz();
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_30HZ)) //30 hertz
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_30HZ);
-      //Most boost tends to run at about 30Hz, so placing it here ensures a new target time is fetched frequently enough
-      boostControl();
-      //VVT may eventually need to be synced with the cam readings (ie run once per cam rev) but for now run at 30Hz
-      vvtControl();
-      //Water methanol injection
-      wmiControl();
-      
-      #if defined(NATIVE_CAN_AVAILABLE)
-      sendCANBroadcast(30);
-      #endif
-
-      #ifdef SD_LOGGING
-        if(configPage13.onboard_log_file_rate == LOGGER_RATE_30HZ) { writeSDLogEntry(); }
-      #endif
-
-      //AVR units process secondary serial requests at a fixed 30Hz
-      #ifdef CORE_AVR
-      if( (configPage9.enable_secondarySerial == 1) && (secondarySerial.available() > 0) ) //secondary serial interface enabled
-      {
-        secondserial_Command();
-      }
-      #endif
+      module_advanced_engine_tick_30hz();
+      module_secondary_serial_tick_30hz(get_secondary_serial_config(configPage9));
+      module_comms_extended_tick_30hz();
+      module_logging_tick_30hz(configPage13);
 
       //Check for any outstanding EEPROM writes.
       if( (isEepromWritePending() == true) && (serialStatusFlag == SERIAL_INACTIVE) && storageWriteTimeoutExpired()) { saveAllPages(); } 
@@ -393,11 +353,8 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
           }
       #endif     
 
-      checkLaunchAndFlatShift(); //Check for launch control and flat shift being active
-
-      #if defined(NATIVE_CAN_AVAILABLE)
-      sendCANBroadcast(15);
-      #endif
+      module_advanced_engine_tick_15hz();
+      module_comms_extended_tick_15hz();
 
       //And check whether the tooth log buffer is ready
       if(toothHistoryIndex > TOOTH_LOG_SIZE) { currentStatus.isToothLog1Full = true; }
@@ -406,24 +363,15 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_10HZ);
       //updateFullStatus();
-      checkProgrammableIO();
       idleControl(); //Perform any idle related actions. This needs to be run at 10Hz to align with the idle taper resolution of 0.1s
-      
-      // Air conditioning control
-      airConControl();
-
-      #if defined(NATIVE_CAN_AVAILABLE)
-      sendCANBroadcast(10);
-      #endif
-
-      #ifdef SD_LOGGING
-        if(configPage13.onboard_log_file_rate == LOGGER_RATE_10HZ) { writeSDLogEntry(); }
-      #endif
+      module_advanced_engine_tick_10hz();
+      module_comms_extended_tick_10hz();
+      module_logging_tick_10hz(configPage13);
     }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_4HZ);
-      nitrousControl();
+      module_advanced_engine_tick_4hz();
 
       //Lookup the current target idle RPM. This is aligned with coolant and so needs to be calculated at the same rate CLT is read
       if( (configPage2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
@@ -432,66 +380,8 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         if(currentStatus.airconTurningOn) { currentStatus.CLIdleTarget += configPage15.airConIdleUpRPMAdder;  } //Adds Idle Up RPM amount if active
       }
 
-      #ifdef SD_LOGGING
-        if(configPage13.onboard_log_file_rate == LOGGER_RATE_4HZ) { writeSDLogEntry(); }
-      #endif  
-           
-      if(BIT_CHECK(statusSensors, BIT_SENSORS_AUX_ENBL))
-      {
-        //TODO dazq to clean this right up :)
-        //check through the Aux input channels if enabled for Can or local use
-        for (byte AuxinChan = 0; AuxinChan <16 ; AuxinChan++)
-        {
-          currentStatus.current_caninchannel = AuxinChan;          
-          
-          if (((configPage9.caninput_sel[currentStatus.current_caninchannel]&12) == 4) 
-              && (((configPage9.enable_secondarySerial == 1) && ((configPage9.enable_intcan == 0)&&(configPage9.intcan_available == 1)))
-              || ((configPage9.enable_secondarySerial == 1) && ((configPage9.enable_intcan == 1)&&(configPage9.intcan_available == 1))&& 
-              ((configPage9.caninput_sel[currentStatus.current_caninchannel]&64) == 0))
-              || ((configPage9.enable_secondarySerial == 1) && ((configPage9.enable_intcan == 1)&&(configPage9.intcan_available == 0)))))              
-          { //if current input channel is enabled as external & secondary serial enabled & internal can disabled(but internal can is available)
-            // or current input channel is enabled as external & secondary serial enabled & internal can enabled(and internal can is available)
-            //currentStatus.canin[13] = 11;  Dev test use only!
-            if (configPage9.enable_secondarySerial == 1)  // megas only support can via secondary serial
-            {
-              sendCancommand(2,0,currentStatus.current_caninchannel,0,((configPage9.caninput_source_can_address[currentStatus.current_caninchannel]&2047)+0x100));
-              //send an R command for data from caninput_source_address[currentStatus.current_caninchannel] from secondarySerial
-            }
-          }  
-          else if (((configPage9.caninput_sel[currentStatus.current_caninchannel]&12) == 4) 
-              && (((configPage9.enable_secondarySerial == 1) && ((configPage9.enable_intcan == 1)&&(configPage9.intcan_available == 1))&& 
-              ((configPage9.caninput_sel[currentStatus.current_caninchannel]&64) == 64))
-              || ((configPage9.enable_secondarySerial == 0) && ((configPage9.enable_intcan == 1)&&(configPage9.intcan_available == 1))&& 
-              ((configPage9.caninput_sel[currentStatus.current_caninchannel]&128) == 128))))                             
-          { //if current input channel is enabled as external for canbus & secondary serial enabled & internal can enabled(and internal can is available)
-            // or current input channel is enabled as external for canbus & secondary serial disabled & internal can enabled(and internal can is available)
-            //currentStatus.canin[13] = 12;  Dev test use only!  
-          #if defined(CORE_STM32) || defined(CORE_TEENSY)
-           if (configPage9.enable_intcan == 1) //  if internal can is enabled 
-           {
-              sendCancommand(3,configPage9.speeduino_tsCanId,currentStatus.current_caninchannel,0,((configPage9.caninput_source_can_address[currentStatus.current_caninchannel]&2047)+0x100));  
-              //send an R command for data from caninput_source_address[currentStatus.current_caninchannel] from internal canbus
-           }
-          #endif
-          }   
-          else if ((((configPage9.enable_secondarySerial == 1) || ((configPage9.enable_intcan == 1) && (configPage9.intcan_available == 1))) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&12) == 8)
-                  || (((configPage9.enable_secondarySerial == 0) && ( (configPage9.enable_intcan == 1) && (configPage9.intcan_available == 0) )) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&3) == 2)  
-                  || (((configPage9.enable_secondarySerial == 0) && (configPage9.enable_intcan == 0)) && ((configPage9.caninput_sel[currentStatus.current_caninchannel]&3) == 2)))  
-          { //if current input channel is enabled as analog local pin
-            //read analog channel specified
-            //currentStatus.canin[13] = (configPage9.Auxinpina[currentStatus.current_caninchannel]&63);  Dev test use only!127
-            currentStatus.canin[currentStatus.current_caninchannel] = readAuxanalog(pinTranslateAnalog(configPage9.Auxinpina[currentStatus.current_caninchannel]&63));
-          }
-          else if ((((configPage9.enable_secondarySerial == 1) || ((configPage9.enable_intcan == 1) && (configPage9.intcan_available == 1))) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&12) == 12)
-                  || (((configPage9.enable_secondarySerial == 0) && ( (configPage9.enable_intcan == 1) && (configPage9.intcan_available == 0) )) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&3) == 3)
-                  || (((configPage9.enable_secondarySerial == 0) && (configPage9.enable_intcan == 0)) && ((configPage9.caninput_sel[currentStatus.current_caninchannel]&3) == 3)))
-          { //if current input channel is enabled as digital local pin
-            //read digital channel specified
-            //currentStatus.canin[14] = ((configPage9.Auxinpinb[currentStatus.current_caninchannel]&63)+1);  Dev test use only!127+1
-            currentStatus.canin[currentStatus.current_caninchannel] = readAuxdigital((configPage9.Auxinpinb[currentStatus.current_caninchannel]&63)+1);
-          } //Channel type
-        } //For loop going through each channel
-      } //aux channels are enabled
+      module_logging_tick_4hz(configPage13);
+      module_comms_extended_tick_4hz(statusSensors, currentStatus, get_can_extended_config(configPage9));
     } //4Hz timer
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_1HZ)) //Once per second)
     {
@@ -512,15 +402,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         } 
       }
 
-      #ifdef SD_LOGGING
-        if(configPage13.onboard_log_file_rate == LOGGER_RATE_1HZ) { writeSDLogEntry(); }
-        //SD log sync can take up to 8ms on slow SD cards. To prevent potential issues we only perform this if the RPM is under a safe speed so that there will always be sufficient time for a main loop to run. 
-        //A sync will be forced if it hasn't taken place within a max period
-        if( (currentStatus.RPM < SD_SYNC_RPM_THRESHOLD) || (msSinceLastSDSync > SD_SYNC_MAX_TIME_PERIOD) )
-        { 
-          if(syncSDLog()) { msSinceLastSDSync = 0; } //Run SD sync and reset  
-        }
-      #endif
+      module_logging_tick_1hz(currentStatus, configPage13);
 
     } //1Hz timer
 
@@ -538,8 +420,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     currentStatus.advance1 = getAdvance1();
     currentStatus.advance = currentStatus.advance1; //Set the final advance value to be advance 1 as a default. This may be changed in the section below
 
-    calculateSecondaryFuel(configPage10, fuelTable2, currentStatus);
-    calculateSecondarySpark(configPage2, configPage10, ignitionTable2, currentStatus);
+    module_table_switching_apply(configPage2, configPage10, fuelTable2, ignitionTable2, currentStatus);
 
     //Always check for sync
     //Main loop runs within this clause
@@ -856,7 +737,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       //   }
       // }
       
-      currentStatus.schedulerCutState = calculateFuelIgnitionChannelCut(currentStatus, configPage2, configPage4, configPage6, configPage9, configPage10);
+      currentStatus.schedulerCutState = module_advanced_engine_scheduler_cut(currentStatus, configPage2, configPage4, configPage6, configPage9, configPage10);
       
       setFuelSchedules(currentStatus, injectionStartAngles, injectorLimits(currentStatus.decoder.getCrankAngle()), currentStatus.schedulerCutState.fuelChannels);
     

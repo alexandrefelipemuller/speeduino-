@@ -2,9 +2,14 @@
 #include "decoder_init.h"
 #include "decoders.h"
 #include "decoder_builder.h"
-#include "globals.h"
+#include "config_pages.h"
 #include "preprocessor.h"
 #include "unit_testing.h"
+
+extern struct config2 configPage2;
+extern byte pinTrigger;
+extern byte pinTrigger2;
+extern byte pinTrigger3;
 
 static decoder_t defaultInitFunc(void)
 {

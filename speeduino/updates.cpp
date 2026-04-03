@@ -8,12 +8,13 @@
  * When a user skips multiple firmware versions at a time, this will roll through the updates 1 at a time.
  * The doUpdates() uses may lower level routines from Arduino EEPROM library and storage.ino to carry out EEPROM storage tasks.
  */
-#include "globals.h"
 #include "storage.h"
+#include "table_registry.h"
+#include "tune_registry.h"
 #include "sensors.h"
 #include "updates.h"
 #include "pages.h"
-#include "comms_CAN.h"
+#include "modules/comms_extended/comms_CAN.h"
 #include "units.h"
 #include "unit_testing.h"
 

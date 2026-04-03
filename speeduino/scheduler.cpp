@@ -24,13 +24,20 @@ A full copy of the license may be found in the projects root directory
  * - ign*StartFunction() - Execute **start** of ignition (Interrupt handler)
  * - ign*EndFunction() - Execute **end** of ignition (Interrupt handler)
  */
-#include "globals.h"
 #include "scheduler.h"
+#include "config_pages.h"
+#include "core_constants.h"
+#include "statuses.h"
 #include "timers.h"
 #include "schedule_calcs.h"
 #include "preprocessor.h"
 #include "units.h"
 #include "schedule_state_machine.h"
+
+extern struct statuses currentStatus;
+extern struct config2 configPage2;
+extern struct config4 configPage4;
+extern volatile uint16_t ignitionCount;
 
 FuelSchedule fuelSchedule1(FUEL1_COUNTER, FUEL1_COMPARE); //cppcheck-suppress misra-c2012-8.4
 FuelSchedule fuelSchedule2(FUEL2_COUNTER, FUEL2_COMPARE); //cppcheck-suppress misra-c2012-8.4

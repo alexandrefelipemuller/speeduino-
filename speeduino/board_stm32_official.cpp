@@ -6,7 +6,7 @@
 #include "scheduler.h"
 #include "HardwareTimer.h"
 #include "timers.h"
-#include "comms_secondary.h"
+#include "modules/secondary_serial/secondary_serial.h"
 #include EEPROM_LIB_H
 
 #if HAL_CAN_MODULE_ENABLED

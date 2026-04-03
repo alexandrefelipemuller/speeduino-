@@ -9,7 +9,9 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "globals.h" // Needed for FPU_MAX_SIZE
+#include <stdint.h>
+#include "board_definition.h"
+#include "statuses.h"
 
 #ifndef UNIT_TEST // Scope guard for unit testing
   #define LOG_ENTRY_SIZE      138 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
@@ -24,18 +26,6 @@ int16_t getReadableLogEntry(uint16_t logIndex);
 #endif
 uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum);
 bool is2ByteEntry(uint8_t key);
-
-void startToothLogger(void);
-void stopToothLogger(void);
-
-void startCompositeLogger(void);
-void stopCompositeLogger(void);
-
-void startCompositeLoggerTertiary(void);
-void stopCompositeLoggerTertiary(void);
-
-void startCompositeLoggerCams(void);
-void stopCompositeLoggerCams(void);
 
 /** @brief Build the TunerStudio engine status byte from the current status */
 byte buildEngineStatus(const statuses &current);

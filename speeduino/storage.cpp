@@ -7,10 +7,13 @@ A full copy of the license may be found in the projects root directory
  * Lower level ConfigPage*, Table2D, Table3D and EEPROM storage operations.
  */
 
-#include "globals.h"
 #include "storage.h"
+#include "page_registry.h"
 #include "pages.h"
+#include "runtime_state.h"
 #include "sensors.h"
+#include "table_registry.h"
+#include "tune_registry.h"
 #include "utilities.h"
 #include "preprocessor.h"
 #include "unit_testing.h"
@@ -101,49 +104,14 @@ uint16_t STORAGE_SIZE = STORAGE_END;
 // This is *THE* single source of truth for mapping the tune
 // (I.e page entities) to EEPROM locations.
 TESTABLE_STATIC uint16_t getEntityStartAddress(page_iterator_t iter) {
-  struct entity_storage_map_t {
-      void *pEntity;
-      uint16_t eepromStartAddress;
-  };
-  // Store a map of entity to EEPROM address in FLASH memory.
-  static const entity_storage_map_t entityMap[] PROGMEM = {
-    { &fuelTable, EEPROM_CONFIG1_MAP },
-    { &configPage2, EEPROM_CONFIG2_START },
-    { &ignitionTable, EEPROM_CONFIG3_MAP },
-    { &configPage4, EEPROM_CONFIG4_START },
-    { &afrTable, EEPROM_CONFIG5_MAP },
-    { &configPage6, EEPROM_CONFIG6_START },
-    { &boostTable, EEPROM_CONFIG7_MAP1 }, 
-    { &vvtTable, EEPROM_CONFIG7_MAP2 }, 
-    { &stagingTable, EEPROM_CONFIG7_MAP3 },
-    { &trim1Table, EEPROM_CONFIG8_MAP1 },
-    { &trim2Table, EEPROM_CONFIG8_MAP2 },
-    { &trim3Table, EEPROM_CONFIG8_MAP3 },
-    { &trim4Table, EEPROM_CONFIG8_MAP4 },
-    { &trim5Table, EEPROM_CONFIG8_MAP5 },
-    { &trim6Table, EEPROM_CONFIG8_MAP6 },
-    { &trim7Table, EEPROM_CONFIG8_MAP7 },
-    { &trim8Table, EEPROM_CONFIG8_MAP8 },
-    { &configPage9, EEPROM_CONFIG9_START },
-    { &configPage10, EEPROM_CONFIG10_START },
-    { &fuelTable2, EEPROM_CONFIG11_MAP },
-    { &wmiTable, EEPROM_CONFIG12_MAP },
-    { &vvt2Table, EEPROM_CONFIG12_MAP2 },
-    { &dwellTable, EEPROM_CONFIG12_MAP3 },
-    { &configPage13, EEPROM_CONFIG13_START },
-    { &ignitionTable2, EEPROM_CONFIG14_MAP },
-    { &boostTableLookupDuty, EEPROM_CONFIG15_MAP },
-    { &configPage15, EEPROM_CONFIG15_START },
-  };
-  static const constexpr entity_storage_map_t* entityMapEnd = entityMap + _countof(entityMap);
+  const entity_storage_map_t *pMapEntry = getEntityStorageMap();
+  const entity_storage_map_t *entityMapEnd = pMapEntry + getEntityStorageMapSize();
 
-  // Linear search of the address map.
-  const entity_storage_map_t *pMapEntry = entityMap;
-  while ((pMapEntry!=entityMapEnd) && (iter.entity.pRaw!=pgm_read_ptr(&pMapEntry->pEntity))) {
+  while ((pMapEntry != entityMapEnd) && (iter.entity.pRaw != pgm_read_ptr(&pMapEntry->pEntity))) {
     ++pMapEntry;
   }
   uint16_t address = 0U;
-  if (pMapEntry!=entityMapEnd) {
+  if (pMapEntry != entityMapEnd) {
     address = pgm_read_word(&(pMapEntry->eepromStartAddress));
   }
   return address;

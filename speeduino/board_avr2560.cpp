@@ -3,7 +3,7 @@
 #if defined(CORE_AVR)
 #include "globals.h"
 #include "auxiliaries.h"
-#include "comms_secondary.h"
+#include "modules/secondary_serial/secondary_serial.h"
 #include "idle.h"
 #include "scheduler.h"
 #include "timers.h"

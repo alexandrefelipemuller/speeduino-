@@ -7,7 +7,9 @@ A full copy of the license may be found in the projects root directory
 #include "table2d.h"
 #include "maths.h"
 #if !defined(UNIT_TEST)
-#include "globals.h"
+#include "statuses.h"
+
+extern struct statuses currentStatus;
 #endif
 
 uint8_t _table2d_detail::getCacheTime(void) 

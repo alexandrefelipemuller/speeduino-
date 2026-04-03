@@ -1,8 +1,11 @@
 #ifndef CRANKMATHS_H
 #define CRANKMATHS_H
 
+#include <stdint.h>
 #include "maths.h"
-#include "globals.h"
+
+extern int CRANK_ANGLE_MAX_IGN;
+extern int CRANK_ANGLE_MAX_INJ;
 
 /**
  * @brief Makes one pass at nudging the angle to within [0,CRANK_ANGLE_MAX_IGN]

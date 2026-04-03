@@ -9,9 +9,12 @@ A full copy of the license may be found in the projects root directory
 #include "timers.h"
 #include "preprocessor.h"
 #include "src/PID_v1/PID_v1.h"
+#include "pin_registry.h"
+#include "table2d.h"
 #include "units.h"
 #include "port_pin.h"
-#include "globals.h"
+#include "runtime_state.h"
+#include "tune_registry.h"
 
 #define IDLE_PIN_LOW()  *idle_pin_port &= ~(idle_pin_mask)
 #define IDLE_PIN_HIGH() *idle_pin_port |= (idle_pin_mask)

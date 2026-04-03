@@ -1,5 +1,6 @@
-#include "globals.h"
 #include "board_definition.h"
+#include "config_pages.h"
+#include "statuses.h"
 
 #ifdef SD_LOGGING
 #include <SPI.h>
@@ -13,6 +14,10 @@
 #include "rtc_common.h"
 #include "maths.h"
 #include <elapsedMillis.h>
+
+extern struct statuses currentStatus;
+extern struct config13 configPage13;
+extern byte pinSDEnable;
 
 //List of logger field names. This must be in the same order and length as logger_updateLogdataCSV()
 constexpr char header_0[] PROGMEM = "secl";

@@ -5,7 +5,7 @@
 #include "idle.h"
 #include "scheduler.h"
 #include "timers.h"
-#include "comms_secondary.h"
+#include "modules/secondary_serial/secondary_serial.h"
 #include <InternalTemperature.h>
 #include RTC_LIB_H
 #include EEPROM_LIB_H

@@ -6,24 +6,45 @@ A full copy of the license may be found in the projects root directory
 /** @file
  * Process Incoming and outgoing serial communications.
  */
-#include "globals.h"
 #include "comms.h"
 #include "comms_legacy.h"
-#include "comms_secondary.h"
+#include "modules/secondary_serial/secondary_serial.h"
+#include "core_constants.h"
 #include "storage.h"
 #include "maths.h"
 #include "preprocessor.h"
 #include "decoders.h"
-#include "TS_CommandButtonHandler.h"
+#include "modules/logging/TS_CommandButtonHandler.h"
 #include "pages.h"
 #include "page_crc.h"
-#include "logger.h"
+#include "modules/logging/logger.h"
+#include "modules/logging/logger_controls.h"
 #include "board_definition.h"
 #ifdef RTC_ENABLED
-  #include "rtc_common.h"
+  #include "modules/logging/rtc_common.h"
 #endif
 #include "units.h"
 #include "sensors.h"
+
+extern struct statuses currentStatus;
+extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];
+extern volatile uint8_t compositeLogHistory[TOOTH_LOG_SIZE];
+extern volatile unsigned int toothHistoryIndex;
+extern byte resetControl;
+extern byte pinResetControl;
+extern struct config2 configPage2;
+extern struct config4 configPage4;
+extern struct config6 configPage6;
+extern struct config9 configPage9;
+extern struct table3d16RpmLoad fuelTable;
+extern struct table3d16RpmLoad fuelTable2;
+extern struct table3d16RpmLoad ignitionTable;
+extern struct table3d16RpmLoad ignitionTable2;
+extern struct table3d16RpmLoad afrTable;
+extern struct table3d8RpmLoad boostTable;
+extern struct table3d8RpmLoad boostTableLookupDuty;
+extern struct table3d8RpmLoad vvtTable;
+extern struct table3d6RpmLoad trim1Table;
 
 static byte currentPage = 1;//Not the same as the speeduino config page numbers
 bool firstCommsRequest = true; /**< The number of times the A command has been issued. This is used to track whether a reset has recently been performed on the controller */
@@ -339,7 +360,7 @@ void legacySerialCommand(void)
       break;
 
     case 'S': // send code version
-      if( (configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_MSDROID) || (configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_TUNERSTUDIO) ) { legacySerialHandler('Q', primarySerial, serialSecondaryStatusFlag); } //Note 'Q', this is a workaround for msDroid
+      if(configPage9.secondarySerialProtocol == SECONDARY_SERIAL_PROTO_MSDROID) { legacySerialHandler('Q', primarySerial, serialSecondaryStatusFlag); } //Note 'Q', this is a workaround for msDroid
       else { legacySerialHandler(currentCommand, primarySerial, serialStatusFlag); } //Send the bootloader capabilities
       currentStatus.secl = 0; //This is required in TS3 due to its stricter timings
       break;
