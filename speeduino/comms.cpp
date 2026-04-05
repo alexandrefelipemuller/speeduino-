@@ -7,6 +7,7 @@ A full copy of the license may be found in the projects root directory
    * Process Incoming and outgoing serial communications.
  */
 #include "comms.h"
+#include "logger_status.h"
 #include "core_constants.h"
 #include "storage.h"
 #include "maths.h"
@@ -901,8 +902,8 @@ void processSerialCommand(void)
 
     case 'T': //Send 256 tooth log entries to Tuner Studios tooth logger
       logItemsTransmitted = 0;
-      if(currentStatus.toothLogEnabled == true) { sendToothLog(); } //Sends tooth log values as ints
-      else if (currentStatus.compositeTriggerUsed > 0U) { sendCompositeLog(); }
+      if(currentLoggerStatus.tooth_log_enabled == true) { sendToothLog(); } //Sends tooth log values as ints
+      else if (currentLoggerStatus.composite_trigger_used > 0U) { sendCompositeLog(); }
       else { /* MISRA no-op */ }
       break;
 
@@ -1096,7 +1097,7 @@ void processSerialCommand(void)
 void sendToothLog(void)
 {
   //We need TOOTH_LOG_SIZE number of records to send to TunerStudio. If there aren't that many in the buffer then we just return and wait for the next call
-  if (currentStatus.isToothLog1Full == false) 
+  if (currentLoggerStatus.is_tooth_log_1_full == false)
   {
     //If the buffer is not yet full but TS has timed out, pad the rest of the buffer with 0s
     while(toothHistoryIndex < TOOTH_LOG_SIZE)
@@ -1133,7 +1134,7 @@ void sendToothLog(void)
     uint32_t transmitted = serialWrite(toothHistory[logItemsTransmitted]);
     CRC32_val = CRC32_serial.crc32_upd((const byte*)&transmitted, sizeof(transmitted));
   }
-  currentStatus.isToothLog1Full = false;
+  currentLoggerStatus.is_tooth_log_1_full = false;
   serialStatusFlag = SERIAL_INACTIVE;
   toothHistoryIndex = 0;
   logItemsTransmitted = 0;
@@ -1144,7 +1145,7 @@ void sendToothLog(void)
 
 void sendCompositeLog(void)
 {
-  if ( currentStatus.isToothLog1Full == false )
+  if ( currentLoggerStatus.is_tooth_log_1_full == false )
   {
     //If the buffer is not yet full but TS has timed out, pad the rest of the buffer with 0s
     while(toothHistoryIndex < TOOTH_LOG_SIZE)
@@ -1186,7 +1187,7 @@ void sendCompositeLog(void)
     writeByteReliableBlocking(compositeLogHistory[logItemsTransmitted]);
     CRC32_val = CRC32_serial.crc32_upd((const byte*)&compositeLogHistory[logItemsTransmitted], sizeof(compositeLogHistory[logItemsTransmitted]));
   }
-  currentStatus.isToothLog1Full = false;
+  currentLoggerStatus.is_tooth_log_1_full = false;
   toothHistoryIndex = 0;
   serialStatusFlag = SERIAL_INACTIVE;
   logItemsTransmitted = 0;

@@ -6,6 +6,7 @@ can_comms was originally contributed by Darren Siepka
 */
 
 #include "comms.h"
+#include "can_aux_status.h"
 #include "secondary_serial.h"
 #include "config9_domains.h"
 #include "config_pages.h"
@@ -97,7 +98,7 @@ void secondserial_Command(void)
           Ghigh = 0;
         }
 
-        currentStatus.canin[destcaninchannel] = (Ghigh<<8) | Glow;
+        currentCanAuxStatus.values[destcaninchannel] = (Ghigh<<8) | Glow;
       }
 
         else{}  //continue as command request failed and/or data/device was not available

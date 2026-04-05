@@ -5,6 +5,8 @@
  */
 
 #include "TS_CommandButtonHandler.h"
+
+#include "can_aux_status.h"
 #include "bit_manip.h"
 #include "config_pages.h"
 #include "core_constants.h"
@@ -305,7 +307,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
         if(configPage2.vssMode == VSS_MODE_INTERNAL_PIN)
         {
           //Calculate the ratio of VSS reading from Aux/CAN input and actual VSS (assuming that actual VSS is really 60km/h).
-          configPage2.vssPulsesPerKm = (currentStatus.canin[configPage2.vssAuxCh] / 60);
+          configPage2.vssPulsesPerKm = (currentCanAuxStatus.values[configPage2.vssAuxCh] / 60);
           savePage(veSetPage); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority
           currentStatus.vssUiRefresh = true;
         }

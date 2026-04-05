@@ -2,6 +2,7 @@
 #include "board_native.h"
 #include "auxiliaries.h"
 #include "idle.h"
+#include "preprocessor.h"
 #include "scheduler.h"
 #include "timers.h"
 

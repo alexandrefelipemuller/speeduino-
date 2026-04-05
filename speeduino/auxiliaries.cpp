@@ -4,6 +4,7 @@ Copyright (C) Josh Stewart
 A full copy of the license may be found in the projects root directory
 */
 #include "auxiliaries.h"
+#include "advanced_engine_status.h"
 #include "maths.h"
 #include "src/PID_v1/PID_v1.h"
 #include "decoders.h"
@@ -181,10 +182,10 @@ static void initAirConFanPin(uint8_t pin)
 }
 #endif
 
-#define AIRCON_ON()             ATOMIC() { ((((configPage15.airConCompPol)==1)) ? AIRCON_PIN_LOW() : AIRCON_PIN_HIGH()); currentStatus.airconCompressorOn = true; }
-#define AIRCON_OFF()            ATOMIC() { ((((configPage15.airConCompPol)==1)) ? AIRCON_PIN_HIGH() : AIRCON_PIN_LOW()); currentStatus.airconCompressorOn = false; }
-#define AIRCON_FAN_ON()         ATOMIC() { ((((configPage15.airConFanPol)==1)) ? AIRCON_FAN_PIN_LOW() : AIRCON_FAN_PIN_HIGH()); currentStatus.airconFanOn = true; }
-#define AIRCON_FAN_OFF()        ATOMIC() { ((((configPage15.airConFanPol)==1)) ? AIRCON_FAN_PIN_HIGH() : AIRCON_FAN_PIN_LOW()); currentStatus.airconFanOn = false; }
+#define AIRCON_ON()             ATOMIC() { ((((configPage15.airConCompPol)==1)) ? AIRCON_PIN_LOW() : AIRCON_PIN_HIGH()); currentAdvancedEngineStatus.aircon_compressor_on = true; }
+#define AIRCON_OFF()            ATOMIC() { ((((configPage15.airConCompPol)==1)) ? AIRCON_PIN_HIGH() : AIRCON_PIN_LOW()); currentAdvancedEngineStatus.aircon_compressor_on = false; }
+#define AIRCON_FAN_ON()         ATOMIC() { ((((configPage15.airConFanPol)==1)) ? AIRCON_FAN_PIN_LOW() : AIRCON_FAN_PIN_HIGH()); currentAdvancedEngineStatus.aircon_fan_on = true; }
+#define AIRCON_FAN_OFF()        ATOMIC() { ((((configPage15.airConFanPol)==1)) ? AIRCON_FAN_PIN_HIGH() : AIRCON_FAN_PIN_LOW()); currentAdvancedEngineStatus.aircon_fan_on = false; }
 
 #define READ_N2O_ARM_PIN()    ((*n2o_arming_pin_port & n2o_arming_pin_mask) ? true : false)
 
@@ -221,9 +222,9 @@ constexpr table2D_u8_s16_6 flexBoostTable(&configPage10.flexBoostBins, &configPa
 
 //Old PID method. Retained in case the new one has issues
 //integerPID boostPID(&MAPx100, &boost_pwm_target_value, &boostTargetx100, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT);
-static integerPID_ideal boostPID(&currentStatus.MAP, &currentStatus.boostDuty , &currentStatus.boostTarget, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-static integerPID vvtPID(&vvt_pid_current_angle, &currentStatus.vvt1Duty, &vvt_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage6.vvtPWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
-static integerPID vvt2PID(&vvt2_pid_current_angle, &currentStatus.vvt2Duty, &vvt2_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage4.vvt2PWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID_ideal boostPID(&currentStatus.MAP, &currentAdvancedEngineStatus.boost_duty , &currentAdvancedEngineStatus.boost_target, &configPage10.boostSens, &configPage10.boostIntv, configPage6.boostKP, configPage6.boostKI, configPage6.boostKD, DIRECT); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvtPID(&vvt_pid_current_angle, &currentAdvancedEngineStatus.vvt1_duty, &vvt_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage6.vvtPWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
+static integerPID vvt2PID(&vvt2_pid_current_angle, &currentAdvancedEngineStatus.vvt2_duty, &vvt2_pid_target_angle, configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD, configPage4.vvt2PWMdir); //This is the PID object if that algorithm is used. Needs to be global as it maintains state outside of each function call
 
 static inline void checkAirConCoolantLockout(void);
 static inline void checkAirConTPSLockout(void);
@@ -247,13 +248,13 @@ void initialiseAirCon(void)
     acTPSLockoutDelay = 0;
     acRPMLockoutDelay = 0;
 
-    currentStatus.airconRequested = false;
-    currentStatus.airconCompressorOn = false;
-    currentStatus.airconRpmLockout = false;
-    currentStatus.airconTpsLockout = false;
-    currentStatus.airconTurningOn = false;
-    currentStatus.airconCltLockout = false;
-    currentStatus.airconFanOn = false;
+    currentAdvancedEngineStatus.aircon_requested = false;
+    currentAdvancedEngineStatus.aircon_compressor_on = false;
+    currentAdvancedEngineStatus.aircon_rpm_lockout = false;
+    currentAdvancedEngineStatus.aircon_tps_lockout = false;
+    currentAdvancedEngineStatus.aircon_turning_on = false;
+    currentAdvancedEngineStatus.aircon_clt_lockout = false;
+    currentAdvancedEngineStatus.aircon_fan_on = false;
     initAirConRequestPin(configPage15, pinAirConRequest);
     initAirConCompressorPin(pinAirConComp);
   
@@ -286,8 +287,8 @@ static bool READ_AIRCON_REQUEST(void)
     return false;
   }
   // Read the status of the A/C request pin (A/C button), taking into account the pin's polarity
-  currentStatus.airconRequested = READ_AIRCON_REQ_PIN()==configPage15.airConReqPol;
-  return currentStatus.airconRequested;
+  currentAdvancedEngineStatus.aircon_requested = READ_AIRCON_REQ_PIN()==configPage15.airConReqPol;
+  return currentAdvancedEngineStatus.aircon_requested;
 }
 
 void airConControl(void)
@@ -327,12 +328,12 @@ void airConControl(void)
     // -----------------------------------------
     if( READ_AIRCON_REQUEST() == true &&
         waitedAfterCranking == true &&
-        currentStatus.airconTpsLockout == false &&
-        currentStatus.airconRpmLockout == false &&
-        currentStatus.airconCltLockout == false )
+        currentAdvancedEngineStatus.aircon_tps_lockout == false &&
+        currentAdvancedEngineStatus.aircon_rpm_lockout == false &&
+        currentAdvancedEngineStatus.aircon_clt_lockout == false )
     {
       // Set the flag bit to notify the idle system to idle up & the cooling fan to start (if enabled)
-      currentStatus.airconTurningOn = true;
+      currentAdvancedEngineStatus.aircon_turning_on = true;
 
       // Stand-alone fan operation
       if(acStandAloneFanIsEnabled == true)
@@ -352,7 +353,7 @@ void airConControl(void)
     }
     else
     {
-      currentStatus.airconTurningOn = false;
+      currentAdvancedEngineStatus.aircon_turning_on = false;
 
       // Stand-alone fan operation
       if(acStandAloneFanIsEnabled == true)
@@ -375,7 +376,7 @@ static inline void checkAirConCoolantLockout(void)
   if (currentStatus.coolant > offTemp)
   {
     // A/C is cut off due to high coolant
-    currentStatus.airconCltLockout = true;
+    currentAdvancedEngineStatus.aircon_clt_lockout = true;
   }
   else if (currentStatus.coolant < (offTemp - 1))
   {
@@ -385,7 +386,7 @@ static inline void checkAirConCoolantLockout(void)
     // because the coolant temp is an integer. So 98.5 degrees to 100.5 degrees is the analog null zone where nothing happens,
     // depending on sensor calibration and table interpolation.
     // Hopefully offTemp wasn't -40... otherwise underflow... but that would be ridiculous
-    currentStatus.airconCltLockout = false;
+    currentAdvancedEngineStatus.aircon_clt_lockout = false;
   }
 }
 
@@ -397,16 +398,16 @@ static inline void checkAirConTPSLockout(void)
   if (currentStatus.TPS > configPage15.airConTPSCut)
   {
     // A/C is cut off due to high TPS
-    currentStatus.airconTpsLockout = true;
+    currentAdvancedEngineStatus.aircon_tps_lockout = true;
     acTPSLockoutDelay = 0;
   }
-  else if ( (currentStatus.airconTpsLockout == true) &&
+  else if ( (currentAdvancedEngineStatus.aircon_tps_lockout == true) &&
             (currentStatus.TPS <= configPage15.airConTPSCut) )
   {
     // No need for hysteresis as we have the stand-down delay period after the high TPS condition goes away.
     if (acTPSLockoutDelay >= configPage15.airConTPSCutTime)
     {
-      currentStatus.airconTpsLockout = false;
+      currentAdvancedEngineStatus.aircon_tps_lockout = false;
     }
     else
     {
@@ -428,7 +429,7 @@ static inline void checkAirConRPMLockout(void)
        (currentStatus.RPMdiv100 > configPage15.airConMaxRPMdiv100) )
   {
     // A/C is cut off due to high/low RPM
-    currentStatus.airconRpmLockout = true;
+    currentAdvancedEngineStatus.aircon_rpm_lockout = true;
     acRPMLockoutDelay = 0;
   }
   else if ( (currentStatus.RPM >= (configPage15.airConMinRPMdiv10 * 10)) &&
@@ -437,7 +438,7 @@ static inline void checkAirConRPMLockout(void)
     // No need to add hysteresis as we have the stand-down delay period after the high/low RPM condition goes away.
     if (acRPMLockoutDelay >= configPage15.airConRPMCutTime)
     {
-      currentStatus.airconRpmLockout = false;
+      currentAdvancedEngineStatus.aircon_rpm_lockout = false;
     }
     else
     {
@@ -552,8 +553,8 @@ void initialiseFan(uint8_t fanPin)
   pinMode(pinFan, OUTPUT);
   initialiseFanPin(fanPin);
   fanOff();  //Initialise program with the fan in the off state
-  currentStatus.fanOn = false;
-  currentStatus.fanDuty = 0;
+  currentAdvancedEngineStatus.fan_on = false;
+  currentAdvancedEngineStatus.fan_duty = 0;
 
   #if defined(PWM_FAN_AVAILABLE)
     DISABLE_FAN_TIMER(); //disable FAN timer if available
@@ -582,26 +583,26 @@ void fanControl(void)
     if ( (fanPermit == true) &&
          ((currentStatus.coolant >= onTemp) || 
            ((configPage15.airConTurnsFanOn) == 1 &&
-           currentStatus.airconTurningOn == true)) )
+           currentAdvancedEngineStatus.aircon_turning_on == true)) )
     {
       //Fan needs to be turned on - either by high coolant temp, or from an A/C request (to ensure there is airflow over the A/C radiator).
       if((currentStatus.engineIsCranking) && (configPage2.fanWhenCranking == 0))
       {
         //If the user has elected to disable the fan during cranking, make sure it's off 
         fanOff();
-        currentStatus.fanOn = false;
+        currentAdvancedEngineStatus.fan_on = false;
       }
       else 
       {
         fanOn();
-        currentStatus.fanOn = true;
+        currentAdvancedEngineStatus.fan_on = true;
       }
     }
     else if ( (currentStatus.coolant <= offTemp) || (!fanPermit) )
     {
       //Fan needs to be turned off. 
       fanOff();
-      currentStatus.fanOn = false;
+      currentAdvancedEngineStatus.fan_on = false;
     }
   }
   else if( configPage2.fanEnable == 2 )// PWM Fan control
@@ -613,8 +614,8 @@ void fanControl(void)
       {
       if((currentStatus.engineIsCranking) && (configPage2.fanWhenCranking == 0))
       {
-        currentStatus.fanDuty = 0; //If the user has elected to disable the fan during cranking, make sure it's off 
-        currentStatus.fanOn = false;
+        currentAdvancedEngineStatus.fan_duty = 0; //If the user has elected to disable the fan during cranking, make sure it's off 
+        currentAdvancedEngineStatus.fan_on = false;
         #if defined(PWM_FAN_AVAILABLE)//PWM fan not available on Arduino MEGA
           DISABLE_FAN_TIMER();
         #endif
@@ -623,7 +624,7 @@ void fanControl(void)
       {
         byte tempFanDuty = table2D_getValue(&fanPWMTable, temperatureAddOffset(currentStatus.coolant)); //In normal situation read PWM duty from the table
         if((configPage15.airConTurnsFanOn) == 1 &&
-           currentStatus.airconTurningOn == true)
+           currentAdvancedEngineStatus.aircon_turning_on == true)
         {
           // Clamp the fan duty to airConPwmFanMinDuty or above, to ensure there is airflow over the A/C radiator
           if(tempFanDuty < configPage15.airConPwmFanMinDuty)
@@ -631,50 +632,50 @@ void fanControl(void)
             tempFanDuty = configPage15.airConPwmFanMinDuty;
           }
         }
-        currentStatus.fanDuty = tempFanDuty;
+        currentAdvancedEngineStatus.fan_duty = tempFanDuty;
         #if defined(PWM_FAN_AVAILABLE)
-          fan_pwm_value = halfPercentage(currentStatus.fanDuty, fan_pwm_max_count); //update FAN PWM value last
-          if (currentStatus.fanDuty > 0)
+          fan_pwm_value = halfPercentage(currentAdvancedEngineStatus.fan_duty, fan_pwm_max_count); //update FAN PWM value last
+          if (currentAdvancedEngineStatus.fan_duty > 0)
           {
             ENABLE_FAN_TIMER();
-            currentStatus.fanOn = true;
+            currentAdvancedEngineStatus.fan_on = true;
           }
         #endif
       }
     }
     else if (!fanPermit)
     {
-      currentStatus.fanDuty = 0; ////If the user has elected to disable the fan when engine is not running, make sure it's off 
-      currentStatus.fanOn = false;
+      currentAdvancedEngineStatus.fan_duty = 0; ////If the user has elected to disable the fan when engine is not running, make sure it's off 
+      currentAdvancedEngineStatus.fan_on = false;
     }
 
     #if defined(PWM_FAN_AVAILABLE)
-      if(currentStatus.fanDuty == 0)
+      if(currentAdvancedEngineStatus.fan_duty == 0)
       {
         //Make sure fan has 0% duty)
         fanOff();
-        currentStatus.fanOn = false;
+        currentAdvancedEngineStatus.fan_on = false;
         DISABLE_FAN_TIMER();
       }
-      else if (currentStatus.fanDuty == 200)
+      else if (currentAdvancedEngineStatus.fan_duty == 200)
       {
         //Make sure fan has 100% duty
         fanOn();
-        currentStatus.fanOn = true;
+        currentAdvancedEngineStatus.fan_on = true;
         DISABLE_FAN_TIMER();
       }
     #else //Just in case if user still has selected PWM fan in TS, even though it warns that it doesn't work on mega.
-      if(currentStatus.fanDuty == 0)
+      if(currentAdvancedEngineStatus.fan_duty == 0)
       {
         //Make sure fan has 0% duty)
         fanOff();
-        currentStatus.fanOn = false;
+        currentAdvancedEngineStatus.fan_on = false;
       }
-      else if (currentStatus.fanDuty > 0)
+      else if (currentAdvancedEngineStatus.fan_duty > 0)
       {
         //Make sure fan has 100% duty
         fanOn();
-        currentStatus.fanOn = true;
+        currentAdvancedEngineStatus.fan_on = true;
       }
     #endif
   }
@@ -732,8 +733,8 @@ void initialiseAuxPWM(void)
 
   if( configPage6.vvtEnabled > 0)
   {
-    currentStatus.vvt1Angle = 0;
-    currentStatus.vvt2Angle = 0;
+    currentAdvancedEngineStatus.vvt1_angle = 0;
+    currentAdvancedEngineStatus.vvt2_angle = 0;
 
     #if defined(CORE_AVR)
       vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 16uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
@@ -761,8 +762,8 @@ void initialiseAuxPWM(void)
     vvt1_pwm_value = 0;
     vvt2_pwm_value = 0;
     ENABLE_VVT_TIMER(); //Turn on the B compare unit (ie turn on the interrupt)
-    currentStatus.vvt1AngleError = false;
-    currentStatus.vvt2AngleError = false;
+    currentAdvancedEngineStatus.vvt1_angle_error = false;
+    currentAdvancedEngineStatus.vvt2_angle_error = false;
     vvtTimeHold = false;
     if (currentStatus.coolant >= temperatureRemoveOffset(configPage4.vvtMinClt)) { vvtIsHot = true; } //Checks to see if coolant's already at operating temperature
   }
@@ -777,20 +778,20 @@ void initialiseAuxPWM(void)
     #elif defined(CORE_TEENSY41)
       vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (2U * configPage6.vvtFreq * 2U)); //Converts the frequency in Hz to the number of ticks (at 2uS) it takes to complete 1 cycle. Note that the frequency is divided by 2 coming from TS to allow for up to 512hz
     #endif
-   currentStatus.wmiTankEmpty = false;
-    currentStatus.wmiPW = 0;
+   currentAdvancedEngineStatus.wmi_tank_empty = false;
+    currentAdvancedEngineStatus.wmi_pw = 0;
     vvt1_pwm_value = 0;
     vvt2_pwm_value = 0;
     ENABLE_VVT_TIMER(); //Turn on the B compare unit (ie turn on the interrupt)
   }
 
-  currentStatus.boostDuty = 0;
+  currentAdvancedEngineStatus.boost_duty = 0;
   boostCounter = 0;
-  currentStatus.vvt1Duty = 0;
-  currentStatus.vvt2Duty = 0;
+  currentAdvancedEngineStatus.vvt1_duty = 0;
+  currentAdvancedEngineStatus.vvt2_duty = 0;
   vvtCounter = 0;
 
-  currentStatus.nitrous_status = NITROUS_OFF;
+  currentAdvancedEngineStatus.nitrous_status = NITROUS_OFF;
 }
 
 static void boostByGear(void)
@@ -804,33 +805,33 @@ static void boostByGear(void)
       {
         case 1:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear1 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
-          if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-          else{ currentStatus.boostDuty = 10000; }
+          if( combinedBoost <= 10000 ){ currentAdvancedEngineStatus.boost_duty = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_duty = 10000; }
           break;
         case 2:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear2 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
-          if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-          else{ currentStatus.boostDuty = 10000; }
+          if( combinedBoost <= 10000 ){ currentAdvancedEngineStatus.boost_duty = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_duty = 10000; }
           break;
         case 3:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear3 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
-          if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-          else{ currentStatus.boostDuty = 10000; }
+          if( combinedBoost <= 10000 ){ currentAdvancedEngineStatus.boost_duty = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_duty = 10000; }
           break;
         case 4:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear4 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
-          if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-          else{ currentStatus.boostDuty = 10000; }
+          if( combinedBoost <= 10000 ){ currentAdvancedEngineStatus.boost_duty = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_duty = 10000; }
           break;
         case 5:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear5 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
-          if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-          else{ currentStatus.boostDuty = 10000; }
+          if( combinedBoost <= 10000 ){ currentAdvancedEngineStatus.boost_duty = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_duty = 10000; }
           break;
         case 6:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear6 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM))  ) << 2;
-          if( combinedBoost <= 10000 ){ currentStatus.boostDuty = combinedBoost; }
-          else{ currentStatus.boostDuty = 10000; }
+          if( combinedBoost <= 10000 ){ currentAdvancedEngineStatus.boost_duty = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_duty = 10000; }
           break;
         default:
           break;
@@ -841,22 +842,22 @@ static void boostByGear(void)
       switch (currentStatus.gear)
       {
         case 1:
-          currentStatus.boostDuty = configPage9.boostByGear1 * 2 * 100;
+          currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear1 * 2 * 100;
           break;
         case 2:
-          currentStatus.boostDuty = configPage9.boostByGear2 * 2 * 100;
+          currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear2 * 2 * 100;
           break;
         case 3:
-          currentStatus.boostDuty = configPage9.boostByGear3 * 2 * 100;
+          currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear3 * 2 * 100;
           break;
         case 4:
-          currentStatus.boostDuty = configPage9.boostByGear4 * 2 * 100;
+          currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear4 * 2 * 100;
           break;
         case 5:
-          currentStatus.boostDuty = configPage9.boostByGear5 * 2 * 100;
+          currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear5 * 2 * 100;
           break;
         case 6:
-          currentStatus.boostDuty = configPage9.boostByGear6 * 2 * 100;
+          currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear6 * 2 * 100;
           break;
         default:
           break;
@@ -872,33 +873,33 @@ static void boostByGear(void)
       {
         case 1:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear1 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
-          if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-          else{ currentStatus.boostTarget = 511; }
+          if( combinedBoost <= 511 ){ currentAdvancedEngineStatus.boost_target = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_target = 511; }
           break;
         case 2:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear2 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
-          if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-          else{ currentStatus.boostTarget = 511; }
+          if( combinedBoost <= 511 ){ currentAdvancedEngineStatus.boost_target = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_target = 511; }
           break;
         case 3:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear3 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
-          if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-          else{ currentStatus.boostTarget = 511; }
+          if( combinedBoost <= 511 ){ currentAdvancedEngineStatus.boost_target = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_target = 511; }
           break;
         case 4:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear4 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
-          if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-          else{ currentStatus.boostTarget = 511; }
+          if( combinedBoost <= 511 ){ currentAdvancedEngineStatus.boost_target = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_target = 511; }
           break;
         case 5:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear5 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
-          if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-          else{ currentStatus.boostTarget = 511; }
+          if( combinedBoost <= 511 ){ currentAdvancedEngineStatus.boost_target = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_target = 511; }
           break;
         case 6:
           combinedBoost = ( ((uint16_t)configPage9.boostByGear6 * (uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM)) / 100 ) << 2;
-          if( combinedBoost <= 511 ){ currentStatus.boostTarget = combinedBoost; }
-          else{ currentStatus.boostTarget = 511; }
+          if( combinedBoost <= 511 ){ currentAdvancedEngineStatus.boost_target = combinedBoost; }
+          else{ currentAdvancedEngineStatus.boost_target = 511; }
           break;
         default:
           break;
@@ -909,22 +910,22 @@ static void boostByGear(void)
       switch (currentStatus.gear)
       {
         case 1:
-          currentStatus.boostTarget = (configPage9.boostByGear1 << 1);
+          currentAdvancedEngineStatus.boost_target = (configPage9.boostByGear1 << 1);
           break;
         case 2:
-          currentStatus.boostTarget = (configPage9.boostByGear2 << 1);
+          currentAdvancedEngineStatus.boost_target = (configPage9.boostByGear2 << 1);
           break;
         case 3:
-          currentStatus.boostTarget = (configPage9.boostByGear3 << 1);
+          currentAdvancedEngineStatus.boost_target = (configPage9.boostByGear3 << 1);
           break;
         case 4:
-          currentStatus.boostTarget = (configPage9.boostByGear4 << 1);
+          currentAdvancedEngineStatus.boost_target = (configPage9.boostByGear4 << 1);
           break;
         case 5:
-          currentStatus.boostTarget = (configPage9.boostByGear5 << 1);
+          currentAdvancedEngineStatus.boost_target = (configPage9.boostByGear5 << 1);
           break;
         case 6:
-          currentStatus.boostTarget = (configPage9.boostByGear6 << 1);
+          currentAdvancedEngineStatus.boost_target = (configPage9.boostByGear6 << 1);
           break;
         default:
           break;
@@ -941,13 +942,13 @@ void boostControl(void)
     {
       //Open loop
       if ( (configPage9.boostByGearEnabled > 0) && isExternalVssMode(configPage2) ){ boostByGear(); }
-      else{ currentStatus.boostDuty = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) * 2 * 100; }
+      else{ currentAdvancedEngineStatus.boost_duty = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) * 2 * 100; }
 
-      if(currentStatus.boostDuty > 10000) { currentStatus.boostDuty = 10000; } //Safety check
-      if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
+      if(currentAdvancedEngineStatus.boost_duty > 10000) { currentAdvancedEngineStatus.boost_duty = 10000; } //Safety check
+      if(currentAdvancedEngineStatus.boost_duty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
       else
       {
-        boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
+        boost_pwm_target_value = ((unsigned long)(currentAdvancedEngineStatus.boost_duty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
       }
     }
     else if (configPage4.boostType == CLOSED_LOOP_BOOST)
@@ -955,24 +956,24 @@ void boostControl(void)
       if( (boostCounter & 7) == 1) 
       { 
         if ( (configPage9.boostByGearEnabled > 0) && isExternalVssMode(configPage2) ){ boostByGear(); }
-        else{ currentStatus.boostTarget = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) << 1; } //Boost target table is in kpa and divided by 2
+        else{ currentAdvancedEngineStatus.boost_target = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) << 1; } //Boost target table is in kpa and divided by 2
 
         //If flex fuel is enabled, there can be an adder to the boost target based on ethanol content
         if( configPage2.flexEnabled == 1 )
         {
-          currentStatus.flexBoostCorrection = table2D_getValue(&flexBoostTable, currentStatus.ethanolPct);
-          currentStatus.boostTarget += currentStatus.flexBoostCorrection;
-          currentStatus.boostTarget = min(currentStatus.boostTarget, (uint16_t)511U);
+          currentAdvancedEngineStatus.flex_boost_correction = table2D_getValue(&flexBoostTable, currentStatus.ethanolPct);
+          currentAdvancedEngineStatus.boost_target += currentAdvancedEngineStatus.flex_boost_correction;
+          currentAdvancedEngineStatus.boost_target = min(currentAdvancedEngineStatus.boost_target, (uint16_t)511U);
         }
         else
         {
-          currentStatus.flexBoostCorrection = 0;
+          currentAdvancedEngineStatus.flex_boost_correction = 0;
         }
       } 
 
       if(((configPage15.boostControlEnable == EN_BOOST_CONTROL_BARO) && (currentStatus.MAP >= currentStatus.baro)) || ((configPage15.boostControlEnable == EN_BOOST_CONTROL_FIXED) && (currentStatus.MAP >= configPage15.boostControlEnableThreshold))) //Only enables boost control above baro pressure or above user defined threshold (User defined level is usually set to boost with wastegate actuator only boost level)
       {
-        if(currentStatus.boostTarget > 0)
+        if(currentAdvancedEngineStatus.boost_target > 0)
         {
           //This only needs to be run very infrequently, once every 16 calls to boostControl(). This is approx. once per second
           if( (boostCounter & 15) == 1)
@@ -983,13 +984,13 @@ void boostControl(void)
             else { boostPID.SetTunings(configPage6.boostKP, configPage6.boostKI, configPage6.boostKD); }
           }
 
-          bool PIDcomputed = boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentStatus.boostTarget, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
-          if(currentStatus.boostDuty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
+          bool PIDcomputed = boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentAdvancedEngineStatus.boost_target, currentStatus.RPM) * 100/2); //Compute() returns false if the required interval has not yet passed.
+          if(currentAdvancedEngineStatus.boost_duty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); } //If boost duty is 0, shut everything down
           else
           {
             if(PIDcomputed == true)
             {
-              boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
+              boost_pwm_target_value = ((unsigned long)(currentAdvancedEngineStatus.boost_duty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
             }
           }
         }
@@ -1003,20 +1004,20 @@ void boostControl(void)
       {
         boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
         //Boost control needs to have a high duty cycle if control is below threshold (baro or fixed value). This ensures the waste gate is closed as much as possible, this build boost as fast as possible.
-        currentStatus.boostDuty = configPage15.boostDCWhenDisabled*100;
-        boost_pwm_target_value = ((unsigned long)(currentStatus.boostDuty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
+        currentAdvancedEngineStatus.boost_duty = configPage15.boostDCWhenDisabled*100;
+        boost_pwm_target_value = ((unsigned long)(currentAdvancedEngineStatus.boost_duty) * boost_pwm_max_count) / 10000; //Convert boost duty (Which is a % multiplied by 100) to a pwm count
         ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty >0
-        if(currentStatus.boostDuty == 0) { boostDisable(); } //If boost control does nothing disable PWM completely
+        if(currentAdvancedEngineStatus.boost_duty == 0) { boostDisable(); } //If boost control does nothing disable PWM completely
       } //MAP above boost + hyster
     } //Open / Cloosed loop
 
     //Check for 100% duty cycle
-    if(currentStatus.boostDuty >= 10000)
+    if(currentAdvancedEngineStatus.boost_duty >= 10000)
     {
       DISABLE_BOOST_TIMER(); //Turn off the compare unit (ie turn off the interrupt) if boost duty is 100%
       BOOST_PIN_HIGH(); //Turn on boost pin if duty is 100%
     }
-    else if(currentStatus.boostDuty > 0)
+    else if(currentAdvancedEngineStatus.boost_duty > 0)
     {
       ENABLE_BOOST_TIMER(); //Turn on the compare unit (ie turn on the interrupt) if boost duty is > 0
     }
@@ -1024,7 +1025,7 @@ void boostControl(void)
   }
   else { // Disable timer channel and zero the flex boost correction status
     DISABLE_BOOST_TIMER();
-    currentStatus.flexBoostCorrection = 0;
+    currentAdvancedEngineStatus.flex_boost_correction = 0;
   }
 
   boostCounter++;
@@ -1058,7 +1059,7 @@ void vvtControl(void)
     }
 
     //Calculate the current cam angle for miata trigger
-    if( configPage4.TrigPattern == 9 ) { currentStatus.vvt1Angle = getCamAngle_Miata9905(); }
+    if( configPage4.TrigPattern == 9 ) { currentAdvancedEngineStatus.vvt1_angle = getCamAngle_Miata9905(); }
 
     if( (vvtIsHot == true) || ((runSecsX10 - vvtWarmTime) >= (configPage4.vvtDelay * VVT_TIME_DELAY_MULTIPLIER)) ) 
     {
@@ -1067,100 +1068,100 @@ void vvtControl(void)
       if( (configPage6.vvtMode == VVT_MODE_OPEN_LOOP) || (configPage6.vvtMode == VVT_MODE_ONOFF) )
       {
         //Lookup VVT duty based on either MAP or TPS
-        if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.vvt1Duty = get3DTableValue(&vvtTable, (currentStatus.TPS * 2U), currentStatus.RPM); }
-        else { currentStatus.vvt1Duty = get3DTableValue(&vvtTable, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
+        if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentAdvancedEngineStatus.vvt1_duty = get3DTableValue(&vvtTable, (currentStatus.TPS * 2U), currentStatus.RPM); }
+        else { currentAdvancedEngineStatus.vvt1_duty = get3DTableValue(&vvtTable, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
 
         //VVT table can be used for controlling on/off switching. If this is turned on, then disregard any interpolation or non-binary values
-        if( (configPage6.vvtMode == VVT_MODE_ONOFF) && (currentStatus.vvt1Duty < 200) ) { currentStatus.vvt1Duty = 0; }
+        if( (configPage6.vvtMode == VVT_MODE_ONOFF) && (currentAdvancedEngineStatus.vvt1_duty < 200) ) { currentAdvancedEngineStatus.vvt1_duty = 0; }
 
-        vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count);
+        vvt1_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt1_duty, vvt_pwm_max_count);
 
         if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
         {
           //Lookup VVT duty based on either MAP or TPS
-          if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.vvt2Duty = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2U), currentStatus.RPM); }
-          else { currentStatus.vvt2Duty = get3DTableValue(&vvt2Table, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
+          if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentAdvancedEngineStatus.vvt2_duty = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2U), currentStatus.RPM); }
+          else { currentAdvancedEngineStatus.vvt2_duty = get3DTableValue(&vvt2Table, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
 
           //VVT table can be used for controlling on/off switching. If this is turned on, then disregard any interpolation or non-binary values
-          if( (configPage6.vvtMode == VVT_MODE_ONOFF) && (currentStatus.vvt2Duty < 200) ) { currentStatus.vvt2Duty = 0; }
+          if( (configPage6.vvtMode == VVT_MODE_ONOFF) && (currentAdvancedEngineStatus.vvt2_duty < 200) ) { currentAdvancedEngineStatus.vvt2_duty = 0; }
 
-          vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count);
+          vvt2_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt2_duty, vvt_pwm_max_count);
         }
 
       } //Open loop
       else if( (configPage6.vvtMode == VVT_MODE_CLOSED_LOOP) )
       {
         //Lookup VVT duty based on either MAP or TPS
-        if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.vvt1TargetAngle = get3DTableValue(&vvtTable, (currentStatus.TPS * 2U), currentStatus.RPM); }
-        else { currentStatus.vvt1TargetAngle = get3DTableValue(&vvtTable, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
+        if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentAdvancedEngineStatus.vvt1_target_angle = get3DTableValue(&vvtTable, (currentStatus.TPS * 2U), currentStatus.RPM); }
+        else { currentAdvancedEngineStatus.vvt1_target_angle = get3DTableValue(&vvtTable, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
 
         if( (vvtCounter & 31) == 1) { vvtPID.SetTunings(configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD);  //This only needs to be run very infrequently, once every 32 calls to vvtControl(). This is approx. once per second
         vvtPID.SetControllerDirection(configPage6.vvtPWMdir); }
 
         // safety check that the cam angles are ok. The engine will be totally undriveable if the cam sensor is faulty and giving wrong cam angles, so if that happens, default to 0 duty.
         // This also prevents using zero or negative current angle values for PID adjustment, because those don't work in integer PID.
-        if ( currentStatus.vvt1Angle <=  configPage10.vvtCLMinAng || currentStatus.vvt1Angle > configPage10.vvtCLMaxAng )
+        if ( currentAdvancedEngineStatus.vvt1_angle <=  configPage10.vvtCLMinAng || currentAdvancedEngineStatus.vvt1_angle > configPage10.vvtCLMaxAng )
         {
-          currentStatus.vvt1Duty = 0;
-          vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count);
-          currentStatus.vvt1AngleError = true;
+          currentAdvancedEngineStatus.vvt1_duty = 0;
+          vvt1_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt1_duty, vvt_pwm_max_count);
+          currentAdvancedEngineStatus.vvt1_angle_error = true;
         }
         //Check that we're not already at the angle we want to be
-        else if((configPage6.vvtCLUseHold > 0) && (currentStatus.vvt1TargetAngle == currentStatus.vvt1Angle) )
+        else if((configPage6.vvtCLUseHold > 0) && (currentAdvancedEngineStatus.vvt1_target_angle == currentAdvancedEngineStatus.vvt1_angle) )
         {
-          currentStatus.vvt1Duty = configPage10.vvtCLholdDuty;
-          vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count);
+          currentAdvancedEngineStatus.vvt1_duty = configPage10.vvtCLholdDuty;
+          vvt1_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt1_duty, vvt_pwm_max_count);
           vvtPID.Initialize();
-          currentStatus.vvt1AngleError = false;
+          currentAdvancedEngineStatus.vvt1_angle_error = false;
         }
         else
         {
           //This is dumb, but need to convert the current angle into a long pointer.
-          vvt_pid_target_angle = (unsigned long)currentStatus.vvt1TargetAngle;
-          vvt_pid_current_angle = (long)currentStatus.vvt1Angle;
+          vvt_pid_target_angle = (unsigned long)currentAdvancedEngineStatus.vvt1_target_angle;
+          vvt_pid_current_angle = (long)currentAdvancedEngineStatus.vvt1_angle;
 
           //If not already at target angle, calculate new value from PID
           bool PID_compute = vvtPID.Compute(true);
           //vvtPID.Compute2(currentStatus.vvt1TargetAngle, currentStatus.vvt1Angle, false);
           //vvt_pwm_target_value = percentage(40, vvt_pwm_max_count);
           //if (currentStatus.vvt1Angle > currentStatus.vvt1TargetAngle) { vvt_pwm_target_value = 0; }
-          if(PID_compute == true) { vvt1_pwm_value = halfPercentage(currentStatus.vvt1Duty, vvt_pwm_max_count); }
-          currentStatus.vvt1AngleError = false;
+          if(PID_compute == true) { vvt1_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt1_duty, vvt_pwm_max_count); }
+          currentAdvancedEngineStatus.vvt1_angle_error = false;
         }
 
         if (configPage10.vvt2Enabled == 1) // same for VVT2 if it's enabled
         {
-          if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentStatus.vvt2TargetAngle = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2U), currentStatus.RPM); }
-          else { currentStatus.vvt2TargetAngle = get3DTableValue(&vvt2Table, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
+          if(configPage6.vvtLoadSource == VVT_LOAD_TPS) { currentAdvancedEngineStatus.vvt2_target_angle = get3DTableValue(&vvt2Table, (currentStatus.TPS * 2U), currentStatus.RPM); }
+          else { currentAdvancedEngineStatus.vvt2_target_angle = get3DTableValue(&vvt2Table, (uint16_t)currentStatus.MAP, currentStatus.RPM); }
 
           if( (vvtCounter & 31) == 1) { vvt2PID.SetTunings(configPage10.vvtCLKP, configPage10.vvtCLKI, configPage10.vvtCLKD);  //This only needs to be run very infrequently, once every 32 calls to vvtControl(). This is approx. once per second
           vvt2PID.SetControllerDirection(configPage4.vvt2PWMdir); }
 
           // safety check that the cam angles are ok. The engine will be totally undriveable if the cam sensor is faulty and giving wrong cam angles, so if that happens, default to 0 duty.
           // This also prevents using zero or negative current angle values for PID adjustment, because those don't work in integer PID.
-          if ( currentStatus.vvt2Angle <= configPage10.vvtCLMinAng || currentStatus.vvt2Angle > configPage10.vvtCLMaxAng )
+          if ( currentAdvancedEngineStatus.vvt2_angle <= configPage10.vvtCLMinAng || currentAdvancedEngineStatus.vvt2_angle > configPage10.vvtCLMaxAng )
           {
-            currentStatus.vvt2Duty = 0;
-            vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count);
-            currentStatus.vvt2AngleError = true;
+            currentAdvancedEngineStatus.vvt2_duty = 0;
+            vvt2_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt2_duty, vvt_pwm_max_count);
+            currentAdvancedEngineStatus.vvt2_angle_error = true;
           }
           //Check that we're not already at the angle we want to be
-          else if((configPage6.vvtCLUseHold > 0) && (currentStatus.vvt2TargetAngle == currentStatus.vvt2Angle) )
+          else if((configPage6.vvtCLUseHold > 0) && (currentAdvancedEngineStatus.vvt2_target_angle == currentAdvancedEngineStatus.vvt2_angle) )
           {
-            currentStatus.vvt2Duty = configPage10.vvtCLholdDuty;
-            vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count);
+            currentAdvancedEngineStatus.vvt2_duty = configPage10.vvtCLholdDuty;
+            vvt2_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt2_duty, vvt_pwm_max_count);
             vvt2PID.Initialize();
-            currentStatus.vvt2AngleError = false;
+            currentAdvancedEngineStatus.vvt2_angle_error = false;
           }
           else
           {
             //This is dumb, but need to convert the current angle into a long pointer.
-            vvt2_pid_target_angle = (unsigned long)currentStatus.vvt2TargetAngle;
-            vvt2_pid_current_angle = (long)currentStatus.vvt2Angle;
+            vvt2_pid_target_angle = (unsigned long)currentAdvancedEngineStatus.vvt2_target_angle;
+            vvt2_pid_current_angle = (long)currentAdvancedEngineStatus.vvt2_angle;
             //If not already at target angle, calculate new value from PID
             bool PID_compute = vvt2PID.Compute(true);
-            if(PID_compute == true) { vvt2_pwm_value = halfPercentage(currentStatus.vvt2Duty, vvt_pwm_max_count); }
-            currentStatus.vvt2AngleError = false;
+            if(PID_compute == true) { vvt2_pwm_value = halfPercentage(currentAdvancedEngineStatus.vvt2_duty, vvt_pwm_max_count); }
+            currentAdvancedEngineStatus.vvt2_angle_error = false;
           }
         }
         vvtCounter++;
@@ -1169,7 +1170,7 @@ void vvtControl(void)
       //Set the PWM state based on the above lookups
       if( configPage10.wmiEnabled == 0 ) //Added possibility to use vvt and wmi at the same time
       {
-        if( (currentStatus.vvt1Duty == 0) && (currentStatus.vvt2Duty == 0) )
+        if( (currentAdvancedEngineStatus.vvt1_duty == 0) && (currentAdvancedEngineStatus.vvt2_duty == 0) )
         {
           //Make sure solenoid is off (0% duty)
           vvt1Off();
@@ -1180,7 +1181,7 @@ void vvtControl(void)
           vvt2_max_pwm = false;
           DISABLE_VVT_TIMER();
         }
-        else if( (currentStatus.vvt1Duty >= 200) && (currentStatus.vvt2Duty >= 200) )
+        else if( (currentAdvancedEngineStatus.vvt1_duty >= 200) && (currentAdvancedEngineStatus.vvt2_duty >= 200) )
         {
           //Make sure solenoid is on (100% duty)
           vvt1On();
@@ -1195,20 +1196,20 @@ void vvtControl(void)
         {
           //Duty cycle is between 0 and 100. Make sure the timer is enabled
           ENABLE_VVT_TIMER();
-          if(currentStatus.vvt1Duty < 200) { vvt1_max_pwm = false; }
-          if(currentStatus.vvt2Duty < 200) { vvt2_max_pwm = false; }
+          if(currentAdvancedEngineStatus.vvt1_duty < 200) { vvt1_max_pwm = false; }
+          if(currentAdvancedEngineStatus.vvt2_duty < 200) { vvt2_max_pwm = false; }
         }
       }
       else
       {
-        if( currentStatus.vvt1Duty == 0 )
+        if( currentAdvancedEngineStatus.vvt1_duty == 0 )
         {
           //Make sure solenoid is off (0% duty)
           vvt1Off();
           vvt1_pwm_state = false;
           vvt1_max_pwm = false;
         }
-        else if( currentStatus.vvt1Duty >= 200 )
+        else if( currentAdvancedEngineStatus.vvt1_duty >= 200 )
         {
           //Make sure solenoid is on (100% duty)
           vvt1On();
@@ -1219,7 +1220,7 @@ void vvtControl(void)
         {
           //Duty cycle is between 0 and 100. Make sure the timer is enabled
           ENABLE_VVT_TIMER();
-          if(currentStatus.vvt1Duty < 200) { vvt1_max_pwm = false; }
+          if(currentAdvancedEngineStatus.vvt1_duty < 200) { vvt1_max_pwm = false; }
         }
       }
     }
@@ -1230,12 +1231,12 @@ void vvtControl(void)
     {
       // Disable timer channel
       DISABLE_VVT_TIMER();
-      currentStatus.vvt2Duty = 0;
+      currentAdvancedEngineStatus.vvt2_duty = 0;
       vvt2_pwm_value = 0;
       vvt2_pwm_state = false;
       vvt2_max_pwm = false;
     }
-    currentStatus.vvt1Duty = 0;
+    currentAdvancedEngineStatus.vvt1_duty = 0;
     vvt1_pwm_value = 0;
     vvt1_pwm_state = false;
     vvt1_max_pwm = false;
@@ -1245,8 +1246,8 @@ void vvtControl(void)
 
 void nitrousControl(void)
 {
-  currentStatus.nitrousActive = false;
-  currentStatus.nitrous_status = NITROUS_OFF; //Reset the current state
+  currentAdvancedEngineStatus.nitrous_active = false;
+  currentAdvancedEngineStatus.nitrous_status = NITROUS_OFF; //Reset the current state
 
   if(configPage10.n2o_enable > 0)
   {
@@ -1269,23 +1270,23 @@ void nitrousControl(void)
       // BOTH   = 3 (ie STAGE1 + STAGE2 = BOTH)
       if( (currentStatus.RPM > realStage1MinRPM) && (currentStatus.RPM < realStage1MaxRPM) )
       {
-        currentStatus.nitrous_status += NITROUS_STAGE1;
-        currentStatus.nitrousActive = true;
+        currentAdvancedEngineStatus.nitrous_status += NITROUS_STAGE1;
+        currentAdvancedEngineStatus.nitrous_active = true;
         N2O_STAGE1_PIN_HIGH();
       }
       if(configPage10.n2o_enable == NITROUS_STAGE2) //This is really just a sanity check
       {
         if( (currentStatus.RPM > realStage2MinRPM) && (currentStatus.RPM < realStage2MaxRPM) )
         {
-          currentStatus.nitrous_status += NITROUS_STAGE2;
-          currentStatus.nitrousActive = true;
+          currentAdvancedEngineStatus.nitrous_status += NITROUS_STAGE2;
+          currentAdvancedEngineStatus.nitrous_active = true;
           N2O_STAGE2_PIN_HIGH();
         }
       }
     }
   }
 
-  if (currentStatus.nitrousActive == false)
+  if (currentAdvancedEngineStatus.nitrous_active == false)
   {
     if(configPage10.n2o_enable > 0)
     {
@@ -1305,7 +1306,7 @@ void wmiControl(void)
   {
     if( WMI_TANK_IS_EMPTY() )
     {
-     currentStatus.wmiTankEmpty = false;
+     currentAdvancedEngineStatus.wmi_tank_empty = false;
       if( (currentStatus.TPS >= configPage10.wmiTPS) && (currentStatus.RPMdiv100 >= configPage10.wmiRPM) && ( (currentStatus.MAP / 2) >= configPage10.wmiMAP) && ( temperatureAddOffset(currentStatus.IAT) >= configPage10.wmiIAT) )
       {
         switch(configPage10.wmiMode)
@@ -1334,10 +1335,10 @@ void wmiControl(void)
         if (wmiPW > 200) { wmiPW = 200; } //without this the duty can get beyond 100%
       }
     }
-    else { currentStatus.wmiTankEmpty = true; }
+    else { currentAdvancedEngineStatus.wmi_tank_empty = true; }
 
-    currentStatus.wmiPW = wmiPW;
-    vvt2_pwm_value = halfPercentage(currentStatus.wmiPW, vvt_pwm_max_count);
+    currentAdvancedEngineStatus.wmi_pw = wmiPW;
+    vvt2_pwm_value = halfPercentage(currentAdvancedEngineStatus.wmi_pw, vvt_pwm_max_count);
 
     if(wmiPW == 0)
     {
@@ -1371,7 +1372,7 @@ void wmiControl(void)
 void boostDisable(void)
 {
   boostPID.Initialize(); //This resets the ITerm value to prevent rubber banding
-  currentStatus.boostDuty = 0;
+  currentAdvancedEngineStatus.boost_duty = 0;
   DISABLE_BOOST_TIMER(); //Turn off timer
   BOOST_PIN_LOW(); //Make sure solenoid is off (0% duty)
 }

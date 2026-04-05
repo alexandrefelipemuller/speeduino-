@@ -1,8 +1,11 @@
 #include "modules/logging/logger.h"
+#include "advanced_engine_status.h"
 #include "modules/logging/logger_private.h"
+#include "can_aux_status.h"
 #include "maths.h"
 #include "utilities.h"
 #include "preprocessor.h"
+#include "sd_logging_status.h"
 #include "units.h"
 #include "board_definition.h"
 
@@ -26,15 +29,16 @@ byte buildEngineStatus(const statuses &current)
 
 byte buildSdCardStatus(const statuses &current)
 {
+  UNUSED(current);
   bool bits[] = {
-    current.sdCardPresent,
-    current.sdCardType == 1U,
-    current.sdCardReady,
-    current.sdCardLogging,
-    current.sdCardError,
+    currentSdLoggingStatus.card_present,
+    currentSdLoggingStatus.card_type == 1U,
+    currentSdLoggingStatus.card_ready,
+    currentSdLoggingStatus.card_logging,
+    currentSdLoggingStatus.card_error,
     false,
-    current.sdCardFS == 1U,
-    current.sdCardUnused,
+    currentSdLoggingStatus.card_fs == 1U,
+    currentSdLoggingStatus.card_unused,
   };
   return setStatusBits(0U, bits);
 }
@@ -75,8 +79,8 @@ byte getTSLogEntry(uint16_t byteNum)
     case 27: statusValue = highByte(currentStatus.loopsPerSecond); break;
     case 28: currentStatus.freeRAM = freeRam(); statusValue = lowByte(currentStatus.freeRAM); break;
     case 29: currentStatus.freeRAM = freeRam(); statusValue = highByte(currentStatus.freeRAM); break;
-    case 30: statusValue = lowByte(currentStatus.boostTarget >> 1U); break;
-    case 31: statusValue = lowByte(div100(currentStatus.boostDuty)); break;
+    case 30: statusValue = lowByte(currentAdvancedEngineStatus.boost_target >> 1U); break;
+    case 31: statusValue = lowByte(div100(currentAdvancedEngineStatus.boost_duty)); break;
     case 32: statusValue = buildStatus2(currentStatus); break;
     case 33: statusValue = lowByte(currentStatus.rpmDOT); break;
     case 34: statusValue = highByte(currentStatus.rpmDOT); break;
@@ -87,38 +91,38 @@ byte getTSLogEntry(uint16_t byteNum)
     case 39: statusValue = buildTestOutput(currentStatus); break;
     case 40: statusValue = currentStatus.O2_2; break;
     case 41: statusValue = currentStatus.baro; break;
-    case 42: statusValue = lowByte(currentStatus.canin[0]); break;
-    case 43: statusValue = highByte(currentStatus.canin[0]); break;
-    case 44: statusValue = lowByte(currentStatus.canin[1]); break;
-    case 45: statusValue = highByte(currentStatus.canin[1]); break;
-    case 46: statusValue = lowByte(currentStatus.canin[2]); break;
-    case 47: statusValue = highByte(currentStatus.canin[2]); break;
-    case 48: statusValue = lowByte(currentStatus.canin[3]); break;
-    case 49: statusValue = highByte(currentStatus.canin[3]); break;
-    case 50: statusValue = lowByte(currentStatus.canin[4]); break;
-    case 51: statusValue = highByte(currentStatus.canin[4]); break;
-    case 52: statusValue = lowByte(currentStatus.canin[5]); break;
-    case 53: statusValue = highByte(currentStatus.canin[5]); break;
-    case 54: statusValue = lowByte(currentStatus.canin[6]); break;
-    case 55: statusValue = highByte(currentStatus.canin[6]); break;
-    case 56: statusValue = lowByte(currentStatus.canin[7]); break;
-    case 57: statusValue = highByte(currentStatus.canin[7]); break;
-    case 58: statusValue = lowByte(currentStatus.canin[8]); break;
-    case 59: statusValue = highByte(currentStatus.canin[8]); break;
-    case 60: statusValue = lowByte(currentStatus.canin[9]); break;
-    case 61: statusValue = highByte(currentStatus.canin[9]); break;
-    case 62: statusValue = lowByte(currentStatus.canin[10]); break;
-    case 63: statusValue = highByte(currentStatus.canin[10]); break;
-    case 64: statusValue = lowByte(currentStatus.canin[11]); break;
-    case 65: statusValue = highByte(currentStatus.canin[11]); break;
-    case 66: statusValue = lowByte(currentStatus.canin[12]); break;
-    case 67: statusValue = highByte(currentStatus.canin[12]); break;
-    case 68: statusValue = lowByte(currentStatus.canin[13]); break;
-    case 69: statusValue = highByte(currentStatus.canin[13]); break;
-    case 70: statusValue = lowByte(currentStatus.canin[14]); break;
-    case 71: statusValue = highByte(currentStatus.canin[14]); break;
-    case 72: statusValue = lowByte(currentStatus.canin[15]); break;
-    case 73: statusValue = highByte(currentStatus.canin[15]); break;
+    case 42: statusValue = lowByte(currentCanAuxStatus.values[0]); break;
+    case 43: statusValue = highByte(currentCanAuxStatus.values[0]); break;
+    case 44: statusValue = lowByte(currentCanAuxStatus.values[1]); break;
+    case 45: statusValue = highByte(currentCanAuxStatus.values[1]); break;
+    case 46: statusValue = lowByte(currentCanAuxStatus.values[2]); break;
+    case 47: statusValue = highByte(currentCanAuxStatus.values[2]); break;
+    case 48: statusValue = lowByte(currentCanAuxStatus.values[3]); break;
+    case 49: statusValue = highByte(currentCanAuxStatus.values[3]); break;
+    case 50: statusValue = lowByte(currentCanAuxStatus.values[4]); break;
+    case 51: statusValue = highByte(currentCanAuxStatus.values[4]); break;
+    case 52: statusValue = lowByte(currentCanAuxStatus.values[5]); break;
+    case 53: statusValue = highByte(currentCanAuxStatus.values[5]); break;
+    case 54: statusValue = lowByte(currentCanAuxStatus.values[6]); break;
+    case 55: statusValue = highByte(currentCanAuxStatus.values[6]); break;
+    case 56: statusValue = lowByte(currentCanAuxStatus.values[7]); break;
+    case 57: statusValue = highByte(currentCanAuxStatus.values[7]); break;
+    case 58: statusValue = lowByte(currentCanAuxStatus.values[8]); break;
+    case 59: statusValue = highByte(currentCanAuxStatus.values[8]); break;
+    case 60: statusValue = lowByte(currentCanAuxStatus.values[9]); break;
+    case 61: statusValue = highByte(currentCanAuxStatus.values[9]); break;
+    case 62: statusValue = lowByte(currentCanAuxStatus.values[10]); break;
+    case 63: statusValue = highByte(currentCanAuxStatus.values[10]); break;
+    case 64: statusValue = lowByte(currentCanAuxStatus.values[11]); break;
+    case 65: statusValue = highByte(currentCanAuxStatus.values[11]); break;
+    case 66: statusValue = lowByte(currentCanAuxStatus.values[12]); break;
+    case 67: statusValue = highByte(currentCanAuxStatus.values[12]); break;
+    case 68: statusValue = lowByte(currentCanAuxStatus.values[13]); break;
+    case 69: statusValue = highByte(currentCanAuxStatus.values[13]); break;
+    case 70: statusValue = lowByte(currentCanAuxStatus.values[14]); break;
+    case 71: statusValue = highByte(currentCanAuxStatus.values[14]); break;
+    case 72: statusValue = lowByte(currentCanAuxStatus.values[15]); break;
+    case 73: statusValue = highByte(currentCanAuxStatus.values[15]); break;
     case 74: statusValue = currentStatus.tpsADC; break;
     case 75: statusValue = 0U; break;
     case 76: statusValue = lowByte(currentStatus.PW1); break;
@@ -140,12 +144,12 @@ byte getTSLogEntry(uint16_t byteNum)
     case 92: statusValue = currentStatus.CLIdleTarget; break;
     case 93: statusValue = lowByte(currentStatus.mapDOT); break;
     case 94: statusValue = highByte(currentStatus.mapDOT); break;
-    case 95: statusValue = lowByte(currentStatus.vvt1Angle); break;
-    case 96: statusValue = highByte(currentStatus.vvt1Angle); break;
-    case 97: statusValue = currentStatus.vvt1TargetAngle; break;
-    case 98: statusValue = lowByte(currentStatus.vvt1Duty); break;
-    case 99: statusValue = lowByte(currentStatus.flexBoostCorrection); break;
-    case 100: statusValue = highByte(currentStatus.flexBoostCorrection); break;
+    case 95: statusValue = lowByte(currentAdvancedEngineStatus.vvt1_angle); break;
+    case 96: statusValue = highByte(currentAdvancedEngineStatus.vvt1_angle); break;
+    case 97: statusValue = currentAdvancedEngineStatus.vvt1_target_angle; break;
+    case 98: statusValue = lowByte(currentAdvancedEngineStatus.vvt1_duty); break;
+    case 99: statusValue = lowByte(currentAdvancedEngineStatus.flex_boost_correction); break;
+    case 100: statusValue = highByte(currentAdvancedEngineStatus.flex_boost_correction); break;
     case 101: statusValue = currentStatus.baroCorrection; break;
     case 102: statusValue = currentStatus.VE; break;
     case 103: statusValue = currentStatus.ASEValue; break;
@@ -154,12 +158,12 @@ byte getTSLogEntry(uint16_t byteNum)
     case 106: statusValue = currentStatus.gear; break;
     case 107: statusValue = currentStatus.fuelPressure; break;
     case 108: statusValue = currentStatus.oilPressure; break;
-    case 109: statusValue = currentStatus.wmiPW; break;
+    case 109: statusValue = currentAdvancedEngineStatus.wmi_pw; break;
     case 110: statusValue = buildStatus4(currentStatus); break;
-    case 111: statusValue = lowByte(currentStatus.vvt2Angle); break;
-    case 112: statusValue = highByte(currentStatus.vvt2Angle); break;
-    case 113: statusValue = currentStatus.vvt2TargetAngle; break;
-    case 114: statusValue = lowByte(currentStatus.vvt2Duty); break;
+    case 111: statusValue = lowByte(currentAdvancedEngineStatus.vvt2_angle); break;
+    case 112: statusValue = highByte(currentAdvancedEngineStatus.vvt2_angle); break;
+    case 113: statusValue = currentAdvancedEngineStatus.vvt2_target_angle; break;
+    case 114: statusValue = lowByte(currentAdvancedEngineStatus.vvt2_duty); break;
     case 115: statusValue = currentStatus.outputsStatus; break;
     case 116: statusValue = temperatureAddOffset(currentStatus.fuelTemp); break;
     case 117: statusValue = currentStatus.fuelTempCorrection; break;
@@ -168,7 +172,7 @@ byte getTSLogEntry(uint16_t byteNum)
     case 120: statusValue = buildSdCardStatus(currentStatus); break;
     case 121: statusValue = lowByte(currentStatus.EMAP); break;
     case 122: statusValue = highByte(currentStatus.EMAP); break;
-    case 123: statusValue = currentStatus.fanDuty; break;
+    case 123: statusValue = currentAdvancedEngineStatus.fan_duty; break;
     case 124: statusValue = buildAirConStatus(currentStatus); break;
     case 125: statusValue = lowByte(currentStatus.actualDwell); break;
     case 126: statusValue = highByte(currentStatus.actualDwell); break;
@@ -226,8 +230,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 26: statusValue = highByte(currentStatus.loopsPerSecond); break;
     case 27: currentStatus.freeRAM = freeRam(); statusValue = lowByte(currentStatus.freeRAM); break;
     case 28: currentStatus.freeRAM = freeRam(); statusValue = highByte(currentStatus.freeRAM); break;
-    case 29: statusValue = currentStatus.boostTarget / 2U; break;
-    case 30: statusValue = currentStatus.boostDuty / 100U; break;
+    case 29: statusValue = currentAdvancedEngineStatus.boost_target / 2U; break;
+    case 30: statusValue = currentAdvancedEngineStatus.boost_duty / 100U; break;
     case 31: statusValue = buildStatus2(currentStatus); break;
     case 32: statusValue = lowByte(currentStatus.rpmDOT); break;
     case 33: statusValue = highByte(currentStatus.rpmDOT); break;
@@ -238,38 +242,38 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 38: statusValue = buildTestOutput(currentStatus); break;
     case 39: statusValue = currentStatus.O2_2; break;
     case 40: statusValue = currentStatus.baro; break;
-    case 41: statusValue = lowByte(currentStatus.canin[0]); break;
-    case 42: statusValue = highByte(currentStatus.canin[0]); break;
-    case 43: statusValue = lowByte(currentStatus.canin[1]); break;
-    case 44: statusValue = highByte(currentStatus.canin[1]); break;
-    case 45: statusValue = lowByte(currentStatus.canin[2]); break;
-    case 46: statusValue = highByte(currentStatus.canin[2]); break;
-    case 47: statusValue = lowByte(currentStatus.canin[3]); break;
-    case 48: statusValue = highByte(currentStatus.canin[3]); break;
-    case 49: statusValue = lowByte(currentStatus.canin[4]); break;
-    case 50: statusValue = highByte(currentStatus.canin[4]); break;
-    case 51: statusValue = lowByte(currentStatus.canin[5]); break;
-    case 52: statusValue = highByte(currentStatus.canin[5]); break;
-    case 53: statusValue = lowByte(currentStatus.canin[6]); break;
-    case 54: statusValue = highByte(currentStatus.canin[6]); break;
-    case 55: statusValue = lowByte(currentStatus.canin[7]); break;
-    case 56: statusValue = highByte(currentStatus.canin[7]); break;
-    case 57: statusValue = lowByte(currentStatus.canin[8]); break;
-    case 58: statusValue = highByte(currentStatus.canin[8]); break;
-    case 59: statusValue = lowByte(currentStatus.canin[9]); break;
-    case 60: statusValue = highByte(currentStatus.canin[9]); break;
-    case 61: statusValue = lowByte(currentStatus.canin[10]); break;
-    case 62: statusValue = highByte(currentStatus.canin[10]); break;
-    case 63: statusValue = lowByte(currentStatus.canin[11]); break;
-    case 64: statusValue = highByte(currentStatus.canin[11]); break;
-    case 65: statusValue = lowByte(currentStatus.canin[12]); break;
-    case 66: statusValue = highByte(currentStatus.canin[12]); break;
-    case 67: statusValue = lowByte(currentStatus.canin[13]); break;
-    case 68: statusValue = highByte(currentStatus.canin[13]); break;
-    case 69: statusValue = lowByte(currentStatus.canin[14]); break;
-    case 70: statusValue = highByte(currentStatus.canin[14]); break;
-    case 71: statusValue = lowByte(currentStatus.canin[15]); break;
-    case 72: statusValue = highByte(currentStatus.canin[15]); break;
+    case 41: statusValue = lowByte(currentCanAuxStatus.values[0]); break;
+    case 42: statusValue = highByte(currentCanAuxStatus.values[0]); break;
+    case 43: statusValue = lowByte(currentCanAuxStatus.values[1]); break;
+    case 44: statusValue = highByte(currentCanAuxStatus.values[1]); break;
+    case 45: statusValue = lowByte(currentCanAuxStatus.values[2]); break;
+    case 46: statusValue = highByte(currentCanAuxStatus.values[2]); break;
+    case 47: statusValue = lowByte(currentCanAuxStatus.values[3]); break;
+    case 48: statusValue = highByte(currentCanAuxStatus.values[3]); break;
+    case 49: statusValue = lowByte(currentCanAuxStatus.values[4]); break;
+    case 50: statusValue = highByte(currentCanAuxStatus.values[4]); break;
+    case 51: statusValue = lowByte(currentCanAuxStatus.values[5]); break;
+    case 52: statusValue = highByte(currentCanAuxStatus.values[5]); break;
+    case 53: statusValue = lowByte(currentCanAuxStatus.values[6]); break;
+    case 54: statusValue = highByte(currentCanAuxStatus.values[6]); break;
+    case 55: statusValue = lowByte(currentCanAuxStatus.values[7]); break;
+    case 56: statusValue = highByte(currentCanAuxStatus.values[7]); break;
+    case 57: statusValue = lowByte(currentCanAuxStatus.values[8]); break;
+    case 58: statusValue = highByte(currentCanAuxStatus.values[8]); break;
+    case 59: statusValue = lowByte(currentCanAuxStatus.values[9]); break;
+    case 60: statusValue = highByte(currentCanAuxStatus.values[9]); break;
+    case 61: statusValue = lowByte(currentCanAuxStatus.values[10]); break;
+    case 62: statusValue = highByte(currentCanAuxStatus.values[10]); break;
+    case 63: statusValue = lowByte(currentCanAuxStatus.values[11]); break;
+    case 64: statusValue = highByte(currentCanAuxStatus.values[11]); break;
+    case 65: statusValue = lowByte(currentCanAuxStatus.values[12]); break;
+    case 66: statusValue = highByte(currentCanAuxStatus.values[12]); break;
+    case 67: statusValue = lowByte(currentCanAuxStatus.values[13]); break;
+    case 68: statusValue = highByte(currentCanAuxStatus.values[13]); break;
+    case 69: statusValue = lowByte(currentCanAuxStatus.values[14]); break;
+    case 70: statusValue = highByte(currentCanAuxStatus.values[14]); break;
+    case 71: statusValue = lowByte(currentCanAuxStatus.values[15]); break;
+    case 72: statusValue = highByte(currentCanAuxStatus.values[15]); break;
     case 73: statusValue = currentStatus.tpsADC; break;
     case 74: statusValue = 0U; break;
     case 75: statusValue = currentStatus.launchCorrection; break;
@@ -290,11 +294,11 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 90: statusValue = currentStatus.idleLoad; break;
     case 91: statusValue = currentStatus.CLIdleTarget; break;
     case 92: statusValue = currentStatus.mapDOT / 10; break;
-    case 93: statusValue = (int8_t)currentStatus.vvt1Angle; break;
-    case 94: statusValue = currentStatus.vvt1TargetAngle; break;
-    case 95: statusValue = currentStatus.vvt1Duty; break;
-    case 96: statusValue = lowByte(currentStatus.flexBoostCorrection); break;
-    case 97: statusValue = highByte(currentStatus.flexBoostCorrection); break;
+    case 93: statusValue = (int8_t)currentAdvancedEngineStatus.vvt1_angle; break;
+    case 94: statusValue = currentAdvancedEngineStatus.vvt1_target_angle; break;
+    case 95: statusValue = currentAdvancedEngineStatus.vvt1_duty; break;
+    case 96: statusValue = lowByte(currentAdvancedEngineStatus.flex_boost_correction); break;
+    case 97: statusValue = highByte(currentAdvancedEngineStatus.flex_boost_correction); break;
     case 98: statusValue = currentStatus.baroCorrection; break;
     case 99: statusValue = currentStatus.ASEValue; break;
     case 100: statusValue = lowByte(currentStatus.vss); break;
@@ -302,11 +306,11 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 102: statusValue = currentStatus.gear; break;
     case 103: statusValue = currentStatus.fuelPressure; break;
     case 104: statusValue = currentStatus.oilPressure; break;
-    case 105: statusValue = currentStatus.wmiPW; break;
+    case 105: statusValue = currentAdvancedEngineStatus.wmi_pw; break;
     case 106: statusValue = buildStatus4(currentStatus); break;
-    case 107: statusValue = (int8_t)currentStatus.vvt2Angle; break;
-    case 108: statusValue = currentStatus.vvt2TargetAngle; break;
-    case 109: statusValue = currentStatus.vvt2Duty; break;
+    case 107: statusValue = (int8_t)currentAdvancedEngineStatus.vvt2_angle; break;
+    case 108: statusValue = currentAdvancedEngineStatus.vvt2_target_angle; break;
+    case 109: statusValue = currentAdvancedEngineStatus.vvt2_duty; break;
     case 110: statusValue = currentStatus.outputsStatus; break;
     case 111: statusValue = temperatureAddOffset(currentStatus.fuelTemp); break;
     case 112: statusValue = currentStatus.fuelTempCorrection; break;
@@ -314,11 +318,11 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 114: statusValue = currentStatus.VE2; break;
     case 115: statusValue = currentStatus.advance1; break;
     case 116: statusValue = currentStatus.advance2; break;
-    case 117: statusValue = currentStatus.nitrous_status; break;
+    case 117: statusValue = currentAdvancedEngineStatus.nitrous_status; break;
     case 118: statusValue = buildSdCardStatus(currentStatus); break;
     case 119: statusValue = lowByte(currentStatus.EMAP); break;
     case 120: statusValue = highByte(currentStatus.EMAP); break;
-    case 121: statusValue = currentStatus.fanDuty; break;
+    case 121: statusValue = currentAdvancedEngineStatus.fan_duty; break;
     case 122: statusValue = buildAirConStatus(currentStatus); break;
   }
 

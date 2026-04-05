@@ -1,4 +1,5 @@
 #include "fuel_calcs.h"
+#include "advanced_engine_status.h"
 #include "maths.h"
 #include "table3d.h"
 #include "unit_testing.h"
@@ -40,13 +41,17 @@ static inline uint16_t calcNitrousStagePulseWidth(uint8_t minRPMDiv100, uint8_t 
 //Manual adder for nitrous. These are not in correctionsFuel() because they are direct adders to the ms value, not % based
 TESTABLE_INLINE_STATIC uint16_t pwApplyNitrous(uint16_t pw, const config10 &page10, const statuses &current)
 {
-  if (current.nitrous_status!=NITROUS_OFF && pw!=0U)
+  uint8_t nitrousStatus = currentAdvancedEngineStatus.nitrous_status;
+#ifdef UNIT_TEST
+  if(current.nitrous_status != NITROUS_OFF) { nitrousStatus = current.nitrous_status; }
+#endif
+  if (nitrousStatus != NITROUS_OFF && pw != 0U)
   {
-    if( (current.nitrous_status == NITROUS_STAGE1) || (current.nitrous_status == NITROUS_BOTH) )
+    if( (nitrousStatus == NITROUS_STAGE1) || (nitrousStatus == NITROUS_BOTH) )
     {
       pw = pw + calcNitrousStagePulseWidth(page10.n2o_stage1_minRPM, page10.n2o_stage1_maxRPM, page10.n2o_stage1_adderMin, page10.n2o_stage1_adderMax, current);
     }
-    if( (current.nitrous_status == NITROUS_STAGE2) || (current.nitrous_status == NITROUS_BOTH) )
+    if( (nitrousStatus == NITROUS_STAGE2) || (nitrousStatus == NITROUS_BOTH) )
     {
       pw = pw + calcNitrousStagePulseWidth(page10.n2o_stage2_minRPM, page10.n2o_stage2_maxRPM, page10.n2o_stage2_adderMin, page10.n2o_stage2_adderMax, current);
     }

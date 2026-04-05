@@ -1,4 +1,6 @@
 #include "logger.h"
+#include "advanced_engine_status.h"
+#include "can_aux_status.h"
 #include "logger_private.h"
 #include "maths.h"
 #include "utilities.h"
@@ -41,8 +43,8 @@ int16_t getReadableLogEntry(uint16_t logIndex)
       currentStatus.freeRAM = freeRam();
       statusValue = currentStatus.freeRAM;
       break;
-    case 24: statusValue = currentStatus.boostTarget; break;
-    case 25: statusValue = currentStatus.boostDuty; break;
+    case 24: statusValue = currentAdvancedEngineStatus.boost_target; break;
+    case 25: statusValue = currentAdvancedEngineStatus.boost_duty; break;
     case 26: statusValue = buildStatus2(currentStatus); break;
     case 27: statusValue = currentStatus.rpmDOT; break;
     case 28: statusValue = currentStatus.ethanolPct; break;
@@ -52,22 +54,22 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 32: statusValue = buildTestOutput(currentStatus); break;
     case 33: statusValue = currentStatus.O2_2; break;
     case 34: statusValue = currentStatus.baro; break;
-    case 35: statusValue = currentStatus.canin[0]; break;
-    case 36: statusValue = currentStatus.canin[1]; break;
-    case 37: statusValue = currentStatus.canin[2]; break;
-    case 38: statusValue = currentStatus.canin[3]; break;
-    case 39: statusValue = currentStatus.canin[4]; break;
-    case 40: statusValue = currentStatus.canin[5]; break;
-    case 41: statusValue = currentStatus.canin[6]; break;
-    case 42: statusValue = currentStatus.canin[7]; break;
-    case 43: statusValue = currentStatus.canin[8]; break;
-    case 44: statusValue = currentStatus.canin[9]; break;
-    case 45: statusValue = currentStatus.canin[10]; break;
-    case 46: statusValue = currentStatus.canin[11]; break;
-    case 47: statusValue = currentStatus.canin[12]; break;
-    case 48: statusValue = currentStatus.canin[13]; break;
-    case 49: statusValue = currentStatus.canin[14]; break;
-    case 50: statusValue = currentStatus.canin[15]; break;
+    case 35: statusValue = currentCanAuxStatus.values[0]; break;
+    case 36: statusValue = currentCanAuxStatus.values[1]; break;
+    case 37: statusValue = currentCanAuxStatus.values[2]; break;
+    case 38: statusValue = currentCanAuxStatus.values[3]; break;
+    case 39: statusValue = currentCanAuxStatus.values[4]; break;
+    case 40: statusValue = currentCanAuxStatus.values[5]; break;
+    case 41: statusValue = currentCanAuxStatus.values[6]; break;
+    case 42: statusValue = currentCanAuxStatus.values[7]; break;
+    case 43: statusValue = currentCanAuxStatus.values[8]; break;
+    case 44: statusValue = currentCanAuxStatus.values[9]; break;
+    case 45: statusValue = currentCanAuxStatus.values[10]; break;
+    case 46: statusValue = currentCanAuxStatus.values[11]; break;
+    case 47: statusValue = currentCanAuxStatus.values[12]; break;
+    case 48: statusValue = currentCanAuxStatus.values[13]; break;
+    case 49: statusValue = currentCanAuxStatus.values[14]; break;
+    case 50: statusValue = currentCanAuxStatus.values[15]; break;
     case 51: statusValue = currentStatus.tpsADC; break;
     case 52: statusValue = 0U; break;
     case 53: statusValue = currentStatus.PW1; break;
@@ -82,10 +84,10 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 62: statusValue = (int16_t)currentStatus.dwell; break;
     case 63: statusValue = currentStatus.CLIdleTarget; break;
     case 64: statusValue = currentStatus.mapDOT; break;
-    case 65: statusValue = currentStatus.vvt1Angle; break;
-    case 66: statusValue = currentStatus.vvt1TargetAngle; break;
-    case 67: statusValue = currentStatus.vvt1Duty; break;
-    case 68: statusValue = currentStatus.flexBoostCorrection; break;
+    case 65: statusValue = currentAdvancedEngineStatus.vvt1_angle; break;
+    case 66: statusValue = currentAdvancedEngineStatus.vvt1_target_angle; break;
+    case 67: statusValue = currentAdvancedEngineStatus.vvt1_duty; break;
+    case 68: statusValue = currentAdvancedEngineStatus.flex_boost_correction; break;
     case 69: statusValue = currentStatus.baroCorrection; break;
     case 70: statusValue = currentStatus.VE; break;
     case 71: statusValue = currentStatus.ASEValue; break;
@@ -93,11 +95,11 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 73: statusValue = currentStatus.gear; break;
     case 74: statusValue = currentStatus.fuelPressure; break;
     case 75: statusValue = currentStatus.oilPressure; break;
-    case 76: statusValue = currentStatus.wmiPW; break;
+    case 76: statusValue = currentAdvancedEngineStatus.wmi_pw; break;
     case 77: statusValue = buildStatus4(currentStatus); break;
-    case 78: statusValue = currentStatus.vvt2Angle; break;
-    case 79: statusValue = currentStatus.vvt2TargetAngle; break;
-    case 80: statusValue = currentStatus.vvt2Duty; break;
+    case 78: statusValue = currentAdvancedEngineStatus.vvt2_angle; break;
+    case 79: statusValue = currentAdvancedEngineStatus.vvt2_target_angle; break;
+    case 80: statusValue = currentAdvancedEngineStatus.vvt2_duty; break;
     case 81: statusValue = currentStatus.outputsStatus; break;
     case 82: statusValue = currentStatus.fuelTemp; break;
     case 83: statusValue = currentStatus.fuelTempCorrection; break;
@@ -105,7 +107,7 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 85: statusValue = currentStatus.advance2; break;
     case 86: statusValue = buildSdCardStatus(currentStatus); break;
     case 87: statusValue = currentStatus.EMAP; break;
-    case 88: statusValue = currentStatus.fanDuty; break;
+    case 88: statusValue = currentAdvancedEngineStatus.fan_duty; break;
     case 89: statusValue = buildAirConStatus(currentStatus); break;
     case 90: statusValue = currentStatus.actualDwell; break;
     case 91: statusValue = buildStatus5(currentStatus); break;

@@ -99,9 +99,6 @@ struct statuses {
   volatile bool isInj4Open : 1; ///< Injector 4 status: true == open, false == closed
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
   bool isDFCOActive : 1;  ///< Deceleration Fuel Cut Off status: true == active, false == inactive
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  volatile bool isToothLog1Full : 1; ///< Boost Cut status: true == active, false == inactive
-
   // Status2 fields as defined in the INI. 
   // TODO: resolve duplication with launchingHard
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
@@ -121,7 +118,6 @@ struct statuses {
   bool resetPreventActive : 1; ///< Reset prevent on (true) or off (false) 
   // TODO: resolve duplication with nitrous_status
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool nitrousActive : 1; ///< Nitrous on (true) or off (false)
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
   bool secondFuelTableActive : 1; ///< Secondary fuel table is use (true) or not (false)
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
@@ -129,15 +125,8 @@ struct statuses {
   // TODO: resolve duplication with nSquirts
   unsigned int nSquirtsStatus: 3; ///< 
 
-  // Status4 fields as defined in the INI.   
+  // Status4 fields as defined in the INI.
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool wmiTankEmpty : 1; ///< Is the Water Methanol Injection tank empty (true) or not (false) 
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool vvt1AngleError : 1; ///< VVT1 cam angle within limits (false) or not (true)
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool vvt2AngleError : 1; ///< VVT2 cam angle within limits (false) or not (true)
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool fanOn : 1; ///< Engine fan status (true == on, false == off)
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
   bool burnPending : 1;  ///< Is an EEPROM burn pending (true) or not (false) 
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
@@ -189,26 +178,17 @@ struct statuses {
   volatile byte runSecs; /**< Counter of seconds since cranking commenced (Maxes out at 255 to prevent overflow) */
   volatile byte secl; /**< Counter incrementing once per second. Will overflow after 255 and begin again. This is used by TunerStudio to maintain comms sync */
   volatile uint16_t loopsPerSecond; /**< A performance indicator showing the number of main loops that are being executed each second */ 
-  bool launchingSoft; /**< Indicator showing whether soft launch control adjustments are active */
-  bool launchingHard; /**< Indicator showing whether hard launch control adjustments are active */
   // TODO: remove this: only updated & read in logger
   uint16_t freeRAM;
   // TODO: make all RPMs uint16_t
   unsigned int clutchEngagedRPM; /**< The RPM at which the clutch was last depressed. Used for distinguishing between launch control and flat shift */ 
-  bool flatShiftingHard;
   volatile uint32_t startRevolutions; /**< A counter for how many revolutions have been completed since sync was achieved. */
-  uint16_t boostTarget;
   // TODO: resolve conflict with testActive
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
   bool isTestModeActive : 1; // Is hardware test mode on?
   bool testActive;    // Not in use ? Replaced by testOutputs ?
-  uint16_t boostDuty; ///< Boost Duty percentage value * 100 to give 2 points of precision
   byte idleLoad;      ///< Either the current steps or current duty cycle for the idle control
-  uint16_t canin[16]; ///< 16bit raw value of selected canin data for channels 0-15
-  uint8_t current_caninchannel = 0; /**< Current CAN channel, defaults to 0 */
   uint16_t crankRPM = 400; /**< The actual cranking RPM limit. This is derived from the value in the config page, but saves us multiplying it every time it's used (Config page value is stored divided by 10) */
-  int16_t flexBoostCorrection; /**< Amount of boost added based on flex */
-  byte nitrous_status;
   byte nSquirts;  ///< Number of injector squirts per cycle (per injector)
   uint16_t fuelLoad;
   uint16_t ignLoad;
@@ -216,11 +196,6 @@ struct statuses {
   volatile byte syncLossCounter;
   byte knockRetard;
   volatile byte knockCount;
-  bool toothLogEnabled;
-  byte compositeTriggerUsed; // 0 means composite logger disabled, 2 means use secondary input (1st cam), 3 means use tertiary input (2nd cam), 4 means log both cams together
-  int16_t vvt1Angle; //Has to be a long for PID calcs (CL VVT control)
-  byte vvt1TargetAngle;
-  long vvt1Duty; //Has to be a long for PID calcs (CL VVT control)
   uint16_t injAngle;
   byte ASEValue;
   uint16_t vss;      /**< Current speed reading. Natively stored in kph and converted to mph in TS if required */
@@ -243,51 +218,20 @@ struct statuses {
   // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
   bool engineProtectIoError : 1; ///<
 
-  byte fanDuty;
-  byte wmiPW;
-  int16_t vvt2Angle; //Has to be a long for PID calcs (CL VVT control)
-  byte vvt2TargetAngle;
-  long vvt2Duty; //Has to be a long for PID calcs (CL VVT control)
   byte outputsStatus;
-
-  // SD card status fields.
-  // TODO: conditional compile on SD_LOGGING once board definition is separated from globals.h
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool sdCardPresent : 1; ///< true if a card is present, false if not
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  unsigned int sdCardType : 1; ///< 0==SD, 1==SDHC
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool sdCardReady : 1; ///< true if ready, false if not
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool sdCardLogging : 1; ///< true if logging active, false if not
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool sdCardError : 1;  ///< true if error, false if not
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  unsigned int sdCardFS : 1;  ///< File system type 0=no FAT16, 1=FAT32
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool sdCardUnused : 1;  ///< true if unused, false if not
-
-  // airConStatus fields.
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconRequested : 1; ///< Indicates whether the A/C button is pressed
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconCompressorOn : 1; ///< Indicates whether the A/C compressor is running
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconRpmLockout : 1; ///< Indicates the A/C is locked out due to the RPM being too high/low, or the post-high/post-low-RPM "stand-down" lockout period
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconTpsLockout : 1; ///< Indicates the A/C is locked out due to high TPS, or the post-high-TPS "stand-down" lockout period
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconTurningOn : 1;  ///< Indicates the A/C request is on (i.e. A/C button pressed), the lockouts are off, however the start delay has not yet elapsed. This gives the idle up time to kick in before the compressor.
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconCltLockout : 1;  ///< Indicates the A/C is locked out either due to high coolant temp.
-  // cppcheck-suppress misra-c2012-6.1 ; False positive - MISRA C:2012 Rule (R 6.1) permits the use of boolean for bit fields.
-  bool airconFanOn : 1;  ///< Indicates whether the A/C fan is running
   
   uint8_t systemTemp;
   uint32_t revolutionTime; //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
 
   uint8_t maxIgnOutputs = 1; /**< Number of ignition outputs being used by the current tune configuration */
   uint8_t maxInjOutputs = 1; /**< Number of injection outputs being used by the current tune configuration */
+#ifdef UNIT_TEST
+  bool launchingSoft = false;
+  bool launchingHard = false;
+  bool flatShiftingHard = false;
+  bool wmiTankEmpty = false;
+  uint8_t nitrous_status = 0;
+#endif
   /** @brief Fuel and ignition scheduler cut state. @see calculateFuelIgnitionChannelCut */
   struct scheduler_cut_t
   {

@@ -10,6 +10,7 @@ A full copy of the license may be found in the projects root directory
 #include "sensors.h"
 #include "crankMaths.h"
 #include "config_pages.h"
+#include "can_aux_status.h"
 #include "statuses.h"
 #include "bit_manip.h"
 #include "port_pin.h"
@@ -220,18 +221,18 @@ void initialiseADC(void)
   BIT_CLEAR(statusSensors, BIT_SENSORS_AUX_ENBL);
   for (uint8_t AuxinChan = 0U; AuxinChan <16U ; AuxinChan++)
   {
-    currentStatus.current_caninchannel = AuxinChan;                   
-    if (((configPage9.caninput_sel[currentStatus.current_caninchannel]&12U) == 4U)
+    currentCanAuxStatus.current_channel = AuxinChan;
+    if (((configPage9.caninput_sel[currentCanAuxStatus.current_channel]&12U) == 4U)
     && ((configPage9.enable_secondarySerial == 1U) || ((configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 1U))))
     { //if current input channel is enabled as external input in caninput_selxb(bits 2:3) and secondary serial or internal canbus is enabled(and is mcu supported)                 
       //currentStatus.canin[14] = 22;  Dev test use only!
       BIT_SET(statusSensors, BIT_SENSORS_AUX_ENBL);
     }
-    else if ((((configPage9.enable_secondarySerial == 1U) || ((configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 1U))) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&12U) == 8U)
-            || (((configPage9.enable_secondarySerial == 0U) && ( (configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 0U) )) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&3U) == 2U)  
-            || (((configPage9.enable_secondarySerial == 0U) && (configPage9.enable_intcan == 0U)) && ((configPage9.caninput_sel[currentStatus.current_caninchannel]&3U) == 2U)))  
+    else if ((((configPage9.enable_secondarySerial == 1U) || ((configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 1U))) && (configPage9.caninput_sel[currentCanAuxStatus.current_channel]&12U) == 8U)
+            || (((configPage9.enable_secondarySerial == 0U) && ( (configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 0U) )) && (configPage9.caninput_sel[currentCanAuxStatus.current_channel]&3U) == 2U)
+            || (((configPage9.enable_secondarySerial == 0U) && (configPage9.enable_intcan == 0U)) && ((configPage9.caninput_sel[currentCanAuxStatus.current_channel]&3U) == 2U)))
     {  //if current input channel is enabled as analog local pin check caninput_selxb(bits 2:3) with &12 and caninput_selxa(bits 0:1) with &3
-      uint8_t pinNumber = pinTranslateAnalog(configPage9.Auxinpina[currentStatus.current_caninchannel]&63U);
+      uint8_t pinNumber = pinTranslateAnalog(configPage9.Auxinpina[currentCanAuxStatus.current_channel]&63U);
       if( pinIsUsed(pinNumber) )
       {
         //Do nothing here as the pin is already in use.
@@ -245,11 +246,11 @@ void initialiseADC(void)
         BIT_SET(statusSensors, BIT_SENSORS_AUX_ENBL);
       }  
     }
-    else if ((((configPage9.enable_secondarySerial == 1U) || ((configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 1U))) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&12U) == 12U)
-            || (((configPage9.enable_secondarySerial == 0U) && ( (configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 0U) )) && (configPage9.caninput_sel[currentStatus.current_caninchannel]&3U) == 3U)
-            || (((configPage9.enable_secondarySerial == 0U) && (configPage9.enable_intcan == 0U)) && ((configPage9.caninput_sel[currentStatus.current_caninchannel]&3U) == 3U)))
+    else if ((((configPage9.enable_secondarySerial == 1U) || ((configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 1U))) && (configPage9.caninput_sel[currentCanAuxStatus.current_channel]&12U) == 12U)
+            || (((configPage9.enable_secondarySerial == 0U) && ( (configPage9.enable_intcan == 1U) && (configPage9.intcan_available == 0U) )) && (configPage9.caninput_sel[currentCanAuxStatus.current_channel]&3U) == 3U)
+            || (((configPage9.enable_secondarySerial == 0U) && (configPage9.enable_intcan == 0U)) && ((configPage9.caninput_sel[currentCanAuxStatus.current_channel]&3U) == 3U)))
     {  //if current input channel is enabled as digital local pin check caninput_selxb(bits 2:3) with &12 and caninput_selxa(bits 0:1) with &3
-       uint8_t pinNumber = (configPage9.Auxinpinb[currentStatus.current_caninchannel]&63U) + 1U;
+       uint8_t pinNumber = (configPage9.Auxinpinb[currentCanAuxStatus.current_channel]&63U) + 1U;
        if( pinIsUsed(pinNumber) )
        {
           //Do nothing here as the pin is already in use.
@@ -836,12 +837,12 @@ static inline uint16_t getSpeed(void)
     // Direct reading from Aux channel
     if (configPage2.vssPulsesPerKm == 0U)
     {
-      tempSpeed = currentStatus.canin[configPage2.vssAuxCh];
+      tempSpeed = currentCanAuxStatus.values[configPage2.vssAuxCh];
     }
     // Adjust the reading by dividing it by set amount.
     else
     {
-      tempSpeed = fast_div(currentStatus.canin[configPage2.vssAuxCh], configPage2.vssPulsesPerKm);
+      tempSpeed = fast_div(currentCanAuxStatus.values[configPage2.vssAuxCh], configPage2.vssPulsesPerKm);
     }
     tempSpeed = LOW_PASS_FILTER(tempSpeed, configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
   }

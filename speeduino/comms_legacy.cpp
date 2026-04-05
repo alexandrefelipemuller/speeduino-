@@ -8,6 +8,7 @@ A full copy of the license may be found in the projects root directory
  */
 #include "comms.h"
 #include "comms_legacy.h"
+#include "logger_status.h"
 #include "modules/secondary_serial/secondary_serial.h"
 #include "core_constants.h"
 #include "storage.h"
@@ -380,8 +381,8 @@ void legacySerialCommand(void)
         primarySerial.read(); // First byte of the page identifier can be ignored. It's always 0
         primarySerial.read(); // First byte of the page identifier can be ignored. It's always 0
 
-        if(currentStatus.toothLogEnabled == true) { sendToothLog_legacy(0); } //Sends tooth log values as ints
-        else if (currentStatus.compositeTriggerUsed > 0) { sendCompositeLog_legacy(0); }
+        if(currentLoggerStatus.tooth_log_enabled == true) { sendToothLog_legacy(0); } //Sends tooth log values as ints
+        else if (currentLoggerStatus.composite_trigger_used > 0U) { sendCompositeLog_legacy(0); }
         serialStatusFlag = SERIAL_INACTIVE;
       }
       break;
@@ -1193,7 +1194,7 @@ void sendPageASCII(void)
 void sendToothLog_legacy(byte startOffset) /* Blocking */
 {
   //We need TOOTH_LOG_SIZE number of records to send to TunerStudio. If there aren't that many in the buffer then we just return and wait for the next call
-  if (currentStatus.isToothLog1Full) //Sanity check. Flagging system means this should always be true
+  if (currentLoggerStatus.is_tooth_log_1_full) //Sanity check. Flagging system means this should always be true
   {
       serialStatusFlag = SERIAL_TRANSMIT_TOOTH_INPROGRESS_LEGACY; 
       for (uint8_t x = startOffset; x < TOOTH_LOG_SIZE; ++x)
@@ -1203,7 +1204,7 @@ void sendToothLog_legacy(byte startOffset) /* Blocking */
         primarySerial.write(toothHistory[x] >> 8);
         primarySerial.write(toothHistory[x]);
       }
-      currentStatus.isToothLog1Full = false;
+      currentLoggerStatus.is_tooth_log_1_full = false;
       serialStatusFlag = SERIAL_INACTIVE; 
       toothHistoryIndex = 0;
   }
@@ -1220,7 +1221,7 @@ void sendToothLog_legacy(byte startOffset) /* Blocking */
 
 void sendCompositeLog_legacy(byte startOffset) /* Non-blocking */
 {
-  if (currentStatus.isToothLog1Full) //Sanity check. Flagging system means this should always be true
+  if (currentLoggerStatus.is_tooth_log_1_full) //Sanity check. Flagging system means this should always be true
   {
       serialStatusFlag = SERIAL_TRANSMIT_COMPOSITE_INPROGRESS_LEGACY;
 
@@ -1243,7 +1244,7 @@ void sendCompositeLog_legacy(byte startOffset) /* Non-blocking */
 
         primarySerial.write(compositeLogHistory[x]); //The status byte (Indicates the trigger edge, whether it was a pri/sec pulse, the sync status)
       }
-      currentStatus.isToothLog1Full = false;
+      currentLoggerStatus.is_tooth_log_1_full = false;
       toothHistoryIndex = 0;
       serialStatusFlag = SERIAL_INACTIVE; 
   }

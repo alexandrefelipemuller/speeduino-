@@ -33,6 +33,9 @@ A full copy of the license may be found in the projects root directory
  * - To compare Speeduino Doxyfile to default config, do: `doxygen -g Doxyfile.default ; diff Doxyfile.default Doxyfile`
  */
 #include <limits.h>
+#include "advanced_engine_status.h"
+#include "can_aux_status.h"
+#include "logger_status.h"
 #include "decoders.h"
 #include "config_pages.h"
 #include "core_constants.h"
@@ -168,19 +171,19 @@ static pin_mask_t triggerThird_pin_mask;
 // whichTooth - 0 for Primary (Crank), 1 for Secondary (Cam)
 
 /** Add tooth log entry to toothHistory (array).
- * Enabled by (either) currentStatus.toothLogEnabled and currentStatus.compositeTriggerUsed.
+ * Enabled by (either) currentLoggerStatus.tooth_log_enabled and currentLoggerStatus.composite_trigger_used.
  * @param toothTime - Tooth Time
  * @param whichTooth - 0 for Primary (Crank), 2 for Secondary (Cam) 3 for Tertiary (Cam)
  */
 static inline void addToothLogEntry(unsigned long toothTime, byte whichTooth)
 {
   // cppcheck-suppress misra-c2012-14.4 ; False positive - volatile is messing up the check
-  if(currentStatus.isToothLog1Full) { return; }
+  if(currentLoggerStatus.is_tooth_log_1_full) { return; }
   //High speed tooth logging history
-  if( (currentStatus.toothLogEnabled == true) || (currentStatus.compositeTriggerUsed > 0) ) 
+  if( (currentLoggerStatus.tooth_log_enabled == true) || (currentLoggerStatus.composite_trigger_used > 0U) )
   {
     bool valueLogged = false;
-    if(currentStatus.toothLogEnabled == true)
+    if(currentLoggerStatus.tooth_log_enabled == true)
     {
       //Tooth log only works on the Crank tooth
       if(whichTooth == TOOTH_CRANK)
@@ -189,10 +192,10 @@ static inline void addToothLogEntry(unsigned long toothTime, byte whichTooth)
         valueLogged = true;
       } 
     }
-    else if(currentStatus.compositeTriggerUsed > 0)
+    else if(currentLoggerStatus.composite_trigger_used > 0U)
     {
       compositeLogHistory[toothHistoryIndex] = 0;
-      if(currentStatus.compositeTriggerUsed == 4)
+      if(currentLoggerStatus.composite_trigger_used == 4U)
       {
         // we want to display both cams so swap the values round to display primary as cam1 and secondary as cam2, include the crank in the data as the third output
         if(READ_SEC_TRIGGER() == true) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_PRI); }
@@ -204,7 +207,7 @@ static inline void addToothLogEntry(unsigned long toothTime, byte whichTooth)
       {
         // we want to display crank and one of the cams
         if(READ_PRI_TRIGGER() == true) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_PRI); }
-        if(currentStatus.compositeTriggerUsed == 3)
+        if(currentLoggerStatus.composite_trigger_used == 3U)
         { 
           // display cam2 and also log data for cam 1
           if(READ_THIRD_TRIGGER() == true) { BIT_SET(compositeLogHistory[toothHistoryIndex], COMPOSITE_LOG_SEC); } // only the COMPOSITE_LOG_SEC value is visualised hence the swapping of the data
@@ -232,8 +235,8 @@ static inline void addToothLogEntry(unsigned long toothTime, byte whichTooth)
     //If there has been a value logged above, update the indexes
     if(valueLogged == true)
     {
-      currentStatus.isToothLog1Full = toothHistoryIndex < (TOOTH_LOG_SIZE-1);
-      if (!currentStatus.isToothLog1Full) { ++toothHistoryIndex; }
+      currentLoggerStatus.is_tooth_log_1_full = toothHistoryIndex < (TOOTH_LOG_SIZE-1);
+      if (!currentLoggerStatus.is_tooth_log_1_full) { ++toothHistoryIndex; }
     }
 
 
@@ -260,7 +263,7 @@ void loggerPrimaryISR(void)
     currentStatus.decoder.primary.callback();
     validEdge = true;
   }
-  if( (currentStatus.toothLogEnabled == true) && (decoderStatus.validTrigger) )
+  if( (currentLoggerStatus.tooth_log_enabled == true) && (decoderStatus.validTrigger) )
   {
     //Tooth logger only logs when the edge was correct
     if(validEdge == true) 
@@ -268,7 +271,7 @@ void loggerPrimaryISR(void)
       addToothLogEntry(curGap, TOOTH_CRANK);
     }
   }
-  else if( (currentStatus.compositeTriggerUsed > 0) )
+  else if( (currentLoggerStatus.composite_trigger_used > 0U) )
   {
     //Composite logger adds an entry regardless of which edge it was
     addToothLogEntry(curGap, TOOTH_CRANK);
@@ -292,7 +295,7 @@ void loggerSecondaryISR(void)
     currentStatus.decoder.secondary.callback();
   }
   //No tooth logger for the secondary input
-  if( (currentStatus.compositeTriggerUsed > 0) && (decoderStatus.validTrigger) )
+  if( (currentLoggerStatus.composite_trigger_used > 0U) && (decoderStatus.validTrigger) )
   {
     //Composite logger adds an entry regardless of which edge it was
     addToothLogEntry(curGap2, TOOTH_CAM_SECONDARY);
@@ -319,7 +322,7 @@ void loggerTertiaryISR(void)
     currentStatus.decoder.tertiary.callback();
   }
   //No tooth logger for the secondary input
-  if( (currentStatus.compositeTriggerUsed > 0) && (decoderStatus.validTrigger) )
+  if( (currentLoggerStatus.composite_trigger_used > 0U) && (decoderStatus.validTrigger) )
   {
     //Composite logger adds an entry regardless of which edge it was
     addToothLogEntry(curGap3, TOOTH_CAM_TERTIARY);
@@ -779,7 +782,7 @@ static inline void triggerRecordVVT1Angle (void)
     curAngle -= configPage4.triggerAngle; //Value at TDC
     if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage10.vvtCL0DutyAng; }
 
-    currentStatus.vvt1Angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
+    currentAdvancedEngineStatus.vvt1_angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentAdvancedEngineStatus.vvt1_angle);
   }
 }
 
@@ -808,7 +811,7 @@ static void triggerThird_missingTooth(void)
     curAngle -= configPage4.triggerAngle; //Value at TDC
     if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage4.vvt2CL0DutyAng; }
     //currentStatus.vvt2Angle = int8_t (curAngle); //vvt1Angle is only int8, but +/-127 degrees is enough for VVT control
-    currentStatus.vvt2Angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt2Angle);    
+    currentAdvancedEngineStatus.vvt2_angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentAdvancedEngineStatus.vvt2_angle);    
 
     toothLastThirdToothTime = curTime3;
   } //Trigger filter
@@ -2762,9 +2765,9 @@ int getCamAngle_Miata9905(void)
   //lastVVTtime is the time between tooth #1 (10* BTDC) and the single cam tooth. 
   //All cam angles in in BTDC, so the actual advance angle is 370 - timeToAngleDegPerMicroSec(lastVVTtime) - <the angle of the cam at 0 advance>
   curAngle = 370 - timeToAngleDegPerMicroSec(lastVVTtime) - configPage10.vvtCL0DutyAng;
-  currentStatus.vvt1Angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentStatus.vvt1Angle);
+  currentAdvancedEngineStatus.vvt1_angle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, currentAdvancedEngineStatus.vvt1_angle);
 
-  return currentStatus.vvt1Angle;
+  return currentAdvancedEngineStatus.vvt1_angle;
 }
 
 static void triggerSetEndTeeth_Miata9905(void)
@@ -4570,7 +4573,7 @@ static void triggerSec_FordST170(void)
       if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP )
       {
         curAngle = LOW_PASS_FILTER( (curAngle << 1), configPage4.ANGLEFILTER_VVT, curAngle);
-        currentStatus.vvt1Angle = 360 - curAngle - configPage10.vvtCL0DutyAng;
+        currentAdvancedEngineStatus.vvt1_angle = 360 - curAngle - configPage10.vvtCL0DutyAng;
       }
     }
   } //Trigger filter
@@ -5395,7 +5398,7 @@ static void triggerSetEndTeeth_Renix(void)
 
   ignition1EndTooth = calcEndTeeth_Renix(ignition1EndAngle, toothAdder);
   ignition2EndTooth = calcEndTeeth_Renix(ignition2EndAngle, toothAdder);
-  currentStatus.canin[1] = ignition2EndTooth;
+  currentCanAuxStatus.values[1] = ignition2EndTooth;
   ignition3EndTooth = calcEndTeeth_Renix(ignition3EndAngle, toothAdder);
   ignition4EndTooth = calcEndTeeth_Renix(ignition4EndAngle, toothAdder);
 #if IGN_CHANNELS >= 5
@@ -5661,7 +5664,7 @@ static void triggerSec_RoverMEMS(void)
       curAngle -= configPage4.triggerAngle; //Value at TDC
       if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage10.vvtCLMinAng; }
 
-      currentStatus.vvt1Angle = curAngle;
+      currentAdvancedEngineStatus.vvt1_angle = curAngle;
     }
 
     if(configPage4.trigPatternSec == SEC_TRIGGER_SINGLE)

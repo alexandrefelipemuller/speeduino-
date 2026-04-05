@@ -1,5 +1,6 @@
 #include "board_definition.h"
 #include "config_pages.h"
+#include "sd_logging_status.h"
 #include "statuses.h"
 
 #ifdef SD_LOGGING
@@ -593,13 +594,13 @@ void writeSDLogHeader()
 //Sets the status variable for TunerStudio
 void setTS_SD_status()
 {
-  currentStatus.sdCardPresent = (SD_status != SD_STATUS_ERROR_NO_CARD);
-  currentStatus.sdCardType = 1U; // CARD is SDHC
-  currentStatus.sdCardReady = true;
-  currentStatus.sdCardLogging = (SD_status == SD_STATUS_ACTIVE);
-  currentStatus.sdCardError = (SD_status >= SD_STATUS_ERROR_NO_FS);
-  currentStatus.sdCardFS = 1U; // CARD has a FAT32 filesystem (Though this will be exFAT)
-  currentStatus.sdCardUnused = false; //Unused bit is always 0
+  currentSdLoggingStatus.card_present = (SD_status != SD_STATUS_ERROR_NO_CARD);
+  currentSdLoggingStatus.card_type = 1U; // CARD is SDHC
+  currentSdLoggingStatus.card_ready = true;
+  currentSdLoggingStatus.card_logging = (SD_status == SD_STATUS_ACTIVE);
+  currentSdLoggingStatus.card_error = (SD_status >= SD_STATUS_ERROR_NO_FS);
+  currentSdLoggingStatus.card_fs = 1U; // CARD has a FAT32 filesystem (Though this will be exFAT)
+  currentSdLoggingStatus.card_unused = false; //Unused bit is always 0
 }
 
 /** 
@@ -739,7 +740,7 @@ void formatExFat()
   bool result = false;
 
   //Set the SD status to busy
-  currentStatus.sdCardReady = false;
+  currentSdLoggingStatus.card_ready = false;
 
   logFile.close();
 
@@ -755,7 +756,7 @@ void formatExFat()
   }
 
   if(result == false) { SD_status = SD_STATUS_ERROR_FORMAT_FAIL; }
-  else { currentStatus.sdCardReady = true; }
+  else { currentSdLoggingStatus.card_ready = true; }
 }
 
 /**

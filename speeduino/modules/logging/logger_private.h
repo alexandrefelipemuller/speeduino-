@@ -2,6 +2,8 @@
 #define LOGGER_PRIVATE_H
 
 #include <stdint.h>
+#include "advanced_engine_status.h"
+#include "logger_status.h"
 #include "statuses.h"
 #include "bit_manip.h"
 
@@ -34,7 +36,7 @@ static inline byte buildStatus1(const statuses &current)
     current.isInj4Open,
     current.isDFCOActive,
     false,
-    current.isToothLog1Full,
+    currentLoggerStatus.is_tooth_log_1_full,
   };
   return setStatusBits(0U, bits);
 }
@@ -58,7 +60,7 @@ static inline byte buildStatus3(const statuses &current)
 {
   bool bits[] = {
     current.resetPreventActive,
-    current.nitrousActive,
+    currentAdvancedEngineStatus.nitrous_active,
     current.secondFuelTableActive,
     current.vssUiRefresh,
     current.decoder.getStatus().syncStatus == SyncStatus::Partial,
@@ -71,10 +73,10 @@ static inline byte buildStatus3(const statuses &current)
 static inline byte buildStatus4(const statuses &current)
 {
   bool bits[] = {
-    current.wmiTankEmpty,
-    current.vvt1AngleError,
-    current.vvt2AngleError,
-    current.fanOn,
+    currentAdvancedEngineStatus.wmi_tank_empty,
+    currentAdvancedEngineStatus.vvt1_angle_error,
+    currentAdvancedEngineStatus.vvt2_angle_error,
+    currentAdvancedEngineStatus.fan_on,
     current.burnPending,
     current.stagingActive,
     current.commCompat,
@@ -107,13 +109,13 @@ static inline byte buildTestOutput(const statuses &current)
 static inline byte buildAirConStatus(const statuses &current)
 {
   bool bits[] = {
-    current.airconRequested,
-    current.airconCompressorOn,
-    current.airconRpmLockout,
-    current.airconTpsLockout,
-    current.airconTurningOn,
-    current.airconCltLockout,
-    current.airconFanOn,
+    currentAdvancedEngineStatus.aircon_requested,
+    currentAdvancedEngineStatus.aircon_compressor_on,
+    currentAdvancedEngineStatus.aircon_rpm_lockout,
+    currentAdvancedEngineStatus.aircon_tps_lockout,
+    currentAdvancedEngineStatus.aircon_turning_on,
+    currentAdvancedEngineStatus.aircon_clt_lockout,
+    currentAdvancedEngineStatus.aircon_fan_on,
   };
   return setStatusBits(0U, bits);
 }

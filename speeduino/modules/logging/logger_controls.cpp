@@ -1,4 +1,5 @@
 #include "logger_controls.h"
+#include "logger_status.h"
 #include "config_pages.h"
 #include "decoders.h"
 #include "init.h"
@@ -29,9 +30,9 @@ static inline void detachLoggerInterrupt(uint8_t pin, const interrupt_t &decoder
 
 void startToothLogger(void)
 {
-  currentStatus.toothLogEnabled = true;
-  currentStatus.compositeTriggerUsed = 0U;
-  currentStatus.isToothLog1Full = false;
+  currentLoggerStatus.tooth_log_enabled = true;
+  currentLoggerStatus.composite_trigger_used = 0U;
+  currentLoggerStatus.is_tooth_log_1_full = false;
   toothHistoryIndex = 0U;
 
   attachLoggerInterrupt(pinTrigger, loggerPrimaryISR);
@@ -44,7 +45,7 @@ void startToothLogger(void)
 
 void stopToothLogger(void)
 {
-  currentStatus.toothLogEnabled = false;
+  currentLoggerStatus.tooth_log_enabled = false;
 
   detachLoggerInterrupt(pinTrigger, currentStatus.decoder.primary);
 
@@ -56,9 +57,9 @@ void stopToothLogger(void)
 
 void startCompositeLogger(void)
 {
-  currentStatus.compositeTriggerUsed = 2U;
-  currentStatus.toothLogEnabled = false;
-  currentStatus.isToothLog1Full = false;
+  currentLoggerStatus.composite_trigger_used = 2U;
+  currentLoggerStatus.tooth_log_enabled = false;
+  currentLoggerStatus.is_tooth_log_1_full = false;
   toothHistoryIndex = 0U;
 
   attachLoggerInterrupt(pinTrigger, loggerPrimaryISR);
@@ -71,7 +72,7 @@ void startCompositeLogger(void)
 
 void stopCompositeLogger(void)
 {
-  currentStatus.compositeTriggerUsed = 0U;
+  currentLoggerStatus.composite_trigger_used = 0U;
 
   detachLoggerInterrupt(pinTrigger, currentStatus.decoder.primary);
 
@@ -83,9 +84,9 @@ void stopCompositeLogger(void)
 
 void startCompositeLoggerTertiary(void)
 {
-  currentStatus.compositeTriggerUsed = 3U;
-  currentStatus.toothLogEnabled = false;
-  currentStatus.isToothLog1Full = false;
+  currentLoggerStatus.composite_trigger_used = 3U;
+  currentLoggerStatus.tooth_log_enabled = false;
+  currentLoggerStatus.is_tooth_log_1_full = false;
   toothHistoryIndex = 0U;
 
   attachLoggerInterrupt(pinTrigger, loggerPrimaryISR);
@@ -94,7 +95,7 @@ void startCompositeLoggerTertiary(void)
 
 void stopCompositeLoggerTertiary(void)
 {
-  currentStatus.compositeTriggerUsed = 0U;
+  currentLoggerStatus.composite_trigger_used = 0U;
 
   detachLoggerInterrupt(pinTrigger, currentStatus.decoder.primary);
   detachLoggerInterrupt(pinTrigger3, currentStatus.decoder.tertiary);
@@ -102,9 +103,9 @@ void stopCompositeLoggerTertiary(void)
 
 void startCompositeLoggerCams(void)
 {
-  currentStatus.compositeTriggerUsed = 4U;
-  currentStatus.toothLogEnabled = false;
-  currentStatus.isToothLog1Full = false;
+  currentLoggerStatus.composite_trigger_used = 4U;
+  currentLoggerStatus.tooth_log_enabled = false;
+  currentLoggerStatus.is_tooth_log_1_full = false;
   toothHistoryIndex = 0U;
 
   if((VSS_USES_RPM2() != true) && (FLEX_USES_RPM2() != true))
@@ -117,7 +118,7 @@ void startCompositeLoggerCams(void)
 
 void stopCompositeLoggerCams(void)
 {
-  currentStatus.compositeTriggerUsed = 0U;
+  currentLoggerStatus.composite_trigger_used = 0U;
 
   if((VSS_USES_RPM2() != true) && (FLEX_USES_RPM2() != true))
   {

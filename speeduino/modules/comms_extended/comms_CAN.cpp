@@ -9,6 +9,8 @@ This is for handling the data broadcasted to various CAN dashes and instrument c
 */
 #if defined(NATIVE_CAN_AVAILABLE)
 #include "comms_CAN.h"
+#include "advanced_engine_status.h"
+#include "can_aux_status.h"
 #include "config9_domains.h"
 #include "config_pages.h"
 #include "statuses.h"
@@ -354,8 +356,8 @@ void DashMessage(uint16_t DashMessageID)
 
     case CAN_HALTECH_VSS:
       temp_VSS = currentStatus.vss * 10U;
-      temp_VVT1 = currentStatus.vvt1Angle * 10U;
-      temp_VVT2 = currentStatus.vvt2Angle * 10U;
+      temp_VVT1 = currentAdvancedEngineStatus.vvt1_angle * 10U;
+      temp_VVT2 = currentAdvancedEngineStatus.vvt2_angle * 10U;
       outMsg.len = 8;
       outMsg.buf[0] = highByte(temp_VSS);
       outMsg.buf[1] = lowByte(temp_VSS);
@@ -368,7 +370,7 @@ void DashMessage(uint16_t DashMessageID)
     break;
 
     case CAN_HALTECH_DATA4:
-      temp_BoostTarget = currentStatus.boostTarget * 10U;
+      temp_BoostTarget = currentAdvancedEngineStatus.boost_target * 10U;
       temp_Baro = currentStatus.baro * 10U;
       outMsg.len = 8;
       outMsg.buf[0] = 0x00; //High byte for battery voltage, which is not used (Max battery voltage is 25.5 or 255)
@@ -761,8 +763,8 @@ void obd_response(uint8_t PIDmode, uint8_t requestedPIDlow, uint8_t requestedPID
           outMsg.buf[1] =  0x62;                                               // Same as query, except that 40h is added to the mode value. So:62h = custom mode
           outMsg.buf[2] =  requestedPIDlow;                                 // PID code
           outMsg.buf[3] =  0x77;                                               // PID code
-          outMsg.buf[4] =  lowByte(currentStatus.canin[requestedPIDlow-1]);   // A
-          outMsg.buf[5] =  highByte(currentStatus.canin[requestedPIDlow-1]);  // B
+          outMsg.buf[4] =  lowByte(currentCanAuxStatus.values[requestedPIDlow-1]);   // A
+          outMsg.buf[5] =  highByte(currentCanAuxStatus.values[requestedPIDlow-1]);  // B
           outMsg.buf[6] =  0x00;                                               // C
           outMsg.buf[7] =  0x00;                                               // D
       }
@@ -797,19 +799,19 @@ void readAuxCanBus()
       if (!can_config.caninput_is_two_bytes(i))
       {
         // Gets the one-byte value from the Data Field.
-        currentStatus.canin[i] = inMsg.buf[can_config.caninput_start_byte(i)];
+        currentCanAuxStatus.values[i] = inMsg.buf[can_config.caninput_start_byte(i)];
       }
       else
       {
         if (can_config.caninput_endianness() == 1U)
         {
           //Gets the two-byte value from the Data Field in Litlle Endian.
-          currentStatus.canin[i] = ((inMsg.buf[can_config.caninput_start_byte(i)]) | (inMsg.buf[can_config.caninput_start_byte(i) + 1] << 8));
+          currentCanAuxStatus.values[i] = ((inMsg.buf[can_config.caninput_start_byte(i)]) | (inMsg.buf[can_config.caninput_start_byte(i) + 1] << 8));
         }
         else
         {
           //Gets the two-byte value from the Data Field in Big Endian.
-          currentStatus.canin[i] = ((inMsg.buf[can_config.caninput_start_byte(i)] << 8) | (inMsg.buf[can_config.caninput_start_byte(i) + 1]));
+          currentCanAuxStatus.values[i] = ((inMsg.buf[can_config.caninput_start_byte(i)] << 8) | (inMsg.buf[can_config.caninput_start_byte(i) + 1]));
         }
       }
     }

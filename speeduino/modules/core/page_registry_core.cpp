@@ -45,6 +45,7 @@ static constexpr uint16_t EEPROM_CONFIG3_MAP = 421;
 static constexpr uint16_t EEPROM_CONFIG4_START = 709;
 static constexpr uint16_t EEPROM_CONFIG5_MAP = 839;
 static constexpr uint16_t EEPROM_CONFIG6_START = 1127;
+static constexpr uint16_t CONFIG_PAGE6_TUNE_SIZE = 128U;
 
 static constexpr entity_t pageZeroMap[] PROGMEM = {
   makeEmptyEntity(0U),
@@ -65,7 +66,7 @@ static constexpr entity_t afrPageMap[] PROGMEM = {
   makeTableEntity(&afrTable),
 };
 static constexpr entity_t afrSetPageMap[] PROGMEM = {
-  makeRawEntity(&configPage6, sizeof(configPage6)),
+  makeRawEntity(&configPage6, CONFIG_PAGE6_TUNE_SIZE),
 };
 
 static constexpr page_map_t corePageMaps[] PROGMEM = {

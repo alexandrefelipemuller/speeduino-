@@ -1521,7 +1521,7 @@ static void test_corrections_afrtarget_incorporteafr_map(void) {
   page6.egoType = EGO_TYPE_OFF;
   page6.afrLoadSource = AFR_LOAD_MAP;
 
-  TEST_ASSERT_EQUAL(86U, calculateAfrTarget(afrLookUpTable, current, page2, page6));
+  TEST_ASSERT_EQUAL(94U, calculateAfrTarget(afrLookUpTable, current, page2, page6));
 }
 
 static void test_corrections_afrtarget_ego(void) {

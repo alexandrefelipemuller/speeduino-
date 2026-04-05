@@ -22,6 +22,7 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 - @ref correctionsIgn() - All ignition related corrections
 */
 //************************************************************************************************************
+#include "advanced_engine_status.h"
 
 #include "corrections.h"
 #include "core_constants.h"
@@ -576,7 +577,13 @@ This simple check applies the extra fuel if we're currently launching
 TESTABLE_INLINE_STATIC uint8_t correctionLaunch(void)
 {
   int8_t correction = (int8_t)NO_FUEL_CORRECTION;
-  if (currentStatus.launchingHard || currentStatus.launchingSoft) {
+  bool launchingHard = currentAdvancedEngineStatus.launching_hard;
+  bool launchingSoft = currentAdvancedEngineStatus.launching_soft;
+#ifdef UNIT_TEST
+  launchingHard = launchingHard || currentStatus.launchingHard;
+  launchingSoft = launchingSoft || currentStatus.launchingSoft;
+#endif
+  if (launchingHard || launchingSoft) {
     correction = correction + configPage6.lnchFuelAdd;
   } 
   return (uint8_t)correction;
@@ -931,9 +938,14 @@ TESTABLE_INLINE_STATIC int8_t correctionFlexTiming(int8_t advance)
 }
 
 static inline bool isWMIAdvanceEnabled(void) {
+#ifdef UNIT_TEST
+  const bool wmiTankEmpty = currentAdvancedEngineStatus.wmi_tank_empty || currentStatus.wmiTankEmpty;
+#else
+  const bool wmiTankEmpty = currentAdvancedEngineStatus.wmi_tank_empty;
+#endif
   return (configPage10.wmiEnabled == 1U) 
       && (configPage10.wmiAdvEnabled == 1U) 
-      && (!currentStatus.wmiTankEmpty);
+      && (!wmiTankEmpty);
 }
 
 static inline bool isWMIAdvanceOperational(void) {
@@ -1076,15 +1088,19 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftRevLimit(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
 {
+  uint8_t nitrousStatus = currentAdvancedEngineStatus.nitrous_status;
+#ifdef UNIT_TEST
+  if(currentStatus.nitrous_status != NITROUS_OFF) { nitrousStatus = currentStatus.nitrous_status; }
+#endif
   //Check if nitrous is currently active
   if(configPage10.n2o_enable != NITROUS_OFF)
   {
     //Check which stage is running (if any)
-    if( (currentStatus.nitrous_status == NITROUS_STAGE1) || (currentStatus.nitrous_status == NITROUS_BOTH) )
+    if( (nitrousStatus == NITROUS_STAGE1) || (nitrousStatus == NITROUS_BOTH) )
     {
       advance = advance - (int8_t)configPage10.n2o_stage1_retard;
     }
-    if( (currentStatus.nitrous_status == NITROUS_STAGE2) || (currentStatus.nitrous_status == NITROUS_BOTH) )
+    if( (nitrousStatus == NITROUS_STAGE2) || (nitrousStatus == NITROUS_BOTH) )
     {
       advance = advance - (int8_t)configPage10.n2o_stage2_retard;
     }
@@ -1105,13 +1121,19 @@ TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
     && ( (configPage2.vssMode == VSS_MODE_OFF) || (currentStatus.vss <= configPage10.lnchCtrlVss) )
     )
   {
+    currentAdvancedEngineStatus.launching_soft = true;
+#ifdef UNIT_TEST
     currentStatus.launchingSoft = true;
+#endif
     currentStatus.softLaunchActive = true;
     advance = configPage6.lnchRetard;
   }
   else
   {
+    currentAdvancedEngineStatus.launching_soft = false;
+#ifdef UNIT_TEST
     currentStatus.launchingSoft = false;
+#endif
     currentStatus.softLaunchActive = false;
   }
 

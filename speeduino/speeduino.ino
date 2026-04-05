@@ -21,7 +21,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include <stdint.h> //developer.mbed.org/handbook/C-Data-Types
 //************************************************
+#include "advanced_engine_status.h"
 #include "globals.h"
+#include "logger_status.h"
 #include "scheduler.h"
 #include "comms.h"
 #include "comms_legacy.h"
@@ -47,20 +49,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "units.h"
 #include "fuel_calcs.h"
 #include "preprocessor.h"
-#include "config9_domains.h"
 #include "dwell.h"
 #include "decoder_init.h"
-#include "modules/advanced_engine/module_advanced_engine.h"
-#include "modules/comms_extended/module_comms_extended.h"
-#include "modules/secondary_serial/module_secondary_serial.h"
-#include "modules/logging/module_logging.h"
-#include "modules/table_switching/module_table_switching.h"
+#include "modules/core/module_interfaces.h"
+#include "modules/core/module_runtime.h"
 
 #define CRANK_RUN_HYSTER    15
 
 // Forward declarations
 void calculateIgnitionAngles(uint16_t dwellAngle);
-void checkLaunchAndFlatShift();
 
 constexpr table2D_u8_u16_4 injectorAngleTable(&configPage2.injAngRPM, &configPage2.injAng);
 constexpr table2D_u8_u8_8 rotarySplitTable(&configPage10.rotarySplitBins, &configPage10.rotarySplitValues);
@@ -264,8 +261,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       }
       
       // Check for any secondary comms requiring action.
-      module_secondary_serial_poll(get_secondary_serial_config(configPage9));
-      module_comms_extended_poll(configPage9.enable_intcan, configPage2.canWBO);
+      core_modules_poll();
           
     if(currentLoopTime > micros())
     {
@@ -307,11 +303,11 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       //This is a safety check. If for some reason the interrupts have got screwed up (Leading to 0rpm), this resets them.
       //It can possibly be run much less frequently.
       //This should only be run if the high speed logger are off because it will change the trigger interrupts back to defaults rather than the logger versions
-      if( (currentStatus.toothLogEnabled == false) && (currentStatus.compositeTriggerUsed == 0) ) { 
+      if( (currentLoggerStatus.tooth_log_enabled == false) && (currentLoggerStatus.composite_trigger_used == 0U) ) {
         currentStatus.decoder = buildDecoder(configPage4.TrigPattern);
       }
 
-      module_advanced_engine_on_engine_stop(configPage4);
+      core_modules_on_engine_stop();
     }
     //***Perform sensor reads***
     //-----------------------------------------------------------------------------------------------------
@@ -329,15 +325,12 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_50HZ);
 
-      module_comms_extended_tick_50hz();
+      core_modules_tick_50hz();
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_30HZ)) //30 hertz
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_30HZ);
-      module_advanced_engine_tick_30hz();
-      module_secondary_serial_tick_30hz(get_secondary_serial_config(configPage9));
-      module_comms_extended_tick_30hz();
-      module_logging_tick_30hz(configPage13);
+      core_modules_tick_30hz();
 
       //Check for any outstanding EEPROM writes.
       if( (isEepromWritePending() == true) && (serialStatusFlag == SERIAL_INACTIVE) && storageWriteTimeoutExpired()) { saveAllPages(); } 
@@ -353,35 +346,29 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
           }
       #endif     
 
-      module_advanced_engine_tick_15hz();
-      module_comms_extended_tick_15hz();
+      core_modules_tick_15hz();
 
       //And check whether the tooth log buffer is ready
-      if(toothHistoryIndex > TOOTH_LOG_SIZE) { currentStatus.isToothLog1Full = true; }
+      if(toothHistoryIndex > TOOTH_LOG_SIZE) { currentLoggerStatus.is_tooth_log_1_full = true; }
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ)) //10 hertz
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_10HZ);
       //updateFullStatus();
       idleControl(); //Perform any idle related actions. This needs to be run at 10Hz to align with the idle taper resolution of 0.1s
-      module_advanced_engine_tick_10hz();
-      module_comms_extended_tick_10hz();
-      module_logging_tick_10hz(configPage13);
+      core_modules_tick_10hz();
     }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_4HZ);
-      module_advanced_engine_tick_4hz();
-
       //Lookup the current target idle RPM. This is aligned with coolant and so needs to be calculated at the same rate CLT is read
       if( (configPage2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
       {
         currentStatus.CLIdleTarget = table2D_getValue(&idleTargetTable, temperatureAddOffset(currentStatus.coolant)); //All temps are offset by 40 degrees
-        if(currentStatus.airconTurningOn) { currentStatus.CLIdleTarget += configPage15.airConIdleUpRPMAdder;  } //Adds Idle Up RPM amount if active
+        if(currentAdvancedEngineStatus.aircon_turning_on) { currentStatus.CLIdleTarget += configPage15.airConIdleUpRPMAdder;  } //Adds Idle Up RPM amount if active
       }
 
-      module_logging_tick_4hz(configPage13);
-      module_comms_extended_tick_4hz(statusSensors, currentStatus, get_can_extended_config(configPage9));
+      core_modules_tick_4hz(statusSensors, currentStatus);
     } //4Hz timer
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_1HZ)) //Once per second)
     {
@@ -391,7 +378,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       if ( (configPage10.wmiEnabled > 0) && (configPage10.wmiIndicatorEnabled > 0) )
       {
         // water tank empty
-        if (currentStatus.wmiTankEmpty)
+        if (currentAdvancedEngineStatus.wmi_tank_empty)
         {
           // flash with 1sec interval
           digitalWrite(pinWMIIndicator, !digitalRead(pinWMIIndicator));
@@ -402,7 +389,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
         } 
       }
 
-      module_logging_tick_1hz(currentStatus, configPage13);
+      core_modules_tick_1hz(currentStatus);
 
     } //1Hz timer
 
@@ -420,7 +407,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
     currentStatus.advance1 = getAdvance1();
     currentStatus.advance = currentStatus.advance1; //Set the final advance value to be advance 1 as a default. This may be changed in the section below
 
-    module_table_switching_apply(configPage2, configPage10, fuelTable2, ignitionTable2, currentStatus);
+    core_modules_apply_table_switching(currentStatus);
 
     //Always check for sync
     //Main loop runs within this clause
@@ -737,7 +724,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       //   }
       // }
       
-      currentStatus.schedulerCutState = module_advanced_engine_scheduler_cut(currentStatus, configPage2, configPage4, configPage6, configPage9, configPage10);
+      currentStatus.schedulerCutState = core_modules_get_scheduler_cut(currentStatus);
       
       setFuelSchedules(currentStatus, injectionStartAngles, injectorLimits(currentStatus.decoder.getCrankAngle()), currentStatus.schedulerCutState.fuelChannels);
     
@@ -901,59 +888,5 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
     //Will hit the default case on >8 cylinders. Do nothing in these cases
     default:
       break;
-  }
-}
-
-
-void checkLaunchAndFlatShift()
-{
-  //Check for launching/flat shift (clutch) based on the current and previous clutch states
-  currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;
-  //Only check for pinLaunch if any function using it is enabled. Else pins might break starting a board
-  if(configPage6.flatSEnable || configPage6.launchEnabled)
-  {
-    if(configPage6.launchHiLo > 0) { currentStatus.clutchTrigger = digitalRead(pinLaunch); }
-    else { currentStatus.clutchTrigger = !digitalRead(pinLaunch); }
-
-    currentStatus.clutchTriggerActive = currentStatus.clutchTrigger; //Stores the value to send to TunerStudio
-  }
-  if(currentStatus.clutchTrigger && (currentStatus.previousClutchTrigger != currentStatus.clutchTrigger) ) { currentStatus.clutchEngagedRPM = currentStatus.RPM; } //Check whether the clutch has been engaged or disengaged and store the current RPM if so
-
-  //Default flags to off
-  currentStatus.launchingHard = false; 
-  currentStatus.hardLaunchActive = false;
-  currentStatus.flatShiftingHard = false;
-
-  if (configPage6.launchEnabled && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS) ) 
-  { 
-    //Only enable if VSS is not used or if it is, make sure we're not above the speed limit
-    if( (configPage2.vssMode == 0) || ((configPage2.vssMode > 0) && (currentStatus.vss < configPage10.lnchCtrlVss)) )
-    {
-      //Check whether RPM is above the launch limit
-      uint16_t launchRPMLimit = (configPage6.lnchHardLim * 100);
-      if( (configPage2.hardCutType == HARD_CUT_ROLLING) ) { launchRPMLimit += (configPage15.rollingProtRPMDelta[0] * 10); } //Add the rolling cut delta if enabled (Delta is a negative value)
-
-      if(currentStatus.RPM > launchRPMLimit)
-      {
-        //HardCut rev limit for 2-step launch control.
-        currentStatus.launchingHard = true; 
-        currentStatus.hardLaunchActive = true;
-      }
-    }
-  } 
-  else 
-  { 
-    //If launch is not active, check whether flat shift should be active
-    if(configPage6.flatSEnable && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM >= ((unsigned int)(configPage6.flatSArm * 100)) ) ) 
-    { 
-      uint16_t flatRPMLimit = currentStatus.clutchEngagedRPM;
-      if( (configPage2.hardCutType == HARD_CUT_ROLLING) ) { flatRPMLimit += (configPage15.rollingProtRPMDelta[0] * 10); } //Add the rolling cut delta if enabled (Delta is a negative value)
-
-      if(currentStatus.RPM > flatRPMLimit)
-      {
-        //Flat shift rev limit
-        currentStatus.flatShiftingHard = true;
-      }
-    }
   }
 }

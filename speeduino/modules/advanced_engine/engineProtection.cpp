@@ -1,4 +1,5 @@
 #include "engineProtection.h"
+#include "advanced_engine_status.h"
 #include "maths.h"
 #include "table2d.h"
 #include "units.h"
@@ -205,9 +206,15 @@ BEGIN_LTO_ALWAYS_INLINE(statuses::scheduler_cut_t) calculateFuelIgnitionChannelC
   uint16_t maxAllowedRPM = checkRevLimit(current, page4, page6, page9); //The maximum RPM allowed by all the potential limiters (Engine protection, 2-step, flat shift etc). Divided by 100. `checkRevLimit()` returns the current maximum RPM allow (divided by 100) based on either the fixed hard limit or the current coolant temp
   //Check each of the functions that has an RPM limit. Update the max allowed RPM if the function is active and has a lower RPM than already set
   if( checkEngineProtect(current, page4, page6, page9, page10) && (page4.engineProtectMaxRPM < maxAllowedRPM)) { maxAllowedRPM = page4.engineProtectMaxRPM; }
-  if ( (current.launchingHard == true) && (page6.lnchHardLim < maxAllowedRPM) ) { maxAllowedRPM = page6.lnchHardLim; }
+  bool launchingHard = currentAdvancedEngineStatus.launching_hard;
+  bool flatShiftingHard = currentAdvancedEngineStatus.flat_shifting_hard;
+#ifdef UNIT_TEST
+  launchingHard = launchingHard || current.launchingHard;
+  flatShiftingHard = flatShiftingHard || current.flatShiftingHard;
+#endif
+  if (launchingHard && (page6.lnchHardLim < maxAllowedRPM)) { maxAllowedRPM = page6.lnchHardLim; }
   maxAllowedRPM = maxAllowedRPM * 100U; //All of the above limits are divided by 100, convert back to RPM
-  if ( (current.flatShiftingHard == true) && (current.clutchEngagedRPM < maxAllowedRPM) ) { maxAllowedRPM = current.clutchEngagedRPM; } //Flat shifting is a special case as the RPM limit is based on when the clutch was engaged. It is not divided by 100 as it is set with the actual RPM
+  if (flatShiftingHard && (current.clutchEngagedRPM < maxAllowedRPM)) { maxAllowedRPM = current.clutchEngagedRPM; } //Flat shifting is a special case as the RPM limit is based on when the clutch was engaged. It is not divided by 100 as it is set with the actual RPM
 
   if(current.RPM >= maxAllowedRPM)
   {

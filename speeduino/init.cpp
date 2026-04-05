@@ -2,6 +2,7 @@
  * Speeduino Initialisation (called at Arduino setup()).
  */
 #include "init.h"
+#include "advanced_engine_status.h"
 #include "core_constants.h"
 #include "pin_registry.h"
 #include "runtime_state.h"
@@ -25,10 +26,8 @@
 #include "pages.h"
 #include "fuel_calcs.h"
 #include "decoder_init.h"
-#include "config9_domains.h"
-#include "modules/comms_extended/module_comms_extended.h"
-#include "modules/secondary_serial/module_secondary_serial.h"
-#include "modules/logging/module_logging.h"
+#include "modules/core/module_interfaces.h"
+#include "modules/core/module_runtime.h"
 #include "scheduledIO_ign.h"
 #include "scheduledIO_inj.h"
 #include "scheduledIO_direct_ign.h"
@@ -132,7 +131,7 @@ void initialiseAll(void)
     
     initBoard(115200); //This calls the current individual boards init function. See the board_xxx.ino files for these.
     initialiseTimers();
-    module_logging_init(configPage13);
+    core_modules_init_pre_pin_mapping();
 
     pPrimarySerial = &Serial; //Default to standard Serial interface
     currentStatus.allowLegacyComms = true; //Flag legacy comms as being allowed on startup
@@ -147,9 +146,7 @@ void initialiseAll(void)
     }
     else { setPinMapping(configPage2.pinMapping); }
 
-    // Must come after setPinMapping() as secondary serial can be changed on a per board basis.
-    module_secondary_serial_init(get_secondary_serial_config(configPage9));
-    module_comms_extended_init();
+    core_modules_init_post_pin_mapping();
 
     //End all coil charges to ensure no stray sparks on startup
     endCoil1Charge();
@@ -234,8 +231,8 @@ void initialiseAll(void)
     //currentStatus.seclx10 = 0;
     currentStatus.startRevolutions = 0;
     currentStatus.syncLossCounter = 0;
-    currentStatus.flatShiftingHard = false;
-    currentStatus.launchingHard = false;
+    currentAdvancedEngineStatus.flat_shifting_hard = false;
+    currentAdvancedEngineStatus.launching_hard = false;
     currentStatus.crankRPM = ((unsigned int)configPage4.crankRPM * 10); //Crank RPM limit (Saves us calculating this over and over again. It's updated once per second in timers.ino)
     currentStatus.fuelPumpOn = false;
     resetEngineProtect(currentStatus);
