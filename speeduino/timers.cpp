@@ -13,6 +13,7 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
 #include "timers.h"
 #include "core_constants.h"
 #include "hw_test_bits.h"
+#include "modules/advanced_engine/fan_aircon.h"
 #include "pin_registry.h"
 #include "port_pin.h"
 #include "runtime_state.h"
@@ -302,7 +303,7 @@ void oneMSInterval(void)
     //Check the fan output status
     if (configPage2.fanEnable >= 1)
     {
-       fanControl();            // Function to turn the cooling fan on/off
+       advanced_engine_fan_aircon_tick_1hz();
     }
 
     //Check whether fuel pump priming is complete

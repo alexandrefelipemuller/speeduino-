@@ -1,6 +1,7 @@
 #include "logger.h"
 #include "advanced_engine_status.h"
 #include "can_aux_status.h"
+#include "logger_status.h"
 #include "logger_private.h"
 #include "maths.h"
 #include "utilities.h"
@@ -40,8 +41,8 @@ int16_t getReadableLogEntry(uint16_t logIndex)
       statusValue = currentStatus.loopsPerSecond;
       break;
     case 23:
-      currentStatus.freeRAM = freeRam();
-      statusValue = currentStatus.freeRAM;
+      currentLoggerStatus.free_ram = freeRam();
+      statusValue = currentLoggerStatus.free_ram;
       break;
     case 24: statusValue = currentAdvancedEngineStatus.boost_target; break;
     case 25: statusValue = currentAdvancedEngineStatus.boost_duty; break;

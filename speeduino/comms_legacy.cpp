@@ -238,9 +238,9 @@ void legacySerialCommand(void)
       break;
 
     case 'm': //Send the current free memory
-      currentStatus.freeRAM = freeRam();
-      primarySerial.write(lowByte(currentStatus.freeRAM));
-      primarySerial.write(highByte(currentStatus.freeRAM));
+      currentLoggerStatus.free_ram = freeRam();
+      primarySerial.write(lowByte(currentLoggerStatus.free_ram));
+      primarySerial.write(highByte(currentLoggerStatus.free_ram));
       break;
 
     case 'M':

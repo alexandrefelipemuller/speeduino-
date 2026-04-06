@@ -77,6 +77,13 @@ static constexpr page_map_t advancedPageMaps[] PROGMEM = {
   { boostVvt2PageMap, _countof(boostVvt2PageMap) },
 };
 
+static constexpr page_descriptor_t advancedPageDescriptors[] PROGMEM = {
+  { boostvvtPage, advancedPageMaps[0] },
+  { warmupPage, advancedPageMaps[1] },
+  { wmiMapPage, advancedPageMaps[2] },
+  { boostvvtPage2, advancedPageMaps[3] },
+};
+
 static constexpr entity_storage_map_t advancedStorageMaps[] PROGMEM = {
   { &boostTable, EEPROM_CONFIG7_MAP1 },
   { &vvtTable, EEPROM_CONFIG7_MAP2 },
@@ -91,12 +98,18 @@ static constexpr entity_storage_map_t advancedStorageMaps[] PROGMEM = {
 };
 #else
 static constexpr page_map_t advancedPageMaps[] PROGMEM = {};
+static constexpr page_descriptor_t advancedPageDescriptors[] PROGMEM = {};
 static constexpr entity_storage_map_t advancedStorageMaps[] PROGMEM = {};
 #endif
 
 module_page_maps_t getAdvancedEnginePageMaps()
 {
   return { advancedPageMaps, _countof(advancedPageMaps) };
+}
+
+module_page_descriptors_t getAdvancedEnginePageDescriptors()
+{
+  return { advancedPageDescriptors, _countof(advancedPageDescriptors) };
 }
 
 module_storage_maps_t getAdvancedEngineStorageMaps()

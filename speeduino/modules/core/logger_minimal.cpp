@@ -2,6 +2,7 @@
 #include "advanced_engine_status.h"
 #include "modules/logging/logger_private.h"
 #include "can_aux_status.h"
+#include "logger_status.h"
 #include "maths.h"
 #include "utilities.h"
 #include "preprocessor.h"
@@ -77,8 +78,8 @@ byte getTSLogEntry(uint16_t byteNum)
     case 25: statusValue = currentStatus.TPS; break;
     case 26: statusValue = lowByte(currentStatus.loopsPerSecond); break;
     case 27: statusValue = highByte(currentStatus.loopsPerSecond); break;
-    case 28: currentStatus.freeRAM = freeRam(); statusValue = lowByte(currentStatus.freeRAM); break;
-    case 29: currentStatus.freeRAM = freeRam(); statusValue = highByte(currentStatus.freeRAM); break;
+    case 28: currentLoggerStatus.free_ram = freeRam(); statusValue = lowByte(currentLoggerStatus.free_ram); break;
+    case 29: currentLoggerStatus.free_ram = freeRam(); statusValue = highByte(currentLoggerStatus.free_ram); break;
     case 30: statusValue = lowByte(currentAdvancedEngineStatus.boost_target >> 1U); break;
     case 31: statusValue = lowByte(div100(currentAdvancedEngineStatus.boost_duty)); break;
     case 32: statusValue = buildStatus2(currentStatus); break;
@@ -228,8 +229,8 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 24: statusValue = currentStatus.TPS; break;
     case 25: statusValue = lowByte(currentStatus.loopsPerSecond); break;
     case 26: statusValue = highByte(currentStatus.loopsPerSecond); break;
-    case 27: currentStatus.freeRAM = freeRam(); statusValue = lowByte(currentStatus.freeRAM); break;
-    case 28: currentStatus.freeRAM = freeRam(); statusValue = highByte(currentStatus.freeRAM); break;
+    case 27: currentLoggerStatus.free_ram = freeRam(); statusValue = lowByte(currentLoggerStatus.free_ram); break;
+    case 28: currentLoggerStatus.free_ram = freeRam(); statusValue = highByte(currentLoggerStatus.free_ram); break;
     case 29: statusValue = currentAdvancedEngineStatus.boost_target / 2U; break;
     case 30: statusValue = currentAdvancedEngineStatus.boost_duty / 100U; break;
     case 31: statusValue = buildStatus2(currentStatus); break;

@@ -62,6 +62,12 @@ static constexpr page_map_t tableSwitchingPageMaps[] PROGMEM = {
   { ign2PageMap, _countof(ign2PageMap) },
 };
 
+static constexpr page_descriptor_t tableSwitchingPageDescriptors[] PROGMEM = {
+  { seqFuelPage, tableSwitchingPageMaps[0] },
+  { fuelMap2Page, tableSwitchingPageMaps[1] },
+  { ignMap2Page, tableSwitchingPageMaps[2] },
+};
+
 static constexpr entity_storage_map_t tableSwitchingStorageMaps[] PROGMEM = {
   { &trim1Table, EEPROM_CONFIG8_MAP1 },
   { &trim2Table, EEPROM_CONFIG8_MAP2 },
@@ -75,12 +81,18 @@ static constexpr entity_storage_map_t tableSwitchingStorageMaps[] PROGMEM = {
 };
 #else
 static constexpr page_map_t tableSwitchingPageMaps[] PROGMEM = {};
+static constexpr page_descriptor_t tableSwitchingPageDescriptors[] PROGMEM = {};
 static constexpr entity_storage_map_t tableSwitchingStorageMaps[] PROGMEM = {};
 #endif
 
 module_page_maps_t getTableSwitchingPageMaps()
 {
   return { tableSwitchingPageMaps, _countof(tableSwitchingPageMaps) };
+}
+
+module_page_descriptors_t getTableSwitchingPageDescriptors()
+{
+  return { tableSwitchingPageDescriptors, _countof(tableSwitchingPageDescriptors) };
 }
 
 module_storage_maps_t getTableSwitchingStorageMaps()

@@ -20,17 +20,27 @@ static constexpr page_map_t loggingPageMaps[] PROGMEM = {
   { progOutsPageMap, _countof(progOutsPageMap) },
 };
 
+static constexpr page_descriptor_t loggingPageDescriptors[] PROGMEM = {
+  { progOutsPage, loggingPageMaps[0] },
+};
+
 static constexpr entity_storage_map_t loggingStorageMaps[] PROGMEM = {
   { &configPage13, EEPROM_CONFIG13_START },
 };
 #else
 static constexpr page_map_t loggingPageMaps[] PROGMEM = {};
+static constexpr page_descriptor_t loggingPageDescriptors[] PROGMEM = {};
 static constexpr entity_storage_map_t loggingStorageMaps[] PROGMEM = {};
 #endif
 
 module_page_maps_t getLoggingPageMaps()
 {
   return { loggingPageMaps, _countof(loggingPageMaps) };
+}
+
+module_page_descriptors_t getLoggingPageDescriptors()
+{
+  return { loggingPageDescriptors, _countof(loggingPageDescriptors) };
 }
 
 module_storage_maps_t getLoggingStorageMaps()

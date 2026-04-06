@@ -8,58 +8,16 @@
 #include "auxiliaries.h"
 #include "board_definition.h"
 #include "modules/advanced_engine/engineProtection.h"
+#include "modules/advanced_engine/fan_aircon.h"
+#include "modules/advanced_engine/launch_flatshift.h"
+#include "modules/advanced_engine/nitrous.h"
+#include "modules/advanced_engine/wmi.h"
 #include "pin_registry.h"
 #include "runtime_state.h"
 #include "tune_registry.h"
 #include "utilities.h"
 
 extern byte pinIgnBypass;
-
-static void checkLaunchAndFlatShift(void)
-{
-  currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;
-
-  if(configPage6.flatSEnable || configPage6.launchEnabled)
-  {
-    if(configPage6.launchHiLo > 0) { currentStatus.clutchTrigger = digitalRead(pinLaunch); }
-    else { currentStatus.clutchTrigger = !digitalRead(pinLaunch); }
-
-    currentStatus.clutchTriggerActive = currentStatus.clutchTrigger;
-  }
-  if(currentStatus.clutchTrigger && (currentStatus.previousClutchTrigger != currentStatus.clutchTrigger))
-  {
-    currentStatus.clutchEngagedRPM = currentStatus.RPM;
-  }
-
-  currentAdvancedEngineStatus.launching_hard = false;
-  currentStatus.hardLaunchActive = false;
-  currentAdvancedEngineStatus.flat_shifting_hard = false;
-
-  if(configPage6.launchEnabled && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM < ((unsigned int)(configPage6.flatSArm) * 100U)) && (currentStatus.TPS >= configPage10.lnchCtrlTPS))
-  {
-    if((configPage2.vssMode == 0U) || ((configPage2.vssMode > 0U) && (currentStatus.vss < configPage10.lnchCtrlVss)))
-    {
-      uint16_t launchRPMLimit = (configPage6.lnchHardLim * 100U);
-      if(configPage2.hardCutType == HARD_CUT_ROLLING) { launchRPMLimit += (configPage15.rollingProtRPMDelta[0] * 10); }
-
-      if(currentStatus.RPM > launchRPMLimit)
-      {
-        currentAdvancedEngineStatus.launching_hard = true;
-        currentStatus.hardLaunchActive = true;
-      }
-    }
-  }
-  else if(configPage6.flatSEnable && currentStatus.clutchTrigger && (currentStatus.clutchEngagedRPM >= ((unsigned int)(configPage6.flatSArm * 100U))))
-  {
-    uint16_t flatRPMLimit = currentStatus.clutchEngagedRPM;
-    if(configPage2.hardCutType == HARD_CUT_ROLLING) { flatRPMLimit += (configPage15.rollingProtRPMDelta[0] * 10); }
-
-    if(currentStatus.RPM > flatRPMLimit)
-    {
-      currentAdvancedEngineStatus.flat_shifting_hard = true;
-    }
-  }
-}
 
 void module_advanced_engine_on_engine_stop(const config4 &page4)
 {
@@ -83,13 +41,13 @@ void module_advanced_engine_tick_30hz(void)
 
 void module_advanced_engine_tick_15hz(void)
 {
-  checkLaunchAndFlatShift();
+  advanced_engine_launch_flatshift_tick();
 }
 
 void module_advanced_engine_tick_10hz(void)
 {
   checkProgrammableIO();
-  airConControl();
+  advanced_engine_fan_aircon_tick_10hz();
 }
 
 void module_advanced_engine_tick_4hz(void)

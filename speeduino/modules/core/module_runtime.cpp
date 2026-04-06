@@ -1,76 +1,118 @@
 #include "module_runtime.h"
 
-#include "config9_domains.h"
-#include "module_interfaces.h"
-#include "table_registry.h"
-#include "tune_registry.h"
+#include "module_registry.h"
+
+namespace {
+static void run_phase(module_hook_phase_t phase, module_runtime_context_t &context)
+{
+  const module_descriptor_t *modules = getRegisteredModules();
+  const uint8_t moduleCount = getRegisteredModuleCount();
+
+  for (uint8_t moduleIndex = 0; moduleIndex < moduleCount; ++moduleIndex)
+  {
+    const module_descriptor_t &module = modules[moduleIndex];
+    for (uint8_t hookIndex = 0; hookIndex < module.hooks.count; ++hookIndex)
+    {
+      const module_hook_descriptor_t &hookDescriptor = module.hooks.hooks[hookIndex];
+      if (hookDescriptor.phase == phase)
+      {
+        hookDescriptor.hook(context);
+      }
+    }
+  }
+}
+} // namespace
 
 void core_modules_init_pre_pin_mapping(void)
 {
-  module_logging_init(configPage13);
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::init_pre_pin_mapping, context);
 }
 
 void core_modules_init_post_pin_mapping(void)
 {
-  module_secondary_serial_init(get_secondary_serial_config(configPage9));
-  module_comms_extended_init();
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::init_post_pin_mapping, context);
 }
 
 void core_modules_poll(void)
 {
-  module_secondary_serial_poll(get_secondary_serial_config(configPage9));
-  module_comms_extended_poll(configPage9.enable_intcan, configPage2.canWBO);
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::poll, context);
 }
 
 void core_modules_on_engine_stop(void)
 {
-  module_advanced_engine_on_engine_stop(configPage4);
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::on_engine_stop, context);
 }
 
 void core_modules_tick_50hz(void)
 {
-  module_comms_extended_tick_50hz();
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::tick_50hz, context);
 }
 
 void core_modules_tick_30hz(void)
 {
-  module_advanced_engine_tick_30hz();
-  module_secondary_serial_tick_30hz(get_secondary_serial_config(configPage9));
-  module_comms_extended_tick_30hz();
-  module_logging_tick_30hz(configPage13);
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::tick_30hz, context);
 }
 
 void core_modules_tick_15hz(void)
 {
-  module_advanced_engine_tick_15hz();
-  module_comms_extended_tick_15hz();
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::tick_15hz, context);
 }
 
 void core_modules_tick_10hz(void)
 {
-  module_advanced_engine_tick_10hz();
-  module_comms_extended_tick_10hz();
-  module_logging_tick_10hz(configPage13);
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::tick_10hz, context);
 }
 
 void core_modules_tick_4hz(uint8_t sensor_status, statuses &current)
 {
-  module_advanced_engine_tick_4hz();
-  module_logging_tick_4hz(configPage13);
-  module_comms_extended_tick_4hz(sensor_status, current, get_can_extended_config(configPage9));
+  module_runtime_context_t context;
+  context.sensor_status = sensor_status;
+  context.current_status = &current;
+  run_phase(module_hook_phase_t::tick_4hz, context);
 }
 
 void core_modules_tick_1hz(const statuses &current)
 {
-  module_logging_tick_1hz(current, configPage13);
+  module_runtime_context_t context;
+  context.current_status_const = &current;
+  run_phase(module_hook_phase_t::tick_1hz, context);
 }
 
 void core_modules_apply_table_switching(statuses &current)
 {
-  module_table_switching_apply(configPage2, configPage10, fuelTable2, ignitionTable2, current);
+  const module_descriptor_t *modules = getRegisteredModules();
+  const uint8_t moduleCount = getRegisteredModuleCount();
+
+  for (uint8_t moduleIndex = 0; moduleIndex < moduleCount; ++moduleIndex)
+  {
+    if (modules[moduleIndex].apply_table_switching != nullptr)
+    {
+      modules[moduleIndex].apply_table_switching(current);
+    }
+  }
 }
 
 statuses::scheduler_cut_t core_modules_get_scheduler_cut(statuses &current)
 {
-  return module_advanced_engine_scheduler_cut(current, configPage2, configPage4, configPage6, configPage9, configPage10);
+  const module_descriptor_t *modules = getRegisteredModules();
+  const uint8_t moduleCount = getRegisteredModuleCount();
+  statuses::scheduler_cut_t result = current.schedulerCutState;
+
+  for (uint8_t moduleIndex = 0; moduleIndex < moduleCount; ++moduleIndex)
+  {
+    if (modules[moduleIndex].get_scheduler_cut != nullptr)
+    {
+      result = modules[moduleIndex].get_scheduler_cut(current);
+    }
+  }
+
+  return result;
 }

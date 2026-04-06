@@ -79,6 +79,16 @@ static constexpr page_map_t corePageMaps[] PROGMEM = {
   { afrSetPageMap, _countof(afrSetPageMap) },
 };
 
+static constexpr page_descriptor_t corePageDescriptors[] PROGMEM = {
+  { 0U, corePageMaps[0] },
+  { veSetPage, corePageMaps[1] },
+  { veMapPage, corePageMaps[2] },
+  { ignMapPage, corePageMaps[3] },
+  { ignSetPage, corePageMaps[4] },
+  { afrMapPage, corePageMaps[5] },
+  { afrSetPage, corePageMaps[6] },
+};
+
 static constexpr entity_storage_map_t coreStorageMaps[] PROGMEM = {
   { &fuelTable, EEPROM_CONFIG1_MAP },
   { &configPage2, EEPROM_CONFIG2_START },
@@ -91,6 +101,11 @@ static constexpr entity_storage_map_t coreStorageMaps[] PROGMEM = {
 module_page_maps_t getCorePageMaps()
 {
   return { corePageMaps, _countof(corePageMaps) };
+}
+
+module_page_descriptors_t getCorePageDescriptors()
+{
+  return { corePageDescriptors, _countof(corePageDescriptors) };
 }
 
 module_storage_maps_t getCoreStorageMaps()
