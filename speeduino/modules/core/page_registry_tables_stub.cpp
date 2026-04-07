@@ -8,6 +8,11 @@ module_page_maps_t getTableSwitchingPageMaps()
   return { nullptr, 0U };
 }
 
+module_page_descriptors_t getTableSwitchingPageDescriptors()
+{
+  return { nullptr, 0U };
+}
+
 module_storage_maps_t getTableSwitchingStorageMaps()
 {
   return { nullptr, 0U };

@@ -29,3 +29,5 @@ misra/.results
 ~$*
 local.ini
 /.venv-pio/
+speeduino/generated/
+local.feature.ini
