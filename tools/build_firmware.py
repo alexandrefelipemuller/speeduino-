@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import configparser
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,15 @@ MODULE_FLAGS = {
     "comms_extended": "FEATURE_MODULE_COMMS_EXTENDED",
     "table_switching": "FEATURE_MODULE_TABLE_SWITCHING",
     "advanced_engine": "FEATURE_MODULE_ADVANCED_ENGINE",
+}
+
+ADVANCED_FEATURE_FLAGS = {
+    "boost": "FEATURE_ADVANCED_BOOST",
+    "vvt": "FEATURE_ADVANCED_VVT",
+    "wmi": "FEATURE_ADVANCED_WMI",
+    "nitrous": "FEATURE_ADVANCED_NITROUS",
+    "launch_flatshift": "FEATURE_ADVANCED_LAUNCH_FLATSHIFT",
+    "fan_aircon": "FEATURE_ADVANCED_FAN_AIRCON",
 }
 
 MODULE_SOURCES = {
@@ -55,6 +65,10 @@ MODULE_SOURCES = {
         "modules/advanced_engine/nitrous.cpp",
         "modules/advanced_engine/launch_flatshift.cpp",
     ],
+}
+
+DEFAULT_SERVICE_PROVIDERS = {
+    "aux_pwm": "advanced_engine.vvt",
 }
 
 
@@ -97,15 +111,78 @@ def _resolve_config(project_dir: Path, config_path: Path, override_profile: str 
     return config, profile
 
 
-def _build_src_filter(config: configparser.ConfigParser):
-    filters = ["+<*>"]
-    for key, define in MODULE_FLAGS.items():
-        enabled = _bool(config.get("modules", key, fallback="on"), default=True)
-        if enabled:
-            continue
-        for pattern in MODULE_SOURCES[key]:
-            filters.append(f"-<{pattern}>")
-    return filters
+def _split_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item for item in re.split(r"[,\s]+", value) if item]
+
+
+def _resolve_module_states(config: configparser.ConfigParser) -> tuple[dict[str, bool], dict[str, bool]]:
+    modules = {}
+    for key in MODULE_FLAGS:
+        modules[key] = _bool(config.get("modules", key, fallback="on"), default=True)
+
+    advanced = {}
+    advanced_enabled = modules["advanced_engine"]
+    for key in ADVANCED_FEATURE_FLAGS:
+        advanced[key] = _bool(config.get("advanced_engine", key, fallback="on"), default=True) if advanced_enabled else False
+
+    return modules, advanced
+
+
+def _resolve_service_providers(config: configparser.ConfigParser) -> dict[str, str]:
+    services = dict(DEFAULT_SERVICE_PROVIDERS)
+    if config.has_section("services"):
+        for key, value in config.items("services"):
+            services[key] = value.strip() or services.get(key, "")
+    return services
+
+
+def _is_module_enabled(name: str, modules: dict[str, bool], advanced: dict[str, bool]) -> bool:
+    if name in modules:
+        return modules[name]
+    if name in advanced:
+        return modules["advanced_engine"] and advanced[name]
+    return False
+
+
+def _service_is_enabled(name: str, services: dict[str, str], modules: dict[str, bool], advanced: dict[str, bool]) -> bool:
+    provider = services.get(name, "")
+    if not provider:
+        return False
+    if "." in provider:
+        owner, feature = provider.split(".", 1)
+        if owner == "advanced_engine":
+            return modules.get(owner, False) and advanced.get(feature, False)
+        return False
+    return _is_module_enabled(provider, modules, advanced)
+
+
+def _validate_dependencies(config: configparser.ConfigParser, modules: dict[str, bool], advanced: dict[str, bool], services: dict[str, str]) -> None:
+    errors: list[str] = []
+
+    for key, enabled in advanced.items():
+        if enabled and not modules["advanced_engine"]:
+            errors.append(f"advanced_engine subfeature '{key}' requires advanced_engine = on")
+
+    if config.has_section("dependencies"):
+        for feature, dep_text in config.items("dependencies"):
+            feature = feature.strip()
+            if not feature:
+                continue
+            feature_enabled = _is_module_enabled(feature, modules, advanced)
+            if not feature_enabled:
+                continue
+            for dep in _split_list(dep_text):
+                if dep in services:
+                    if not _service_is_enabled(dep, services, modules, advanced):
+                        provider = services.get(dep, "<unset>")
+                        errors.append(f"{feature} requires service '{dep}' (provider: {provider})")
+                elif not _is_module_enabled(dep, modules, advanced):
+                    errors.append(f"{feature} requires '{dep}'")
+
+    if errors:
+        raise SystemExit("Invalid feature configuration:\n- " + "\n- ".join(errors))
 
 
 def _write_generated_header(project_dir: Path, config: configparser.ConfigParser, profile: str, board: str) -> Path:
@@ -125,6 +202,11 @@ def _write_generated_header(project_dir: Path, config: configparser.ConfigParser
         lines.append(f"#undef {define}")
         lines.append(f"#define {define} {1 if enabled else 0}")
         lines.append("")
+    for key, define in ADVANCED_FEATURE_FLAGS.items():
+        enabled = _bool(config.get("advanced_engine", key, fallback="on"), default=True)
+        lines.append(f"#undef {define}")
+        lines.append(f"#define {define} {1 if enabled else 0}")
+        lines.append("")
     lines.append("#undef SPEEDUINO_FEATURE_CONFIGURED")
     lines.append("#define SPEEDUINO_FEATURE_CONFIGURED 1")
     lines.append("")
@@ -137,6 +219,9 @@ def _write_generated_ini(project_dir: Path, config: configparser.ConfigParser, p
     build_flags = ["${env:megaatmega2560.build_flags}"]
     for key, define in MODULE_FLAGS.items():
         enabled = _bool(config.get("modules", key, fallback="on"), default=True)
+        build_flags.append(f"-D{define}={1 if enabled else 0}")
+    for key, define in ADVANCED_FEATURE_FLAGS.items():
+        enabled = _bool(config.get("advanced_engine", key, fallback="on"), default=True)
         build_flags.append(f"-D{define}={1 if enabled else 0}")
     build_flags.append("-DSPEEDUINO_FEATURE_CONFIGURED=1")
 
@@ -174,6 +259,9 @@ def main(argv: list[str]) -> int:
 
     config, profile = _resolve_config(project_dir, config_path, args.profile or None)
     board = config.get("meta", "board", fallback="") or args.env
+    modules, advanced = _resolve_module_states(config)
+    services = _resolve_service_providers(config)
+    _validate_dependencies(config, modules, advanced, services)
     generated_header = _write_generated_header(project_dir, config, profile, board)
     generated_ini = _write_generated_ini(project_dir, config, profile)
 
