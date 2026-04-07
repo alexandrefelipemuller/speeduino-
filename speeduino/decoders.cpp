@@ -79,7 +79,7 @@ static volatile unsigned int secondaryToothCount; //Used for identifying the cur
 // TODO: remove this - unused
 static volatile unsigned long secondaryLastToothTime1 = 0; //The time (micros()) that the last tooth was registered (Cam input)
 
-static uint16_t triggerActualTeeth;
+TESTABLE_STATIC uint16_t triggerActualTeeth;
 TESTABLE_STATIC volatile unsigned long triggerFilterTime; // The shortest time (in uS) that pulses will be accepted (Used for debounce filtering)
 static volatile unsigned long triggerSecFilterTime; // The shortest time (in uS) that pulses will be accepted (Used for debounce filtering) for the secondary input
 static volatile unsigned long triggerThirdFilterTime; // The shortest time (in uS) that pulses will be accepted (Used for debounce filtering) for the Third input
@@ -91,7 +91,8 @@ static unsigned long elapsedTime;
 static unsigned long lastCrankAngleCalc;
 static unsigned long lastVVTtime; //The time between the vvt reference pulse and the last crank pulse
 static volatile unsigned long vwApMiLastGap = 0;
-static volatile uint8_t vwApMiPhase = 0; // 1 = cyl 1 reference, then 2 = cyl 3, 3 = cyl 4, 4 = cyl 2
+static volatile uint8_t vwApMiPhase = 0; // 1 = cyl 1 reference, then 2..N repeat
+static volatile uint8_t vwApMiCylinderCount = 4U;
 
 static constexpr uint16_t VW_AP_MI_REFERENCE_GAP_PERCENT = 107U; // The unique 72 degree window is slightly longer than the repeating 66 degree windows
 static constexpr uint16_t VW_AP_MI_MISSED_GAP_PERCENT = 160U; // Large enough to catch a missed pulse or heavy noise without tripping on normal variation
@@ -6195,13 +6196,13 @@ static void triggerPri_VWAPMi(void)
 
     if (referencePulse)
     {
-      if ((decoderStatus.syncStatus == SyncStatus::Full) && (vwApMiPhase != 4U) && (currentStatus.startRevolutions > 1U))
+      if ((decoderStatus.syncStatus == SyncStatus::Full) && (vwApMiPhase != vwApMiCylinderCount) && (currentStatus.startRevolutions > 1U))
       {
         // A reference gap was seen out of sequence, so we likely skipped a pulse.
         currentStatus.syncLossCounter++;
       }
 
-      vwApMiPhase = 1U; // Phase 1 is cylinder #1 reference, then 3, 4 and 2 repeat.
+      vwApMiPhase = 1U; // Phase 1 is cylinder #1 reference, then 2..N repeat.
       toothCurrentCount = 1U;
       toothOneMinusOneTime = toothOneTime;
       toothOneTime = curTime;
@@ -6219,7 +6220,7 @@ static void triggerPri_VWAPMi(void)
       else
       {
         ++vwApMiPhase;
-        if (vwApMiPhase > 4U) { vwApMiPhase = 1U; }
+        if (vwApMiPhase > vwApMiCylinderCount) { vwApMiPhase = 1U; }
       }
       toothCurrentCount = vwApMiPhase;
       setFilter(curGap);
@@ -6250,7 +6251,7 @@ static uint16_t getRPM_VWAPMi(void)
 
   if (currentStatus.RPM < currentStatus.crankRPM)
   {
-    tempRPM = crankingGetRPM(4U, CAM_SPEED);
+    tempRPM = crankingGetRPM(vwApMiCylinderCount, CAM_SPEED);
   }
   else
   {
@@ -6295,15 +6296,18 @@ decoder_t  __attribute__((optimize("Os"))) triggerSetup_VWAPMi(void)
   decoderFeatures = decoder_features_t();
   sharedDecoderReset();
 
+  const uint8_t vwApMiCylinders = (configPage2.nCylinders == 5U) ? 5U : 4U;
+
   configPage4.TrigSpeed = CAM_SPEED;
-  triggerActualTeeth = 4U;
-  triggerToothAngle = 180U;
-  triggerFilterTime = ((MICROS_PER_SEC / (MAX_RPM / 60U * 2U)) >> 1U);
+  triggerActualTeeth = vwApMiCylinders;
+  triggerToothAngle = 720U / vwApMiCylinders;
+  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 60U * vwApMiCylinders));
   decoderStatus.toothAngleIsCorrect = true;
   decoderFeatures.supportsSequential = true;
   decoderFeatures.hasFixedCrankingTiming = true;
 
   vwApMiPhase = 0U;
+  vwApMiCylinderCount = vwApMiCylinders;
   vwApMiLastGap = 0U;
   toothCurrentCount = 0U;
   toothOneTime = 0U;

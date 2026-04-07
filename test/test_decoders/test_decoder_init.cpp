@@ -62,6 +62,9 @@ static void assert_decoder(const decoder_t &decoder)
 }
 
 extern decoder_t buildDecoder(uint8_t decoder);
+extern volatile uint16_t triggerActualTeeth;
+extern volatile uint16_t triggerToothAngle;
+extern volatile unsigned long triggerFilterTime;
 
 static uint8_t decoderIdentifier;
 static void test_buildDecoder(void)
@@ -112,14 +115,33 @@ static void test_buildDecoder_TurnsOffPerToothIgn(void)
     TEST_ASSERT_FALSE(configPage2.perToothIgn);
 }
 
-static void test_buildDecoder_VWAPMi(void)
+static void test_buildDecoder_VWAPMi_4Cyl(void)
 {
+    configPage2.nCylinders = 4;
     configPage2.perToothIgn = true;
     auto decoder = buildDecoder(DECODER_VWAPMI);
     assert_decoder(decoder);
     TEST_ASSERT_TRUE(decoder.getFeatures().supportsSequential);
     TEST_ASSERT_TRUE(decoder.getFeatures().hasFixedCrankingTiming);
     TEST_ASSERT_FALSE(decoder.getFeatures().supportsPerToothIgnition);
+    TEST_ASSERT_EQUAL_UINT16(4U, triggerActualTeeth);
+    TEST_ASSERT_EQUAL_UINT16(180U, triggerToothAngle);
+    TEST_ASSERT_EQUAL_UINT32(833U, (uint32_t)triggerFilterTime);
+    TEST_ASSERT_FALSE(configPage2.perToothIgn);
+}
+
+static void test_buildDecoder_VWAPMi_5Cyl(void)
+{
+    configPage2.nCylinders = 5;
+    configPage2.perToothIgn = true;
+    auto decoder = buildDecoder(DECODER_VWAPMI);
+    assert_decoder(decoder);
+    TEST_ASSERT_TRUE(decoder.getFeatures().supportsSequential);
+    TEST_ASSERT_TRUE(decoder.getFeatures().hasFixedCrankingTiming);
+    TEST_ASSERT_FALSE(decoder.getFeatures().supportsPerToothIgnition);
+    TEST_ASSERT_EQUAL_UINT16(5U, triggerActualTeeth);
+    TEST_ASSERT_EQUAL_UINT16(144U, triggerToothAngle);
+    TEST_ASSERT_EQUAL_UINT32(666U, (uint32_t)triggerFilterTime);
     TEST_ASSERT_FALSE(configPage2.perToothIgn);
 }
 
@@ -135,7 +157,8 @@ void testDecoderInit(void)
     test_buildDecoder_all();
     RUN_TEST(test_buildDecoder_attachesInterrupts);
     RUN_TEST(test_buildDecoder_TurnsOffPerToothIgn);
-    RUN_TEST(test_buildDecoder_VWAPMi);
+    RUN_TEST(test_buildDecoder_VWAPMi_4Cyl);
+    RUN_TEST(test_buildDecoder_VWAPMi_5Cyl);
     RUN_TEST(test_buildDecoder_OutOfRange);
   }
 }
