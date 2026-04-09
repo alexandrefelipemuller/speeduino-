@@ -4,18 +4,18 @@ Copyright (C) Josh Stewart
 A full copy of the license may be found in the projects root directory
 */
 #include <Arduino.h>
-#include "advanced_engine_status.h"
-#include "idle.h"
-#include "maths.h"
-#include "timers.h"
-#include "preprocessor.h"
+#include "data/advanced_engine_status.h"
+#include "engine/idle.h"
+#include "support/maths.h"
+#include "orchestration/timers.h"
+#include "support/preprocessor.h"
 #include "src/PID_v1/PID_v1.h"
-#include "pin_registry.h"
-#include "table2d.h"
-#include "units.h"
-#include "port_pin.h"
-#include "runtime_state.h"
-#include "tune_registry.h"
+#include "data/pin_registry.h"
+#include "support/table2d.h"
+#include "support/units.h"
+#include "support/port_pin.h"
+#include "data/runtime_state.h"
+#include "data/tune_registry.h"
 
 #define IDLE_PIN_LOW()  *idle_pin_port &= ~(idle_pin_mask)
 #define IDLE_PIN_HIGH() *idle_pin_port |= (idle_pin_mask)

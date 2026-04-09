@@ -6,21 +6,21 @@
 
 #include "TS_CommandButtonHandler.h"
 
-#include "can_aux_status.h"
-#include "bit_manip.h"
-#include "config_pages.h"
-#include "core_constants.h"
-#include "hw_test_bits.h"
-#include "statuses.h"
-#include "utilities.h"
-#include "sensors.h"
-#include "storage.h"
+#include "data/can_aux_status.h"
+#include "support/bit_manip.h"
+#include "data/config_pages.h"
+#include "data/core_constants.h"
+#include "support/hw_test_bits.h"
+#include "data/statuses.h"
+#include "support/utilities.h"
+#include "engine/sensors.h"
+#include "storage/storage.h"
 #include "SD_logger.h"
-#include "pages.h"
-#include "scheduledIO_ign.h"
-#include "scheduledIO_inj.h"
+#include "storage/pages.h"
+#include "engine/scheduledIO_ign.h"
+#include "engine/scheduledIO_inj.h"
 #ifdef USE_MC33810
-  #include "acc_mc33810.h"
+  #include "engine/acc_mc33810.h"
 #endif
 
 extern struct statuses currentStatus;

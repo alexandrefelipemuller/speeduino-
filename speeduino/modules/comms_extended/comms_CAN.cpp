@@ -8,16 +8,16 @@ A full copy of the license may be found in the projects root directory
 This is for handling the data broadcasted to various CAN dashes and instrument clusters.
 */
 #if defined(NATIVE_CAN_AVAILABLE)
-#include "comms_CAN.h"
-#include "advanced_engine_status.h"
-#include "can_aux_status.h"
-#include "config9_domains.h"
-#include "config_pages.h"
-#include "statuses.h"
-#include "bit_manip.h"
-#include "utilities.h"
-#include "maths.h"
-#include "units.h"
+#include "comms/comms_CAN.h"
+#include "data/advanced_engine_status.h"
+#include "data/can_aux_status.h"
+#include "data/config9_domains.h"
+#include "data/config_pages.h"
+#include "data/statuses.h"
+#include "support/bit_manip.h"
+#include "support/utilities.h"
+#include "support/maths.h"
+#include "support/units.h"
 
 extern struct statuses currentStatus;
 extern struct config2 configPage2;

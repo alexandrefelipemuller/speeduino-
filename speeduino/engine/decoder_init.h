@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "decoder_t.h"
+#include "engine/decoder_t.h"
 
 /// @brief Decoder type definitions
 ///

@@ -1,9 +1,9 @@
 #include "module_registry.h"
 
-#include "config9_domains.h"
+#include "data/config9_domains.h"
 #include "module_interfaces.h"
-#include "table_registry.h"
-#include "tune_registry.h"
+#include "data/table_registry.h"
+#include "data/tune_registry.h"
 
 namespace {
 static void hook_logging_init_pre_pin_mapping(module_runtime_context_t &)

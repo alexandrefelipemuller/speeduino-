@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <Arduino.h>
-#include "type_traits.h"
+#include "support/type_traits.h"
 
 /**
  * @brief Initialise the board, including USB comms
@@ -57,15 +57,15 @@ uint16_t getEepromWriteBlockSize(const statuses &current);
 
 // Include a specific header for a board.
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega2561__)
-  #include "board_avr2560.h"
+  #include "boards/board_avr2560.h"
 #elif defined(CORE_TEENSY)
   #if defined(__MK64FX512__) || defined(__MK66FX1M0__)
-    #include "board_teensy35.h"
+    #include "boards/board_teensy35.h"
   #elif defined(__IMXRT1062__)
-    #include "board_teensy41.h"
+    #include "boards/board_teensy41.h"
   #endif
 #elif defined(STM32_MCU_SERIES) || defined(ARDUINO_ARCH_STM32) || defined(STM32)
-  #include "board_stm32_official.h"
+  #include "boards/board_stm32_official.h"
 #elif defined(__SAME51J19A__)
   #include "board_same51.h"
 // Allow external injection of the board definition via compiler flags

@@ -1,5 +1,5 @@
-#include "page_registry.h"
-#include "preprocessor.h"
+#include "storage/page_registry.h"
+#include "support/preprocessor.h"
 
 #if !FEATURE_MODULE_TABLE_SWITCHING
 

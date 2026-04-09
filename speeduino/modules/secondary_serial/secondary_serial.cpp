@@ -5,18 +5,18 @@ A full copy of the license may be found in the projects root directory
 can_comms was originally contributed by Darren Siepka
 */
 
-#include "comms.h"
-#include "can_aux_status.h"
+#include "comms/comms.h"
+#include "data/can_aux_status.h"
 #include "secondary_serial.h"
-#include "config9_domains.h"
-#include "config_pages.h"
-#include "statuses.h"
-#include "bit_manip.h"
-#include "preprocessor.h"
-#include "comms_legacy.h"
+#include "data/config9_domains.h"
+#include "data/config_pages.h"
+#include "data/statuses.h"
+#include "support/bit_manip.h"
+#include "support/preprocessor.h"
+#include "comms/comms_legacy.h"
 #include "modules/logging/logger.h"
-#include "page_crc.h"
-#include "board_definition.h"
+#include "storage/page_crc.h"
+#include "boards/board_definition.h"
 
 extern struct statuses currentStatus;
 extern struct config9 configPage9;

@@ -1,8 +1,8 @@
-#include "page_registry.h"
+#include "storage/page_registry.h"
 
-#include "pages.h"
-#include "preprocessor.h"
-#include "tune_registry.h"
+#include "storage/pages.h"
+#include "support/preprocessor.h"
+#include "data/tune_registry.h"
 
 static constexpr entity_t makeRawEntity(config_page_t *pEntity, uint16_t entitySize)
 {

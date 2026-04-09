@@ -1,21 +1,21 @@
 #include "module_advanced_engine.h"
 
-#include "preprocessor.h"
+#include "support/preprocessor.h"
 
 #if FEATURE_MODULE_ADVANCED_ENGINE
 
-#include "advanced_engine_status.h"
-#include "auxiliaries.h"
-#include "board_definition.h"
+#include "data/advanced_engine_status.h"
+#include "engine/auxiliaries.h"
+#include "boards/board_definition.h"
 #include "modules/advanced_engine/engineProtection.h"
 #include "modules/advanced_engine/fan_aircon.h"
 #include "modules/advanced_engine/launch_flatshift.h"
 #include "modules/advanced_engine/nitrous.h"
 #include "modules/advanced_engine/wmi.h"
-#include "pin_registry.h"
-#include "runtime_state.h"
-#include "tune_registry.h"
-#include "utilities.h"
+#include "data/pin_registry.h"
+#include "data/runtime_state.h"
+#include "data/tune_registry.h"
+#include "support/utilities.h"
 
 extern byte pinIgnBypass;
 

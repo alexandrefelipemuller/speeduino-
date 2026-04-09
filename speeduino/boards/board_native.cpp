@@ -1,10 +1,10 @@
 #if defined(NATIVE_BOARD)
-#include "board_native.h"
-#include "auxiliaries.h"
-#include "idle.h"
-#include "preprocessor.h"
-#include "scheduler.h"
-#include "timers.h"
+#include "boards/board_native.h"
+#include "engine/auxiliaries.h"
+#include "engine/idle.h"
+#include "support/preprocessor.h"
+#include "orchestration/scheduler.h"
+#include "orchestration/timers.h"
 
 #define IGNITION_INTERRUPT_NAME(index) CONCAT(CONCAT(ignitionSchedule, index), Interrupt)
 #define FUEL_INTERRUPT_NAME(index) CONCAT(CONCAT(fuelSchedule, index), Interrupt)

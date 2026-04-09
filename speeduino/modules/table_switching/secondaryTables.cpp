@@ -1,10 +1,10 @@
-#include "secondaryTables.h"
-#include "board_definition.h"
-#include "corrections.h"
-#include "core_constants.h"
-#include "load_source.h"
-#include "maths.h"
-#include "unit_testing.h"
+#include "modules/table_switching/secondaryTables.h"
+#include "boards/board_definition.h"
+#include "engine/corrections.h"
+#include "data/core_constants.h"
+#include "engine/load_source.h"
+#include "support/maths.h"
+#include "support/unit_testing.h"
 
 extern byte pinFuel2Input;
 extern byte pinSpark2Input;

@@ -1,6 +1,6 @@
-#include "board_definition.h"
-#include "port_pin.h"
-#include "preprocessor.h"
+#include "boards/board_definition.h"
+#include "support/port_pin.h"
+#include "support/preprocessor.h"
 
 // LCOV_EXCL_START
 // Exclude from code coverage, since this is all board output control

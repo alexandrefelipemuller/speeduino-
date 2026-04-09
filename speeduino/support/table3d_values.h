@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "table3d_typedefs.h"
-#include "preprocessor.h"
+#include "support/table3d_typedefs.h"
+#include "support/preprocessor.h"
 
 // ========================= INTRA-ROW ITERATION ========================= 
 

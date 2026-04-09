@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "decoder_t.h"
+#include "engine/decoder_t.h"
 
 /** @brief A builder for decoder_t - will make sure all required fields are set */
 struct decoder_builder_t {

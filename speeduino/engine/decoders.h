@@ -2,7 +2,7 @@
 #define DECODERS_H
 
 #include <stdint.h>
-#include "decoder_t.h"
+#include "engine/decoder_t.h"
 
 // TODO: move these to logger.cpp
 void loggerPrimaryISR(void);

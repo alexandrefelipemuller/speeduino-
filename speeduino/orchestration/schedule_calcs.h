@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "scheduler.h"
+#include "orchestration/scheduler.h"
 
 extern int ignition1StartAngle;
 extern int ignition1EndAngle;
@@ -68,4 +68,4 @@ static inline void __attribute__((always_inline))  calculateIgnitionTrailingRota
 
 static inline uint32_t __attribute__((always_inline)) calculateIgnitionTimeout(const IgnitionSchedule &schedule, int startAngle, int channelIgnDegrees, int crankAngle);
 
-#include "schedule_calcs.hpp"
+#include "orchestration/schedule_calcs.hpp"

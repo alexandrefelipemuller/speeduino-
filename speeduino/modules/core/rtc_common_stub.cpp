@@ -1,6 +1,6 @@
 #include "modules/logging/rtc_common.h"
 
-#include "preprocessor.h"
+#include "support/preprocessor.h"
 
 #if !FEATURE_MODULE_LOGGING
 

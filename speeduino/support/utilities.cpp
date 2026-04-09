@@ -8,15 +8,15 @@
  * The config related to Programmable I/O is found on configPage13 (of type @ref config13).
  */
 #include <avr/pgmspace.h>
-#include "utilities.h"
-#include "config_pages.h"
-#include "statuses.h"
-#include "bit_manip.h"
-#include "decoders.h"
-#include "comms.h"
+#include "support/utilities.h"
+#include "data/config_pages.h"
+#include "data/statuses.h"
+#include "support/bit_manip.h"
+#include "engine/decoders.h"
+#include "comms/comms.h"
 #include "modules/logging/logger.h"
-#include "scheduler.h"
-#include "units.h"
+#include "orchestration/scheduler.h"
+#include "support/units.h"
 
 extern byte resetControl;
 extern byte pinResetControl;

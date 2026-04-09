@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pages.h"
-#include "statuses.h"
+#include "storage/pages.h"
+#include "data/statuses.h"
 
 struct page_map_t
 {

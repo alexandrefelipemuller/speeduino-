@@ -1,11 +1,12 @@
 // Note that all functions with an underscore prefix are NOT part 
 // of the public API. They are only here so we can inline them.
 
-#include "globals.h"
-#include "scheduler.h"
-#include "crankMaths.h"
-#include "maths.h"
-#include "timers.h"
+#include "data/runtime_constants.h"
+#include "data/runtime_state.h"
+#include "orchestration/scheduler.h"
+#include "engine/crankMaths.h"
+#include "support/maths.h"
+#include "orchestration/timers.h"
 
 static inline uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, int16_t injChannelDegrees, uint16_t injAngle)
 {

@@ -1,4 +1,4 @@
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 #if defined(CORE_TEMPLATE)
 

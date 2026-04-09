@@ -1,10 +1,10 @@
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 #if defined(CORE_TEENSY) && defined(__IMXRT1062__)
-#include "auxiliaries.h"
-#include "idle.h"
-#include "scheduler.h"
-#include "timers.h"
+#include "engine/auxiliaries.h"
+#include "engine/idle.h"
+#include "orchestration/scheduler.h"
+#include "orchestration/timers.h"
 #include "modules/secondary_serial/secondary_serial.h"
 #include <InternalTemperature.h>
 #include RTC_LIB_H

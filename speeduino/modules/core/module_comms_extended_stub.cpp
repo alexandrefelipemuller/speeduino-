@@ -1,5 +1,5 @@
 #include "modules/comms_extended/module_comms_extended.h"
-#include "preprocessor.h"
+#include "support/preprocessor.h"
 
 #if !FEATURE_MODULE_COMMS_EXTENDED
 

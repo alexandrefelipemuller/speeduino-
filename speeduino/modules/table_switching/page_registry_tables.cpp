@@ -1,8 +1,8 @@
-#include "page_registry.h"
+#include "storage/page_registry.h"
 
-#include "pages.h"
-#include "preprocessor.h"
-#include "table_registry.h"
+#include "storage/pages.h"
+#include "support/preprocessor.h"
+#include "data/table_registry.h"
 
 template <typename table_t>
 static constexpr uint16_t get_table_value_end(void)

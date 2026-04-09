@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "table3d.h"
-#include "table3d_visitor.h"
+#include "support/table3d.h"
+#include "support/table3d_visitor.h"
 
 // =============================== Iterators =========================
 

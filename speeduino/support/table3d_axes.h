@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "table3d_typedefs.h"
+#include "support/table3d_typedefs.h"
 
 /**\enum AxisDomain
  * @brief Encodes the real world measurement that a table axis captures

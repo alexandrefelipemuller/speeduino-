@@ -7,7 +7,7 @@
  * This allows us to write code that operates on the tables without having to know the concrete type of the table.
  */
 
-#include "table3d.h"
+#include "support/table3d.h"
 
 /**
  * @brief Visit a 3D table with a visitor. 

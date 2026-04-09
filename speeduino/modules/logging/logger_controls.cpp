@@ -1,11 +1,11 @@
 #include "logger_controls.h"
-#include "logger_status.h"
-#include "config_pages.h"
-#include "decoders.h"
-#include "init.h"
-#include "statuses.h"
-#include "decoder_t.h"
-#include "board_definition.h"
+#include "data/logger_status.h"
+#include "data/config_pages.h"
+#include "engine/decoders.h"
+#include "orchestration/init.h"
+#include "data/statuses.h"
+#include "engine/decoder_t.h"
+#include "boards/board_definition.h"
 
 extern struct statuses currentStatus;
 extern struct config2 configPage2;

@@ -2,10 +2,10 @@
 #define MC33810_H
 
 #include <SPI.h>
-#include "bit_manip.h"
-#include "config_pages.h"
-#include "port_pin.h"
-#include "board_definition.h"
+#include "support/bit_manip.h"
+#include "data/config_pages.h"
+#include "support/port_pin.h"
+#include "boards/board_definition.h"
 
 static const uint8_t MC33810_ONOFF_CMD = 0x30; //48 in decimal
 static volatile uint8_t mc33810_1_requestedState; //Current binary state of the 1st ICs IGN and INJ values

@@ -6,29 +6,29 @@ A full copy of the license may be found in the projects root directory
 /** @file
    * Process Incoming and outgoing serial communications.
  */
-#include "comms.h"
-#include "logger_status.h"
-#include "core_constants.h"
-#include "storage.h"
-#include "maths.h"
-#include "utilities.h"
-#include "decoders.h"
+#include "comms/comms.h"
+#include "data/logger_status.h"
+#include "data/core_constants.h"
+#include "storage/storage.h"
+#include "support/maths.h"
+#include "support/utilities.h"
+#include "engine/decoders.h"
 #include "modules/logging/TS_CommandButtonHandler.h"
-#include "pages.h"
-#include "page_crc.h"
+#include "storage/pages.h"
+#include "storage/page_crc.h"
 #include "modules/logging/logger.h"
 #include "modules/logging/logger_controls.h"
-#include "comms_legacy.h"
+#include "comms/comms_legacy.h"
 #include <FastCRC.h>
 #ifdef RTC_ENABLED
   #include "modules/logging/rtc_common.h"
-  #include "comms_sd.h"
+  #include "comms/comms_sd.h"
 #endif
 #ifdef SD_LOGGING
   #include "modules/logging/SD_logger.h"
 #endif
-#include "units.h"
-#include "sensors.h"
+#include "support/units.h"
+#include "engine/sensors.h"
 
 extern struct statuses currentStatus;
 extern volatile uint32_t toothHistory[TOOTH_LOG_SIZE];

@@ -1,14 +1,14 @@
 #include "modules/advanced_engine/wmi.h"
 
-#include "advanced_engine_status.h"
-#include "board_definition.h"
-#include "maths.h"
+#include "data/advanced_engine_status.h"
+#include "boards/board_definition.h"
+#include "support/maths.h"
 #include "modules/services/aux_pwm.h"
-#include "pin_registry.h"
-#include "runtime_state.h"
-#include "table_registry.h"
-#include "tune_registry.h"
-#include "units.h"
+#include "data/pin_registry.h"
+#include "data/runtime_state.h"
+#include "data/table_registry.h"
+#include "data/tune_registry.h"
+#include "support/units.h"
 
 #define WMI_TANK_IS_EMPTY() ((configPage10.wmiEmptyEnabled) ? ((configPage10.wmiEmptyPolarity) ? digitalRead(pinWMIEmpty) : !digitalRead(pinWMIEmpty)) : 1)
 

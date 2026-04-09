@@ -1,5 +1,5 @@
 #include "modules/secondary_serial/secondary_serial.h"
-#include "preprocessor.h"
+#include "support/preprocessor.h"
 
 #if !FEATURE_MODULE_SECONDARY_SERIAL
 

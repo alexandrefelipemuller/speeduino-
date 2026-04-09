@@ -1,6 +1,8 @@
-#include "globals.h"
-#include "acc_mc33810.h"
-#include "scheduledIO_direct_inj.h"
+#include "data/runtime_constants.h"
+#include "data/runtime_state.h"
+#include "data/pin_registry.h"
+#include "engine/acc_mc33810.h"
+#include "engine/scheduledIO_direct_inj.h"
 
 /** @file
  * Injector and Coil (toggle/open/close) control (under various situations, eg with particular cylinder count, rotary engine type or wasted spark ign, etc.).

@@ -1,9 +1,9 @@
-#include "fuel_calcs.h"
-#include "advanced_engine_status.h"
-#include "maths.h"
-#include "table3d.h"
-#include "unit_testing.h"
-#include "decoders.h"
+#include "engine/fuel_calcs.h"
+#include "data/advanced_engine_status.h"
+#include "support/maths.h"
+#include "support/table3d.h"
+#include "support/unit_testing.h"
+#include "engine/decoders.h"
 
 extern struct table3d8RpmLoad stagingTable;
 

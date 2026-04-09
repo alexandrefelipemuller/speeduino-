@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "bit_manip.h"
+#include "support/bit_manip.h"
 
 /**
  * @file

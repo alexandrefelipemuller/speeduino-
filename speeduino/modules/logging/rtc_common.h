@@ -1,7 +1,7 @@
 #ifndef RTC_H
 #define RTC_H
 
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 void initRTC();
 uint8_t rtc_getSecond();

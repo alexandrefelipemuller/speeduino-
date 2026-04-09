@@ -1,14 +1,14 @@
 #include "modules/logging/logger.h"
-#include "advanced_engine_status.h"
+#include "data/advanced_engine_status.h"
 #include "modules/logging/logger_private.h"
-#include "can_aux_status.h"
-#include "logger_status.h"
-#include "maths.h"
-#include "utilities.h"
-#include "preprocessor.h"
-#include "sd_logging_status.h"
-#include "units.h"
-#include "board_definition.h"
+#include "data/can_aux_status.h"
+#include "data/logger_status.h"
+#include "support/maths.h"
+#include "support/utilities.h"
+#include "support/preprocessor.h"
+#include "data/sd_logging_status.h"
+#include "support/units.h"
+#include "boards/board_definition.h"
 
 #if !FEATURE_MODULE_LOGGING
 

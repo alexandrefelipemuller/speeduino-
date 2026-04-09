@@ -1,7 +1,7 @@
-#include "table3d_interpolate.h"
-#include "maths.h"
-#include "unit_testing.h"
-#include "table2d.h"
+#include "support/table3d_interpolate.h"
+#include "support/maths.h"
+#include "support/unit_testing.h"
+#include "support/table2d.h"
 
 /**
  * @file

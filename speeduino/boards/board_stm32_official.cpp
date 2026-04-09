@@ -1,11 +1,11 @@
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 #if defined(STM32_CORE_VERSION_MAJOR)
-#include "auxiliaries.h"
-#include "idle.h"
-#include "scheduler.h"
+#include "engine/auxiliaries.h"
+#include "engine/idle.h"
+#include "orchestration/scheduler.h"
 #include "HardwareTimer.h"
-#include "timers.h"
+#include "orchestration/timers.h"
 #include "modules/secondary_serial/secondary_serial.h"
 #include EEPROM_LIB_H
 

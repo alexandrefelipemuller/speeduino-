@@ -1,6 +1,6 @@
-#include "schedule_state_machine.h"
-#include "timers.h"
-#include "preprocessor.h"
+#include "orchestration/schedule_state_machine.h"
+#include "orchestration/timers.h"
+#include "support/preprocessor.h"
 
 BEGIN_LTO_ALWAYS_INLINE(void) defaultPendingToRunning(Schedule *schedule) {
   schedule->pStartCallback();

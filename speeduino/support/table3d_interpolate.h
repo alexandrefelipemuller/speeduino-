@@ -1,7 +1,7 @@
 #pragma once
 
-#include "table3d_typedefs.h"
-#include "maths.h"
+#include "support/table3d_typedefs.h"
+#include "support/maths.h"
 
 /**
  * @file 

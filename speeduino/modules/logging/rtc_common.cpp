@@ -1,4 +1,4 @@
-#include "board_definition.h"
+#include "boards/board_definition.h"
 #include "rtc_common.h"
 #include RTC_LIB_H //Defined in each boards .h file
 #ifdef RTC_ENABLED

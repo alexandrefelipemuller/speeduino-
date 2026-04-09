@@ -1,11 +1,11 @@
-#include "engineProtection.h"
-#include "advanced_engine_status.h"
-#include "maths.h"
-#include "table2d.h"
-#include "units.h"
-#include "unit_testing.h"
-#include "preprocessor.h"
-#include "decoder_init.h"
+#include "modules/advanced_engine/engineProtection.h"
+#include "data/advanced_engine_status.h"
+#include "support/maths.h"
+#include "support/table2d.h"
+#include "support/units.h"
+#include "support/unit_testing.h"
+#include "support/preprocessor.h"
+#include "engine/decoder_init.h"
 
 extern uint8_t softLimitTime;
 extern struct config9 configPage9;

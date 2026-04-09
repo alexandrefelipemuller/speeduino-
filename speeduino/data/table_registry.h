@@ -1,7 +1,7 @@
 #pragma once
 
-#include "table2d.h"
-#include "table3d.h"
+#include "support/table2d.h"
+#include "support/table3d.h"
 
 using trimTable3d = table3d6RpmLoad;
 

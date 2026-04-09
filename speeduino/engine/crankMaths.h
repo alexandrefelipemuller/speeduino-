@@ -2,8 +2,8 @@
 #define CRANKMATHS_H
 
 #include <stdint.h>
-#include "core_constants.h"
-#include "maths.h"
+#include "data/core_constants.h"
+#include "support/maths.h"
 
 extern int CRANK_ANGLE_MAX_IGN;
 extern int CRANK_ANGLE_MAX_INJ;

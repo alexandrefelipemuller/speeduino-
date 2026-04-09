@@ -1,7 +1,7 @@
 #pragma once
 
 #include <avr-fast-div.h>
-#include "statuses.h"
+#include "data/statuses.h"
 
 /** \enum LoadSource
  * @brief The load source for various tables

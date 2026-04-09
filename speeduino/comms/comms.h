@@ -11,7 +11,7 @@
 #define COMMS_H
 
 #include <stdint.h>
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 extern Stream *pPrimarySerial;
 #define primarySerial (*pPrimarySerial)

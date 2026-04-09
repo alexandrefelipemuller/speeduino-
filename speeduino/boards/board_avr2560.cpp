@@ -1,12 +1,13 @@
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 #if defined(CORE_AVR)
-#include "globals.h"
-#include "auxiliaries.h"
+#include "data/runtime_state.h"
+#include "data/tune_registry.h"
+#include "engine/auxiliaries.h"
 #include "modules/secondary_serial/secondary_serial.h"
-#include "idle.h"
-#include "scheduler.h"
-#include "timers.h"
+#include "engine/idle.h"
+#include "orchestration/scheduler.h"
+#include "orchestration/timers.h"
 #include EEPROM_LIB_H
 
 // Prescaler values for timers 1-3-4-5. Refer to www.instructables.com/files/orig/F3T/TIKL/H3WSA4V7/F3TTIKLH3WSA4V7.jpg

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "maths.h"
+#include "support/maths.h"
 
 //Generates a random number from 1 to 100 (inclusive).
 //The initial seed used is always based on micros(), though this is unlikely to cause an issue as the first run is nearly random itself

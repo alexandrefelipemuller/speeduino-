@@ -1,10 +1,10 @@
 #include <Arduino.h>
-#include "decoder_init.h"
-#include "decoders.h"
-#include "decoder_builder.h"
-#include "config_pages.h"
-#include "preprocessor.h"
-#include "unit_testing.h"
+#include "engine/decoder_init.h"
+#include "engine/decoders.h"
+#include "engine/decoder_builder.h"
+#include "data/config_pages.h"
+#include "support/preprocessor.h"
+#include "support/unit_testing.h"
 
 extern struct config2 configPage2;
 extern byte pinTrigger;

@@ -1,5 +1,5 @@
 #include "modules/table_switching/module_table_switching.h"
-#include "preprocessor.h"
+#include "support/preprocessor.h"
 
 #if !FEATURE_MODULE_TABLE_SWITCHING
 

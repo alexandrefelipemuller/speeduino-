@@ -1,10 +1,10 @@
 #include "modules/advanced_engine/launch_flatshift.h"
 
-#include "advanced_engine_status.h"
-#include "board_definition.h"
-#include "pin_registry.h"
-#include "runtime_state.h"
-#include "tune_registry.h"
+#include "data/advanced_engine_status.h"
+#include "boards/board_definition.h"
+#include "data/pin_registry.h"
+#include "data/runtime_state.h"
+#include "data/tune_registry.h"
 
 void advanced_engine_launch_flatshift_tick(void)
 {

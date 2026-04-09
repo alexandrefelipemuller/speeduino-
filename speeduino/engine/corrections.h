@@ -6,9 +6,9 @@ All functions in the gamma file return
 #define CORRECTIONS_H
 
 #include <stdint.h>
-#include "statuses.h"
-#include "config_pages.h"
-#include "table3d.h"
+#include "data/statuses.h"
+#include "data/config_pages.h"
+#include "support/table3d.h"
 
 void initialiseCorrections(void);
 uint16_t correctionsFuel(void);

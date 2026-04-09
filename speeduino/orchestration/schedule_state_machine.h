@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scheduler.h"
+#include "orchestration/scheduler.h"
 
 /**
  * @defgroup schedule-state-machine Schedule finite state machine 

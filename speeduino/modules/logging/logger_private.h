@@ -2,10 +2,10 @@
 #define LOGGER_PRIVATE_H
 
 #include <stdint.h>
-#include "advanced_engine_status.h"
-#include "logger_status.h"
-#include "statuses.h"
-#include "bit_manip.h"
+#include "data/advanced_engine_status.h"
+#include "data/logger_status.h"
+#include "data/statuses.h"
+#include "support/bit_manip.h"
 
 static inline byte setStatusBit(byte status, uint8_t index, bool bit)
 {

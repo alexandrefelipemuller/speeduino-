@@ -10,8 +10,8 @@
 #define LOGGER_H
 
 #include <stdint.h>
-#include "board_definition.h"
-#include "statuses.h"
+#include "boards/board_definition.h"
+#include "data/statuses.h"
 
 #ifndef UNIT_TEST // Scope guard for unit testing
   #define LOG_ENTRY_SIZE      138 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */

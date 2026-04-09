@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config_pages.h"
+#include "data/config_pages.h"
 
 extern struct config2 configPage2;
 extern struct config4 configPage4;

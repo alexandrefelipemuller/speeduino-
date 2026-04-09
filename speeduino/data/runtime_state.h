@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core_constants.h"
-#include "statuses.h"
+#include "data/core_constants.h"
+#include "data/statuses.h"
 
 extern byte fpPrimeTime;
 extern uint8_t softLimitTime;

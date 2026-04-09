@@ -4,10 +4,10 @@ Copyright (C) Josh Stewart
 A full copy of the license may be found in the projects root directory
 */
 
-#include "table2d.h"
-#include "maths.h"
+#include "support/table2d.h"
+#include "support/maths.h"
 #if !defined(UNIT_TEST)
-#include "statuses.h"
+#include "data/statuses.h"
 
 extern struct statuses currentStatus;
 #endif

@@ -2,7 +2,7 @@
 #define COMMS_CAN_H
 
 #include <stdint.h>
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 //For BMW e46/e39/e38, rover and mini other CAN instrument clusters
 #define CAN_BMW_ASC1 0x153 //Rx message from ACS unit that includes speed

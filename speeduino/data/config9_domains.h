@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bit_manip.h"
-#include "config_pages.h"
+#include "support/bit_manip.h"
+#include "data/config_pages.h"
 #include "modules/secondary_serial/secondary_serial.h"
 
 struct secondary_serial_config_t

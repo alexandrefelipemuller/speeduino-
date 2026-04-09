@@ -1,13 +1,13 @@
 #include "modules/advanced_engine/nitrous.h"
 
-#include "advanced_engine_status.h"
-#include "atomic.h"
-#include "board_definition.h"
-#include "port_pin.h"
-#include "runtime_state.h"
-#include "tune_registry.h"
-#include "units.h"
-#include "utilities.h"
+#include "data/advanced_engine_status.h"
+#include "support/atomic.h"
+#include "boards/board_definition.h"
+#include "support/port_pin.h"
+#include "data/runtime_state.h"
+#include "data/tune_registry.h"
+#include "support/units.h"
+#include "support/utilities.h"
 
 static port_register_t n2o_arming_pin_port;
 static pin_mask_t n2o_arming_pin_mask;

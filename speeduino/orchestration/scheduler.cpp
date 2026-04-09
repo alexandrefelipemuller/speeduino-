@@ -24,15 +24,16 @@ A full copy of the license may be found in the projects root directory
  * - ign*StartFunction() - Execute **start** of ignition (Interrupt handler)
  * - ign*EndFunction() - Execute **end** of ignition (Interrupt handler)
  */
-#include "scheduler.h"
-#include "config_pages.h"
-#include "core_constants.h"
-#include "statuses.h"
-#include "timers.h"
-#include "schedule_calcs.h"
-#include "preprocessor.h"
-#include "units.h"
-#include "schedule_state_machine.h"
+#include "orchestration/scheduler.h"
+#include "data/config_pages.h"
+#include "data/core_constants.h"
+#include "data/statuses.h"
+#include "orchestration/timers.h"
+#include "orchestration/schedule_calcs.h"
+#include "support/table2d.h"
+#include "support/preprocessor.h"
+#include "support/units.h"
+#include "orchestration/schedule_state_machine.h"
 
 extern struct statuses currentStatus;
 extern struct config2 configPage2;

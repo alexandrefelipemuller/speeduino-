@@ -1,7 +1,7 @@
-#include "board_definition.h"
-#include "config_pages.h"
-#include "sd_logging_status.h"
-#include "statuses.h"
+#include "boards/board_definition.h"
+#include "data/config_pages.h"
+#include "data/sd_logging_status.h"
+#include "data/statuses.h"
 
 #ifdef SD_LOGGING
 #include <SPI.h>
@@ -13,7 +13,7 @@
 #include "SD_logger.h"
 #include "logger.h"
 #include "rtc_common.h"
-#include "maths.h"
+#include "support/maths.h"
 #include <elapsedMillis.h>
 
 extern struct statuses currentStatus;

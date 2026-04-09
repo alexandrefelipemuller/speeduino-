@@ -8,10 +8,10 @@
 #pragma once
 
 #include <stdint.h>
-#include "bit_manip.h"
-#include "atomic.h"
-#include "maths.h"
-#include "decoder_builder.h"
+#include "support/bit_manip.h"
+#include "support/atomic.h"
+#include "support/maths.h"
+#include "engine/decoder_builder.h"
 
 using byte = uint8_t;
 

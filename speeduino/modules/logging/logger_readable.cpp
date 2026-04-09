@@ -1,10 +1,10 @@
 #include "logger.h"
-#include "advanced_engine_status.h"
-#include "can_aux_status.h"
-#include "logger_status.h"
+#include "data/advanced_engine_status.h"
+#include "data/can_aux_status.h"
+#include "data/logger_status.h"
 #include "logger_private.h"
-#include "maths.h"
-#include "utilities.h"
+#include "support/maths.h"
+#include "support/utilities.h"
 
 extern struct statuses currentStatus;
 

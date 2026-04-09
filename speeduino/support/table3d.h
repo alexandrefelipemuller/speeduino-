@@ -45,9 +45,9 @@
 
 #pragma once
 
-#include "table3d_interpolate.h"
-#include "table3d_axes.h"
-#include "table3d_values.h"
+#include "support/table3d_interpolate.h"
+#include "support/table3d_axes.h"
+#include "support/table3d_values.h"
 
 #define TO_TYPE_KEY(size, xDom, yDom) table3d ## size ## xDom ## yDom ## _key
 

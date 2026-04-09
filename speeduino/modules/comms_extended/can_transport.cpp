@@ -1,8 +1,8 @@
-#include "can_transport.h"
+#include "comms/can_transport.h"
 
-#include "comms_CAN.h"
-#include "maths.h"
-#include "preprocessor.h"
+#include "comms/comms_CAN.h"
+#include "support/maths.h"
+#include "support/preprocessor.h"
 #include "modules/secondary_serial/secondary_serial.h"
 
 #if FEATURE_MODULE_COMMS_EXTENDED

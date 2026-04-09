@@ -2,7 +2,7 @@
 #define SECONDARY_SERIAL_H
 
 #include <stdint.h>
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 #define NEW_CAN_PACKET_SIZE   123
 #define CAN_PACKET_SIZE   75

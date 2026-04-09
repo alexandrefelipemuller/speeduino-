@@ -1,15 +1,15 @@
 #include "module_comms_extended.h"
 
-#include "can_aux_status.h"
-#include "preprocessor.h"
+#include "data/can_aux_status.h"
+#include "support/preprocessor.h"
 
 #if FEATURE_MODULE_COMMS_EXTENDED
 
-#include "core_constants.h"
-#include "comms_CAN.h"
-#include "can_transport.h"
-#include "utilities.h"
-#include "sensors.h"
+#include "data/core_constants.h"
+#include "comms/comms_CAN.h"
+#include "comms/can_transport.h"
+#include "support/utilities.h"
+#include "engine/sensors.h"
 
 void module_comms_extended_init(void)
 {

@@ -1,7 +1,10 @@
-#include "globals.h"
-#include "scheduledIO_direct_ign.h"
-#include "acc_mc33810.h"
-#include "timers.h"
+#include "data/runtime_constants.h"
+#include "data/runtime_state.h"
+#include "data/pin_registry.h"
+#include "data/tune_registry.h"
+#include "engine/scheduledIO_direct_ign.h"
+#include "engine/acc_mc33810.h"
+#include "orchestration/timers.h"
 
 // LCOV_EXCL_START
 // Exclude from code coverage, since this is all board output control

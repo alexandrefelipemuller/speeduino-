@@ -1,6 +1,6 @@
 #pragma once
 
-#include "board_definition.h"
+#include "boards/board_definition.h"
 
 extern byte pinInjector1;
 extern byte pinInjector2;
@@ -84,3 +84,6 @@ extern byte pinSPIFlash_CS;
 extern byte pinAirConComp;
 extern byte pinAirConFan;
 extern byte pinAirConRequest;
+
+bool pinIsOutput(byte pin);
+bool pinIsUsed(byte pin);

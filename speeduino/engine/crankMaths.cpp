@@ -1,11 +1,11 @@
 #include <avr-fast-shift.h>
-#include "core_constants.h"
-#include "crankMaths.h"
-#include "preprocessor.h"
+#include "data/core_constants.h"
+#include "engine/crankMaths.h"
+#include "support/preprocessor.h"
 
 #if SECOND_DERIV_ENABLED!=0
-#include "config_pages.h"
-#include "statuses.h"
+#include "data/config_pages.h"
+#include "data/statuses.h"
 
 extern struct statuses currentStatus;
 extern struct config4 configPage4;

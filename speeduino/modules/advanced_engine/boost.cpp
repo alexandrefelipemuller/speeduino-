@@ -1,16 +1,16 @@
 #include "modules/advanced_engine/boost.h"
 
-#include "advanced_engine_status.h"
-#include "atomic.h"
-#include "board_definition.h"
-#include "maths.h"
-#include "port_pin.h"
-#include "runtime_state.h"
+#include "data/advanced_engine_status.h"
+#include "support/atomic.h"
+#include "boards/board_definition.h"
+#include "support/maths.h"
+#include "support/port_pin.h"
+#include "data/runtime_state.h"
 #include "src/PID_v1/PID_v1.h"
-#include "table2d.h"
-#include "table_registry.h"
-#include "tune_registry.h"
-#include "utilities.h"
+#include "support/table2d.h"
+#include "data/table_registry.h"
+#include "data/tune_registry.h"
+#include "support/utilities.h"
 
 constexpr uint8_t SIMPLE_BOOST_P = 1U;
 constexpr uint8_t SIMPLE_BOOST_I = 1U;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "statuses.h"
+#include "data/statuses.h"
 
 void core_modules_init_pre_pin_mapping(void);
 void core_modules_init_post_pin_mapping(void);

@@ -11,7 +11,7 @@
 // 32-bit constants generated here: https://godbolt.org/z/vP8Kfejo9
 #include <libdivide.h>
 #endif
-#include "unit_testing.h"
+#include "support/unit_testing.h"
 
 uint8_t random1to100(void);
 

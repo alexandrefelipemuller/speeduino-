@@ -1,5 +1,5 @@
-#include "modules/comms_extended/can_transport.h"
-#include "preprocessor.h"
+#include "comms/can_transport.h"
+#include "support/preprocessor.h"
 
 #if !FEATURE_MODULE_COMMS_EXTENDED
 

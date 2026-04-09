@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include "statuses.h"
-#include "config_pages.h"
-#include "decoders.h"
+#include "data/statuses.h"
+#include "data/config_pages.h"
+#include "engine/decoders.h"
 
 /**
  * @file

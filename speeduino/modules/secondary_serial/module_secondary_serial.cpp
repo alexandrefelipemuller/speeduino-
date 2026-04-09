@@ -1,7 +1,7 @@
 #include "module_secondary_serial.h"
 
-#include "core_constants.h"
-#include "preprocessor.h"
+#include "data/core_constants.h"
+#include "support/preprocessor.h"
 
 #if FEATURE_MODULE_SECONDARY_SERIAL
 

@@ -1,8 +1,8 @@
 #ifndef INIT_H
 #define INIT_H
 
-#include "config_pages.h"
-#include "statuses.h"
+#include "data/config_pages.h"
+#include "data/statuses.h"
 
 void initialiseAll(void);
 void setPinMapping(byte boardID);

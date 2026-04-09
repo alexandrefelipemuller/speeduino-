@@ -1,7 +1,7 @@
 #ifndef AUX_H
 #define AUX_H
 
-#include "config_pages.h"
+#include "data/config_pages.h"
 
 void initialiseAuxPWM(void);
 void boostControl(void);

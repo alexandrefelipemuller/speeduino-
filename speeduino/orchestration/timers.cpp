@@ -10,22 +10,22 @@ They should not be confused with Schedulers, which are for performing an action 
 
 Timers are typically low resolution (Compared to Schedulers), with maximum frequency currently being approximately every 10ms
 */
-#include "timers.h"
-#include "core_constants.h"
-#include "hw_test_bits.h"
+#include "orchestration/timers.h"
+#include "data/core_constants.h"
+#include "support/hw_test_bits.h"
 #include "modules/advanced_engine/fan_aircon.h"
-#include "pin_registry.h"
-#include "port_pin.h"
-#include "runtime_state.h"
-#include "sensors.h"
-#include "scheduler.h"
-#include "auxiliaries.h"
-#include "comms.h"
-#include "maths.h"
-#include "preprocessor.h"
-#include "tune_registry.h"
-#include "scheduledIO_ign.h"
-#include "scheduledIO_inj.h"
+#include "data/pin_registry.h"
+#include "support/port_pin.h"
+#include "data/runtime_state.h"
+#include "engine/sensors.h"
+#include "orchestration/scheduler.h"
+#include "engine/auxiliaries.h"
+#include "comms/comms.h"
+#include "support/maths.h"
+#include "support/preprocessor.h"
+#include "data/tune_registry.h"
+#include "engine/scheduledIO_ign.h"
+#include "engine/scheduledIO_inj.h"
 extern volatile uint8_t flexCounter;
 
 volatile uint16_t lastRPM_100ms; //Need to record this for rpmDOT calculation

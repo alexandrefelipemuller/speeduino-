@@ -1,9 +1,9 @@
 #pragma once
 
-#include "config9_domains.h"
-#include "config_pages.h"
-#include "statuses.h"
-#include "table3d.h"
+#include "data/config9_domains.h"
+#include "data/config_pages.h"
+#include "data/statuses.h"
+#include "support/table3d.h"
 
 void module_secondary_serial_init(const secondary_serial_config_t &config);
 void module_secondary_serial_poll(const secondary_serial_config_t &config);

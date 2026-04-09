@@ -22,21 +22,21 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 - @ref correctionsIgn() - All ignition related corrections
 */
 //************************************************************************************************************
-#include "advanced_engine_status.h"
+#include "data/advanced_engine_status.h"
 
-#include "corrections.h"
-#include "core_constants.h"
-#include "runtime_state.h"
-#include "timers.h"
-#include "maths.h"
-#include "sensors.h"
-#include "unit_testing.h"
-#include "preprocessor.h"
+#include "engine/corrections.h"
+#include "data/core_constants.h"
+#include "data/runtime_state.h"
+#include "orchestration/timers.h"
+#include "support/maths.h"
+#include "engine/sensors.h"
+#include "support/unit_testing.h"
+#include "support/preprocessor.h"
 #include "src/PID_v1/PID_v1.h"
-#include "units.h"
-#include "fuel_calcs.h"
-#include "tune_registry.h"
-#include "unit_testing.h"
+#include "support/units.h"
+#include "engine/fuel_calcs.h"
+#include "data/tune_registry.h"
+#include "support/unit_testing.h"
 
 static long PID_O2;
 static long PID_output;

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdint.h>
-#include "statuses.h"
-#include "config_pages.h"
-#include "table3d.h"
+#include "data/statuses.h"
+#include "data/config_pages.h"
+#include "support/table3d.h"
 
 /**
  * @brief Compute the ignition dwell

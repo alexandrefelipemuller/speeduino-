@@ -1,7 +1,7 @@
 #pragma once
 
-#include "statuses.h"
-#include "config_pages.h"
+#include "data/statuses.h"
+#include "data/config_pages.h"
 
 bool checkEngineProtect(statuses &current, const config4 &page4, const config6 &page6, const config9 &page9, const config10 &page10);
 

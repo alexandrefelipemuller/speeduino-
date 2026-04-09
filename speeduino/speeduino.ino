@@ -21,47 +21,43 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include <stdint.h> //developer.mbed.org/handbook/C-Data-Types
 //************************************************
-#include "advanced_engine_status.h"
-#include "globals.h"
-#include "logger_status.h"
-#include "scheduler.h"
-#include "comms.h"
-#include "comms_legacy.h"
+#include "data/advanced_engine_status.h"
+#include "data/runtime_constants.h"
+#include "data/runtime_state.h"
+#include "data/tune_registry.h"
+#include "data/pin_registry.h"
+#include "support/hw_test_bits.h"
+#include "data/logger_status.h"
+#include "orchestration/scheduler.h"
+#include "comms/comms.h"
+#include "comms/comms_legacy.h"
 #include "modules/secondary_serial/secondary_serial.h"
-#include "maths.h"
-#include "corrections.h"
-#include "timers.h"
-#include "decoders.h"
-#include "idle.h"
-#include "auxiliaries.h"
-#include "sensors.h"
-#include "storage.h"
-#include "crankMaths.h"
-#include "init.h"
-#include "utilities.h"
+#include "support/maths.h"
+#include "engine/corrections.h"
+#include "orchestration/timers.h"
+#include "engine/decoders.h"
+#include "engine/idle.h"
+#include "engine/auxiliaries.h"
+#include "engine/sensors.h"
+#include "storage/storage.h"
+#include "engine/crankMaths.h"
+#include "orchestration/init.h"
+#include "support/utilities.h"
 #include "modules/advanced_engine/engineProtection.h"
-#include "schedule_calcs.h"
-#include "auxiliaries.h"
-#include "load_source.h"
-#include "board_definition.h"
-#include "unit_testing.h"
+#include "orchestration/schedule_calcs.h"
+#include "engine/auxiliaries.h"
+#include "engine/load_source.h"
+#include "boards/board_definition.h"
+#include "support/unit_testing.h"
 #include RTC_LIB_H //Defined in each boards .h file
-#include "units.h"
-#include "fuel_calcs.h"
-#include "preprocessor.h"
-#include "dwell.h"
-#include "decoder_init.h"
+#include "support/units.h"
+#include "engine/fuel_calcs.h"
+#include "support/preprocessor.h"
+#include "engine/dwell.h"
+#include "engine/decoder_init.h"
+#include "orchestration/loop_helpers.h"
 #include "modules/core/module_interfaces.h"
 #include "modules/core/module_runtime.h"
-
-#define CRANK_RUN_HYSTER    15
-
-// Forward declarations
-void calculateIgnitionAngles(uint16_t dwellAngle);
-
-constexpr table2D_u8_u16_4 injectorAngleTable(&configPage2.injAngRPM, &configPage2.injAng);
-constexpr table2D_u8_u8_8 rotarySplitTable(&configPage10.rotarySplitBins, &configPage10.rotarySplitValues);
-constexpr table2D_u8_u8_10 idleTargetTable(&configPage6.iacBins, &configPage6.iacCLValues);
 
 #ifndef UNIT_TEST // Scope guard for unit testing
 
@@ -69,154 +65,6 @@ void setup(void)
 {
   currentStatus.initialisationComplete = false; //Tracks whether the initialiseAll() function has run completely
   initialiseAll();
-}
-
-static inline uint16_t applyFuelTrimToPW(trimTable3d *pTrimTable, uint16_t fuelLoad, int16_t RPM, uint16_t currentPW)
-{
-    uint8_t pw1percent = 100U + get3DTableValue(pTrimTable, fuelLoad, RPM) - OFFSET_FUELTRIM;
-    return percentageApprox(pw1percent, currentPW);
-}
-
-/** Lookup the current VE value from the primary 3D fuel map.
- * The Y axis value used for this lookup varies based on the fuel algorithm selected (speed density, alpha-n etc).
- * 
- * @return byte The current VE value
- */
-static inline uint8_t getVE1(void)
-{
-  currentStatus.fuelLoad = getLoad(configPage2.fuelAlgorithm, currentStatus);
-  return get3DTableValue(&fuelTable, currentStatus.fuelLoad, currentStatus.RPM); //Perform lookup into fuel map for RPM vs MAP value
-}
-
-/** Lookup the ignition advance from 3D ignition table.
- * The values used to look this up will be RPM and whatever load source the user has configured.
- * 
- * @return byte The current target advance value in degrees
- */
-static inline int8_t getAdvance1(void)
-{
-  currentStatus.ignLoad = getLoad(configPage2.ignAlgorithm, currentStatus);
-  return correctionsIgn((int16_t)get3DTableValue(&ignitionTable, currentStatus.ignLoad, currentStatus.RPM) - INT16_C(OFFSET_IGNITION)); //As above, but for ignition advance
-}
-
-static inline void setFuelSchedule(FuelSchedule &schedule, uint8_t channel, uint16_t pw, uint16_t startAngle, uint16_t crankAngle, byte fuelChannelsOn)
-{
-  if( (pw != 0U) && (BIT_CHECK(fuelChannelsOn, INJ1_CMD_BIT+channel-1U)) )
-  {
-    uint32_t timeOut = calculateInjectorTimeout(schedule, startAngle, crankAngle);
-    if (timeOut>0U)
-    {
-      setFuelSchedule(schedule, timeOut, pw);
-    }
-  }
-}
-
-static inline void setFuelSchedules(const statuses &current, const uint16_t (&injectionStartAngles)[INJ_CHANNELS], uint16_t crankAngle, byte fuelChannelsOn)
-{
-#define SET_FUEL_CHANNEL(channel) \
-  setFuelSchedule(fuelSchedule ##channel, UINT8_C(channel), current.PW ##channel, injectionStartAngles[(channel)-1U], crankAngle, fuelChannelsOn);
-
-#if INJ_CHANNELS >= 1
-  SET_FUEL_CHANNEL(1)
-#endif
-
-#if INJ_CHANNELS >= 2
-  SET_FUEL_CHANNEL(2)
-#endif
-
-#if INJ_CHANNELS >= 3
-  SET_FUEL_CHANNEL(3)
-#endif
-
-#if INJ_CHANNELS >= 4
-  SET_FUEL_CHANNEL(4)
-#endif
-
-#if INJ_CHANNELS >= 5
-  SET_FUEL_CHANNEL(5)
-#endif
-
-#if INJ_CHANNELS >= 6
-  SET_FUEL_CHANNEL(6)
-#endif
-
-#if INJ_CHANNELS >= 7
-  SET_FUEL_CHANNEL(7)
-#endif
-
-#if INJ_CHANNELS >= 8
-  SET_FUEL_CHANNEL(8)
-#endif
-
-#undef SET_FUEL_CHANNEL
-}
-
-static inline __attribute__((always_inline))  void setIgnitionChannel(IgnitionSchedule &schedule, uint8_t channel, uint16_t channelDegrees, uint16_t startAngle, uint16_t crankAngle, uint16_t dwell, byte ignitionChannelsOn) {
-  if ((currentStatus.maxIgnOutputs >= channel) && BIT_CHECK(ignitionChannelsOn, channel-1U)) {
-    uint32_t timeOut = calculateIgnitionTimeout(schedule, startAngle, channelDegrees, crankAngle);
-    if (timeOut > 0U)
-    {
-      setIgnitionSchedule(schedule, timeOut, dwell);
-    }
-  }
-}
-
-static inline __attribute__((always_inline))  void setIgnitionChannels(uint16_t crankAngle, uint16_t dwell, byte ignitionChannelsOn) {
-#define SET_IGNITION_CHANNEL(channelIdx) \
-  setIgnitionChannel(ignitionSchedule ##channelIdx, UINT8_C((channelIdx)), channel ##channelIdx ##IgnDegrees, ignition ##channelIdx ##StartAngle, crankAngle, dwell, ignitionChannelsOn);
-
-#if IGN_CHANNELS >= 1
-  SET_IGNITION_CHANNEL(1)
-#endif
-
-#if defined(USE_IGN_REFRESH)
-  if( (isRunning(ignitionSchedule1)) && (ignition1EndAngle > (int)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
-  {
-    unsigned long uSToEnd = 0;
-
-    crankAngle = ignitionLimits(currentStatus.decoder.getCrankAngle()); //Refresh the crank angle info
-    
-    //ONLY ONE OF THE BELOW SHOULD BE USED (PROBABLY THE FIRST):
-    //*********
-    if(ignition1EndAngle > (int)crankAngle) { uSToEnd = angleToTimeMicroSecPerDegree( (ignition1EndAngle - crankAngle) ); }
-    else { uSToEnd = angleToTimeMicroSecPerDegree( (360 + ignition1EndAngle - crankAngle) ); }
-    //*********
-    //uSToEnd = ((ignition1EndAngle - crankAngle) * (toothLastToothTime - toothLastMinusOneToothTime)) / triggerToothAngle;
-    //*********
-
-    refreshIgnitionSchedule1( uSToEnd + fixedCrankingOverride );
-  }
-#endif
-  
-#if IGN_CHANNELS >= 2
-  SET_IGNITION_CHANNEL(2)
-#endif
-
-#if IGN_CHANNELS >= 3
-  SET_IGNITION_CHANNEL(3)
-#endif
-
-#if IGN_CHANNELS >= 4
-  SET_IGNITION_CHANNEL(4)
-#endif
-
-#if IGN_CHANNELS >= 5
-  SET_IGNITION_CHANNEL(5)
-#endif
-
-#if IGN_CHANNELS >= 6
-  SET_IGNITION_CHANNEL(6)
-#endif
-
-#if IGN_CHANNELS >= 7
-  SET_IGNITION_CHANNEL(7)
-#endif
-
-#if IGN_CHANNELS >= 8
-  SET_IGNITION_CHANNEL(8)
-#endif
-
-#undef SET_IGNITION_CHANNEL
 }
 
 /** Speeduino main loop.
@@ -364,7 +212,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
       //Lookup the current target idle RPM. This is aligned with coolant and so needs to be calculated at the same rate CLT is read
       if( (configPage2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
       {
-        currentStatus.CLIdleTarget = table2D_getValue(&idleTargetTable, temperatureAddOffset(currentStatus.coolant)); //All temps are offset by 40 degrees
+        currentStatus.CLIdleTarget = getIdleTarget(currentStatus.coolant); //All temps are offset by 40 degrees
         if(currentAdvancedEngineStatus.aircon_turning_on) { currentStatus.CLIdleTarget += configPage15.airConIdleUpRPMAdder;  } //Adds Idle Up RPM amount if active
       }
 
@@ -459,7 +307,7 @@ BEGIN_LTO_ALWAYS_INLINE(void) loop(void)
 
       //***********************************************************************************************
       //BEGIN INJECTION TIMING
-      currentStatus.injAngle = table2D_getValue(&injectorAngleTable, currentStatus.RPMdiv100);
+      currentStatus.injAngle = getInjectorAngle(currentStatus.RPMdiv100);
       if(currentStatus.injAngle > uint16_t(CRANK_ANGLE_MAX_INJ)) { currentStatus.injAngle = uint16_t(CRANK_ANGLE_MAX_INJ); }
 
       unsigned int PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW1); //How many crank degrees the calculated PW will take at the current speed
@@ -778,6 +626,7 @@ END_LTO_INLINE()
 
 #endif //Unit test guard
 
+#if 0
 /** Calculate the Ignition angles for all cylinders (based on @ref config2.nCylinders).
  * both start and end angles are calculated for each channel.
  * Also the mode of ignition firing - wasted spark vs. dedicated spark per cyl. - is considered here.
@@ -890,3 +739,4 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       break;
   }
 }
+#endif
