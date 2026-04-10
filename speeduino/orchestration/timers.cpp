@@ -19,6 +19,7 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
 #include "data/runtime_state.h"
 #include "engine/sensors.h"
 #include "orchestration/scheduler.h"
+#include "orchestration/scheduler_priming.h"
 #include "engine/auxiliaries.h"
 #include "comms/comms.h"
 #include "support/maths.h"
