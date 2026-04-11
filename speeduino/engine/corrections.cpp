@@ -30,6 +30,7 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "orchestration/timers.h"
 #include "support/maths.h"
 #include "engine/sensors.h"
+#include "modules/launch_control/launch_control.h"
 #include "support/unit_testing.h"
 #include "support/preprocessor.h"
 #include "src/PID_v1/PID_v1.h"
@@ -571,24 +572,6 @@ TESTABLE_INLINE_STATIC uint8_t correctionBaro(void)
 
 // ============================= Launch control correction =============================
 
-/** Launch control has a setting to increase the fuel load to assist in bringing up boost.
-This simple check applies the extra fuel if we're currently launching
-*/
-TESTABLE_INLINE_STATIC uint8_t correctionLaunch(void)
-{
-  int8_t correction = (int8_t)NO_FUEL_CORRECTION;
-  bool launchingHard = currentAdvancedEngineStatus.launching_hard;
-  bool launchingSoft = currentAdvancedEngineStatus.launching_soft;
-#ifdef UNIT_TEST
-  launchingHard = launchingHard || currentStatus.launchingHard;
-  launchingSoft = launchingSoft || currentStatus.launchingSoft;
-#endif
-  if (launchingHard || launchingSoft) {
-    correction = correction + configPage6.lnchFuelAdd;
-  } 
-  return (uint8_t)correction;
-}
-
 // ============================= Deceleration Fuel Cut Off (DFCO) correction =============================
 
 TESTABLE_INLINE_STATIC uint8_t correctionDFCOfuel(void)
@@ -878,7 +861,7 @@ uint16_t correctionsFuel(void)
   currentStatus.fuelTempCorrection = correctionFuelTemp();
   sumCorrections = combineCorrections(sumCorrections, currentStatus.fuelTempCorrection);
 
-  currentStatus.launchCorrection = correctionLaunch();
+  currentStatus.launchCorrection = launch_control_fuel_correction();
   sumCorrections = combineCorrections(sumCorrections, currentStatus.launchCorrection);
 
   currentStatus.isDFCOActive = correctionDFCO();
@@ -1112,32 +1095,7 @@ TESTABLE_INLINE_STATIC int8_t correctionNitrous(int8_t advance)
  */
 TESTABLE_INLINE_STATIC int8_t correctionSoftLaunch(int8_t advance)
 {
-  //SoftCut rev limit for 2-step launch control.
-  if(  configPage6.launchEnabled 
-    && currentStatus.clutchTrigger 
-    && (currentStatus.clutchEngagedRPM < RPM_COARSE.toUser( configPage6.flatSArm))
-    && (currentStatus.RPM > RPM_COARSE.toUser( configPage6.lnchSoftLim))
-    && (currentStatus.TPS >= configPage10.lnchCtrlTPS) 
-    && ( (configPage2.vssMode == VSS_MODE_OFF) || (currentStatus.vss <= configPage10.lnchCtrlVss) )
-    )
-  {
-    currentAdvancedEngineStatus.launching_soft = true;
-#ifdef UNIT_TEST
-    currentStatus.launchingSoft = true;
-#endif
-    currentStatus.softLaunchActive = true;
-    advance = configPage6.lnchRetard;
-  }
-  else
-  {
-    currentAdvancedEngineStatus.launching_soft = false;
-#ifdef UNIT_TEST
-    currentStatus.launchingSoft = false;
-#endif
-    currentStatus.softLaunchActive = false;
-  }
-
-  return advance;
+  return launch_control_soft_ignition_correction(advance);
 }
 /** Ignition correction for soft flat shift.
  */

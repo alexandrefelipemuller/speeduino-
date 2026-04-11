@@ -1,26 +1,14 @@
 #include "modules/launch_flatshift/launch_flatshift.h"
 
+#include "modules/launch/launch.h"
 #include "data/advanced_engine_status.h"
 #include "boards/board_definition.h"
-#include "data/pin_registry.h"
 #include "data/runtime_state.h"
 #include "data/tune_registry.h"
 
 void advanced_engine_launch_flatshift_tick(void)
 {
-  currentStatus.previousClutchTrigger = currentStatus.clutchTrigger;
-
-  if(configPage6.flatSEnable || configPage6.launchEnabled)
-  {
-    if(configPage6.launchHiLo > 0) { currentStatus.clutchTrigger = digitalRead(pinLaunch); }
-    else { currentStatus.clutchTrigger = !digitalRead(pinLaunch); }
-
-    currentStatus.clutchTriggerActive = currentStatus.clutchTrigger;
-  }
-  if(currentStatus.clutchTrigger && (currentStatus.previousClutchTrigger != currentStatus.clutchTrigger))
-  {
-    currentStatus.clutchEngagedRPM = currentStatus.RPM;
-  }
+  launch_update_clutch_state();
 
   currentAdvancedEngineStatus.launching_hard = false;
   currentStatus.hardLaunchActive = false;
