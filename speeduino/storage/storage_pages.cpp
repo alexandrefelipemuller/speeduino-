@@ -10,6 +10,10 @@ A full copy of the license may be found in the projects root directory
 #include "storage/storage.h"
 #include "storage/page_registry.h"
 #include "storage/pages.h"
+#include "modules/boost/boost.h"
+#include "modules/comms_extended/module_comms_extended.h"
+#include "modules/logging/module_logging.h"
+#include "modules/table_switching/module_table_switching.h"
 #include "data/runtime_state.h"
 #include "data/table_registry.h"
 #include "data/tune_registry.h"
@@ -151,7 +155,10 @@ void savePage(uint8_t pageNum)
 {
   uint16_t writesRemaining = getStorageAPI().getMaxWriteBlockSize(currentStatus);
 
-  switch(pageNum)
+  if (core_modules_save_page(pageNum, writesRemaining))
+  {
+  }
+  else switch(pageNum)
   {
     case veMapPage:
       writesRemaining = writeTable(&fuelTable, decltype(fuelTable)::type_key, EEPROM_CONFIG1_MAP, writesRemaining);
@@ -194,11 +201,6 @@ void savePage(uint8_t pageNum)
       break;
     case fuelMap2Page:
       writesRemaining = writeTable(&fuelTable2, decltype(fuelTable2)::type_key, EEPROM_CONFIG11_MAP, writesRemaining);
-      break;
-    case wmiMapPage:
-      writesRemaining = writeTable(&wmiTable, decltype(wmiTable)::type_key, EEPROM_CONFIG12_MAP, writesRemaining);
-      writesRemaining = writeTable(&vvt2Table, decltype(vvt2Table)::type_key, EEPROM_CONFIG12_MAP2, writesRemaining);
-      writesRemaining = writeTable(&dwellTable, decltype(dwellTable)::type_key, EEPROM_CONFIG12_MAP3, writesRemaining);
       break;
     case progOutsPage:
       writesRemaining = write_range((byte *)&configPage13, (byte *)&configPage13+sizeof(configPage13), EEPROM_CONFIG13_START, writesRemaining);
@@ -278,9 +280,7 @@ void loadAllPages(void)
   (void)load_range(EEPROM_CONFIG9_START, (byte *)&configPage9, (byte *)&configPage9+sizeof(configPage9));
   (void)load_range(EEPROM_CONFIG10_START, (byte *)&configPage10, (byte *)&configPage10+sizeof(configPage10));
   (void)loadTable(&fuelTable2, decltype(fuelTable2)::type_key, EEPROM_CONFIG11_MAP);
-  (void)loadTable(&wmiTable, decltype(wmiTable)::type_key, EEPROM_CONFIG12_MAP);
-  (void)loadTable(&vvt2Table, decltype(vvt2Table)::type_key, EEPROM_CONFIG12_MAP2);
-  (void)loadTable(&dwellTable, decltype(dwellTable)::type_key, EEPROM_CONFIG12_MAP3);
+  core_modules_load_pages();
   (void)load_range(EEPROM_CONFIG13_START, (byte *)&configPage13, (byte *)&configPage13+sizeof(configPage13));
   (void)loadTable(&ignitionTable2, decltype(ignitionTable2)::type_key, EEPROM_CONFIG14_MAP);
   (void)loadTable(&boostTableLookupDuty, decltype(boostTableLookupDuty)::type_key, EEPROM_CONFIG15_MAP);

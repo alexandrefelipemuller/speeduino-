@@ -1,4 +1,4 @@
-#include "modules/advanced_engine/nitrous.h"
+#include "modules/nitrous/nitrous.h"
 
 #include "data/advanced_engine_status.h"
 #include "support/atomic.h"

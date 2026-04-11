@@ -1,10 +1,13 @@
-#include "modules/advanced_engine/engineProtection.h"
+#include "modules/engine_protection/engine_protection.h"
+#include "support/preprocessor.h"
+
+#if FEATURE_MODULE_ENGINE_PROTECTION
+
 #include "data/advanced_engine_status.h"
 #include "support/maths.h"
 #include "support/table2d.h"
 #include "support/units.h"
 #include "support/unit_testing.h"
-#include "support/preprocessor.h"
 #include "engine/decoder_init.h"
 
 extern uint8_t softLimitTime;
@@ -336,3 +339,17 @@ BEGIN_LTO_ALWAYS_INLINE(statuses::scheduler_cut_t) calculateFuelIgnitionChannelC
   return cutState;
 }
 END_LTO_INLINE()
+
+statuses::scheduler_cut_t module_engine_protection_scheduler_cut(statuses &current, const config2 &page2, const config4 &page4, const config6 &page6, const config9 &page9, const config10 &page10)
+{
+  return calculateFuelIgnitionChannelCut(current, page2, page4, page6, page9, page10);
+}
+
+#else
+
+statuses::scheduler_cut_t module_engine_protection_scheduler_cut(statuses &current, const config2 &, const config4 &, const config6 &, const config9 &, const config10 &)
+{
+  return current.schedulerCutState;
+}
+
+#endif

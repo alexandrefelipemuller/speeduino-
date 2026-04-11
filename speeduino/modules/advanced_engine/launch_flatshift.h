@@ -1,3 +1,3 @@
 #pragma once
 
-void advanced_engine_launch_flatshift_tick(void);
+#include "modules/launch_flatshift/launch_flatshift.h"

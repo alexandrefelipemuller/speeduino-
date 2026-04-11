@@ -1,4 +1,4 @@
-#include "modules/advanced_engine/wmi.h"
+#include "modules/wmi/wmi.h"
 
 #include "data/advanced_engine_status.h"
 #include "boards/board_definition.h"
@@ -12,7 +12,7 @@
 
 #define WMI_TANK_IS_EMPTY() ((configPage10.wmiEmptyEnabled) ? ((configPage10.wmiEmptyPolarity) ? digitalRead(pinWMIEmpty) : !digitalRead(pinWMIEmpty)) : 1)
 
-void wmiControl(void)
+void module_wmi_tick_30hz(void)
 {
   int wmiPW = 0;
 
@@ -80,4 +80,9 @@ void wmiControl(void)
       }
     }
   }
+}
+
+void wmiControl(void)
+{
+  module_wmi_tick_30hz();
 }

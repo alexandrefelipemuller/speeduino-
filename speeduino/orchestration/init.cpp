@@ -26,7 +26,6 @@
 #include "storage/pages.h"
 #include "engine/fuel_calcs.h"
 #include "engine/decoder_init.h"
-#include "modules/advanced_engine/fan_aircon.h"
 #include "modules/core/module_interfaces.h"
 #include "modules/core/module_runtime.h"
 #include "engine/scheduledIO_ign.h"
@@ -188,13 +187,11 @@ void initialiseAll(void)
     initialiseIgnitionSchedulers();
     //initialiseDisplay();
     initialiseIdle(true);
-    advanced_engine_fan_aircon_init(pinFan);
     initialiseAuxPWM();
     initialiseCorrections();
     currentStatus.engineProtectIoError = false; //Clear the I/O error bit. The bit will be set in initialiseADC() if there is problem in there.
     initialiseADC();
     initialiseMAPBaro();
-    initialiseProgrammableIO();
     initialiseFlexSensor(configPage2, currentStatus, pinFlex);
 
     //Same as above, but for the VSS input

@@ -1,6 +1,6 @@
 #include "storage/page_registry.h"
 
-#include "storage/pages.h"
+#include "modules/table_switching/module_table_switching.h"
 #include "support/preprocessor.h"
 #include "data/table_registry.h"
 

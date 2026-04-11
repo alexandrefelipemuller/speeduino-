@@ -13,7 +13,6 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
 #include "orchestration/timers.h"
 #include "data/core_constants.h"
 #include "support/hw_test_bits.h"
-#include "modules/advanced_engine/fan_aircon.h"
 #include "data/pin_registry.h"
 #include "support/port_pin.h"
 #include "data/runtime_state.h"
@@ -301,12 +300,6 @@ void oneMSInterval(void)
     //increment secl (secl is simply a counter that increments every second and is used to track whether the system has unexpectedly reset
     currentStatus.secl++;
     //**************************************************************************************************************************************************
-    //Check the fan output status
-    if (configPage2.fanEnable >= 1)
-    {
-       advanced_engine_fan_aircon_tick_1hz();
-    }
-
     //Check whether fuel pump priming is complete
     if(currentStatus.fpPrimed == false)
     {

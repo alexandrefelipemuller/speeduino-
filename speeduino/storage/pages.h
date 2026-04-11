@@ -15,17 +15,8 @@ constexpr uint8_t ignMapPage    = 3;
 constexpr uint8_t ignSetPage    = 4;
 constexpr uint8_t afrMapPage    = 5;
 constexpr uint8_t afrSetPage    = 6;
-constexpr uint8_t boostvvtPage  = 7;
-constexpr uint8_t seqFuelPage   = 8;
-constexpr uint8_t canbusPage    = 9;
-constexpr uint8_t warmupPage    = 10;
-constexpr uint8_t fuelMap2Page  = 11;
-constexpr uint8_t wmiMapPage    = 12;
-constexpr uint8_t progOutsPage  = 13;
-constexpr uint8_t ignMap2Page   = 14;
-constexpr uint8_t boostvvtPage2 = 15;
 constexpr uint8_t MIN_PAGE_NUM  = veSetPage;
-constexpr uint8_t MAX_PAGE_NUM  = (boostvvtPage2+1U);
+constexpr uint8_t MAX_PAGE_NUM  = 16U;
 
 /** @brief Fill the tune (config pages & tables) with zeroes. */
 void setTuneToEmpty(void);

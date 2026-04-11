@@ -39,6 +39,22 @@ struct module_storage_maps_t
   uint8_t count;
 };
 
+using module_page_save_hook_t = void (*)(uint16_t &writesRemaining);
+using module_page_load_hook_t = void (*)(void);
+
+struct module_page_storage_descriptor_t
+{
+  uint8_t pageNumber;
+  module_page_save_hook_t save;
+  module_page_load_hook_t load;
+};
+
+struct module_page_storage_t
+{
+  const module_page_storage_descriptor_t *descriptors;
+  uint8_t count;
+};
+
 enum class module_hook_phase_t : uint8_t
 {
   init_pre_pin_mapping,
@@ -80,6 +96,7 @@ struct module_descriptor_t
 {
   module_page_descriptors_t page_descriptors;
   module_storage_maps_t storage_maps;
+  module_page_storage_t page_storage;
   module_hooks_t hooks;
   module_table_switching_hook_t apply_table_switching;
   module_scheduler_cut_hook_t get_scheduler_cut;
@@ -89,9 +106,17 @@ module_page_maps_t getCorePageMaps();
 module_storage_maps_t getCoreStorageMaps();
 module_page_descriptors_t getCorePageDescriptors();
 
+module_page_maps_t getBoostPageMaps();
+module_storage_maps_t getBoostStorageMaps();
+module_page_descriptors_t getBoostPageDescriptors();
+
 module_page_maps_t getAdvancedEnginePageMaps();
 module_storage_maps_t getAdvancedEngineStorageMaps();
 module_page_descriptors_t getAdvancedEnginePageDescriptors();
+
+module_page_maps_t getWmiPageMaps();
+module_storage_maps_t getWmiStorageMaps();
+module_page_descriptors_t getWmiPageDescriptors();
 
 module_page_maps_t getTableSwitchingPageMaps();
 module_storage_maps_t getTableSwitchingStorageMaps();
@@ -107,3 +132,5 @@ module_page_descriptors_t getLoggingPageDescriptors();
 
 const module_descriptor_t *getRegisteredModules();
 uint8_t getRegisteredModuleCount();
+bool core_modules_save_page(uint8_t pageNumber, uint16_t &writesRemaining);
+void core_modules_load_pages(void);

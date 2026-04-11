@@ -10,7 +10,6 @@ void vvtControl(void);
 void initialiseFan(uint8_t fanPin);
 void initialiseAirCon(void);
 bool initialiseFuelPump(const config2 &page2, uint8_t pumpPin);
-void nitrousControl(void);
 void fanControl(void);
 void airConControl(void);
 void wmiControl(void);

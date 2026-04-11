@@ -1,6 +1,6 @@
 #include "storage/page_registry.h"
 
-#include "storage/pages.h"
+#include "modules/comms_extended/module_comms_extended.h"
 #include "support/preprocessor.h"
 #include "data/tune_registry.h"
 

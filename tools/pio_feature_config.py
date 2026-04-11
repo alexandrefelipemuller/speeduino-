@@ -10,6 +10,11 @@ MODULE_FLAGS = {
     "secondary_serial": "FEATURE_MODULE_SECONDARY_SERIAL",
     "comms_extended": "FEATURE_MODULE_COMMS_EXTENDED",
     "table_switching": "FEATURE_MODULE_TABLE_SWITCHING",
+    "engine_protection": "FEATURE_MODULE_ENGINE_PROTECTION",
+    "launch_flatshift": "FEATURE_MODULE_LAUNCH_FLATSHIFT",
+    "fan_aircon": "FEATURE_MODULE_FAN_AIRCON",
+    "programmable_io": "FEATURE_MODULE_PROGRAMMABLE_IO",
+    "nitrous": "FEATURE_MODULE_NITROUS",
     "advanced_engine": "FEATURE_MODULE_ADVANCED_ENGINE",
 }
 
@@ -17,9 +22,7 @@ ADVANCED_FLAGS = {
     "boost": "FEATURE_ADVANCED_BOOST",
     "vvt": "FEATURE_ADVANCED_VVT",
     "wmi": "FEATURE_ADVANCED_WMI",
-    "nitrous": "FEATURE_ADVANCED_NITROUS",
     "launch_flatshift": "FEATURE_ADVANCED_LAUNCH_FLATSHIFT",
-    "fan_aircon": "FEATURE_ADVANCED_FAN_AIRCON",
 }
 
 MODULE_SOURCES = {
@@ -48,16 +51,27 @@ MODULE_SOURCES = {
         "modules/table_switching/page_registry_tables.cpp",
         "modules/table_switching/secondaryTables.cpp",
     ],
+    "engine_protection": [
+        "modules/engine_protection/engine_protection.cpp",
+    ],
+    "launch_flatshift": [
+        "modules/launch_flatshift/module_launch_flatshift.cpp",
+        "modules/launch_flatshift/launch_flatshift.cpp",
+    ],
     "advanced_engine": [
         "modules/advanced_engine/module_advanced_engine.cpp",
         "modules/advanced_engine/page_registry_advanced.cpp",
-        "modules/advanced_engine/engineProtection.cpp",
-        "modules/advanced_engine/fan_aircon.cpp",
         "modules/advanced_engine/boost.cpp",
         "modules/advanced_engine/vvt.cpp",
         "modules/advanced_engine/wmi.cpp",
-        "modules/advanced_engine/nitrous.cpp",
-        "modules/advanced_engine/launch_flatshift.cpp",
+    ],
+    "fan_aircon": [
+        "modules/fan_aircon/module_fan_aircon.cpp",
+        "modules/fan_aircon/fan_aircon.cpp",
+    ],
+    "nitrous": [
+        "modules/nitrous/module_nitrous.cpp",
+        "modules/nitrous/nitrous.cpp",
     ],
 }
 

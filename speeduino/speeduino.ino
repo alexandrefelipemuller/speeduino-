@@ -43,7 +43,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "engine/crankMaths.h"
 #include "orchestration/init.h"
 #include "support/utilities.h"
-#include "modules/advanced_engine/engineProtection.h"
+#include "modules/engine_protection/engine_protection.h"
 #include "orchestration/schedule_calcs.h"
 #include "engine/auxiliaries.h"
 #include "engine/load_source.h"

@@ -6,10 +6,8 @@ A full copy of the license may be found in the projects root directory
 #include "engine/auxiliaries.h"
 #include "data/advanced_engine_status.h"
 #include "support/maths.h"
-#include "modules/advanced_engine/boost.h"
-#include "modules/advanced_engine/fan_aircon.h"
+#include "modules/vvt/vvt.h"
 #include "modules/advanced_engine/nitrous.h"
-#include "modules/advanced_engine/vvt.h"
 #include "src/PID_v1/PID_v1.h"
 #include "engine/decoders.h"
 #include "orchestration/timers.h"
@@ -88,9 +86,7 @@ bool initialiseFuelPump(const config2 &page2, uint8_t pumpPin)
 
 void initialiseAuxPWM(void)
 {
-  initialiseBoost(pinBoost);
   initialiseVVT(pinVVT_1, pinVVT_2);
-  initialiseNitrous(configPage10);
 }
 
 // Water methanol injection control
