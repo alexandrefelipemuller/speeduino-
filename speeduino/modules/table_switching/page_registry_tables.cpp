@@ -36,6 +36,7 @@ static constexpr uint16_t EEPROM_CONFIG8_MAP5 = 3001;
 static constexpr uint16_t EEPROM_CONFIG8_MAP6 = 3051;
 static constexpr uint16_t EEPROM_CONFIG8_MAP7 = 3101;
 static constexpr uint16_t EEPROM_CONFIG8_MAP8 = 3151;
+static constexpr uint16_t EEPROM_CONFIG14_MAP = 2710;
 static constexpr uint16_t EEPROM_CONFIG11_MAP = 2096;
 
 #if FEATURE_MODULE_TABLE_SWITCHING
@@ -78,6 +79,7 @@ static constexpr entity_storage_map_t tableSwitchingStorageMaps[] PROGMEM = {
   { &trim7Table, EEPROM_CONFIG8_MAP7 },
   { &trim8Table, EEPROM_CONFIG8_MAP8 },
   { &fuelTable2, EEPROM_CONFIG11_MAP },
+  { &ignitionTable2, EEPROM_CONFIG14_MAP },
 };
 #else
 static constexpr page_map_t tableSwitchingPageMaps[] PROGMEM = {};

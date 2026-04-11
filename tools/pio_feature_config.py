@@ -15,6 +15,7 @@ MODULE_FLAGS = {
     "fan_aircon": "FEATURE_MODULE_FAN_AIRCON",
     "programmable_io": "FEATURE_MODULE_PROGRAMMABLE_IO",
     "nitrous": "FEATURE_MODULE_NITROUS",
+    "knock": "FEATURE_MODULE_KNOCK",
     "advanced_engine": "FEATURE_MODULE_ADVANCED_ENGINE",
 }
 
@@ -50,6 +51,10 @@ MODULE_SOURCES = {
         "modules/table_switching/module_table_switching.cpp",
         "modules/table_switching/page_registry_tables.cpp",
         "modules/table_switching/secondaryTables.cpp",
+    ],
+    "knock": [
+        "modules/knock/module_knock.cpp",
+        "modules/knock/page_registry_knock.cpp",
     ],
     "engine_protection": [
         "modules/engine_protection/engine_protection.cpp",

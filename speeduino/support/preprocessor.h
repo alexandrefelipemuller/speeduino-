@@ -96,6 +96,10 @@
 #define FEATURE_MODULE_BOOST 1
 #endif
 
+#ifndef FEATURE_MODULE_KNOCK
+#define FEATURE_MODULE_KNOCK 1
+#endif
+
 #ifndef FEATURE_MODULE_VVT
 #define FEATURE_MODULE_VVT 1
 #endif

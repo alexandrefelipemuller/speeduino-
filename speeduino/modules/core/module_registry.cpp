@@ -7,6 +7,7 @@
 #include "modules/engine_protection/engine_protection.h"
 #include "modules/fan_aircon/module_fan_aircon.h"
 #include "modules/launch_flatshift/launch_flatshift.h"
+#include "modules/knock/module_knock.h"
 #include "modules/nitrous/module_nitrous.h"
 #include "modules/programmable_io/programmable_io.h"
 #include "modules/vvt/vvt.h"
@@ -91,6 +92,11 @@ static void hook_nitrous_init_post_pin_mapping(module_runtime_context_t &)
   module_nitrous_init_post_pin_mapping();
 }
 
+static void hook_knock_init_post_pin_mapping(module_runtime_context_t &)
+{
+  module_knock_init_post_pin_mapping();
+}
+
 static void hook_vvt_on_engine_stop(module_runtime_context_t &)
 {
   vvt1Off();
@@ -151,6 +157,16 @@ static void hook_launch_flatshift_tick_15hz(module_runtime_context_t &)
 static void hook_nitrous_tick_4hz(module_runtime_context_t &)
 {
   module_nitrous_tick_4hz();
+}
+
+static void hook_knock_tick_10hz(module_runtime_context_t &)
+{
+  module_knock_tick_10hz();
+}
+
+static void hook_knock_on_engine_stop(module_runtime_context_t &)
+{
+  module_knock_on_engine_stop();
 }
 
 static void hook_comms_extended_tick_10hz(module_runtime_context_t &)
@@ -226,6 +242,12 @@ static constexpr module_hook_descriptor_t nitrousHooks[] = {
   { module_hook_phase_t::tick_4hz, hook_nitrous_tick_4hz },
 };
 
+static constexpr module_hook_descriptor_t knockHooks[] = {
+  { module_hook_phase_t::init_post_pin_mapping, hook_knock_init_post_pin_mapping },
+  { module_hook_phase_t::tick_10hz, hook_knock_tick_10hz },
+  { module_hook_phase_t::on_engine_stop, hook_knock_on_engine_stop },
+};
+
 static constexpr module_hook_descriptor_t wmiHooks[] = {
   { module_hook_phase_t::tick_30hz, hook_wmi_tick_30hz },
 };
@@ -274,6 +296,7 @@ static const module_descriptor_t registeredModules[] = {
   { { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { fanAirconHooks, _countof(fanAirconHooks) }, nullptr, nullptr },
   { { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { programmableIoHooks, _countof(programmableIoHooks) }, nullptr, nullptr },
   { { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { nitrousHooks, _countof(nitrousHooks) }, nullptr, nullptr },
+  { getKnockPageDescriptors(), getKnockStorageMaps(), { nullptr, 0U }, { knockHooks, _countof(knockHooks) }, nullptr, nullptr },
   { getWmiPageDescriptors(), getWmiStorageMaps(), { wmiPageStorage, _countof(wmiPageStorage) }, { wmiHooks, _countof(wmiHooks) }, nullptr, nullptr },
   { getAdvancedEnginePageDescriptors(), getAdvancedEngineStorageMaps(), { nullptr, 0U }, { advancedEngineHooks, _countof(advancedEngineHooks) }, nullptr, nullptr },
   { getTableSwitchingPageDescriptors(), getTableSwitchingStorageMaps(), { nullptr, 0U }, { tableSwitchingHooks, _countof(tableSwitchingHooks) }, hook_apply_table_switching, nullptr },

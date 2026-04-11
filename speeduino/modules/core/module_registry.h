@@ -110,6 +110,10 @@ module_page_maps_t getBoostPageMaps();
 module_storage_maps_t getBoostStorageMaps();
 module_page_descriptors_t getBoostPageDescriptors();
 
+module_page_maps_t getKnockPageMaps();
+module_storage_maps_t getKnockStorageMaps();
+module_page_descriptors_t getKnockPageDescriptors();
+
 module_page_maps_t getAdvancedEnginePageMaps();
 module_storage_maps_t getAdvancedEngineStorageMaps();
 module_page_descriptors_t getAdvancedEnginePageDescriptors();
