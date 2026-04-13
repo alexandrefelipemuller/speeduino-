@@ -21,6 +21,7 @@
 #include "idle.h"
 #include "table2d.h"
 #include "acc_mc33810.h"
+#include "factory_defaults.h"
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 #if defined(EEPROM_RESET_PIN)
   #include EEPROM_LIB_H
@@ -98,6 +99,7 @@ void initialiseAll(void)
 {   
     currentStatus.fpPrimed = false;
     currentStatus.injPrimed = false;
+    bool factoryDefaultsSeeded = false;
 
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
@@ -145,7 +147,13 @@ void initialiseAll(void)
   
     // Unit tests should be independent of any stored configuration on the board!
 #if !defined(UNIT_TEST)
+    factoryDefaultsSeeded = seedFactoryDefaultsIfBlank();
     loadConfig();
+    loadCalibration();
+    if (factoryDefaultsSeeded)
+    {
+      storeFactoryPageCRCs();
+    }
     doUpdates(); //Check if any data items need updating (Occurs with firmware updates)
 #endif
 
@@ -173,15 +181,15 @@ void initialiseAll(void)
 
     //Repoint the 2D table structs to the config pages that were just loaded
     construct2dTables();
-    
-    //Setup the calibration tables
-    loadCalibration();   
 
     //Set the pin mappings
     if((configPage2.pinMapping == 255) || (configPage2.pinMapping == 0)) //255 = EEPROM value in a blank AVR; 0 = EEPROM value in new FRAM
     {
       //First time running on this board
-      resetConfigPages();
+      if (factoryDefaultsSeeded == false)
+      {
+        resetConfigPages();
+      }
       setPinMapping(3); //Force board to v0.4
     }
     else { setPinMapping(configPage2.pinMapping); }
