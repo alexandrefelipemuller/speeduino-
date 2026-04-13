@@ -19,7 +19,46 @@ def format_words(values):
     return ",\n".join(lines)
 
 
-def generate_thermistor_curve():
+def generate_clt_curve():
+    points = [
+        (0.0, 200.0),
+        (27.0, 2500.0),
+        (100.0, 9000.0),
+    ]
+
+    def temperature_from_resistance(resistance):
+        if resistance <= points[0][1]:
+            return points[0][0]
+        if resistance >= points[-1][1]:
+            return points[-1][0]
+
+        for (temp_a, res_a), (temp_b, res_b) in zip(points, points[1:]):
+            if res_a <= resistance <= res_b:
+                span = res_b - res_a
+                if span == 0:
+                    return temp_a
+                ratio = (resistance - res_a) / span
+                return temp_a + ((temp_b - temp_a) * ratio)
+
+        return points[-1][0]
+
+    bins = [(index * 33) for index in range(31)] + [1023]
+    values = []
+    for adc in bins:
+        if adc <= 0:
+            values.append(255)
+            continue
+        if adc >= 1023:
+            values.append(0)
+            continue
+        resistance = 2490.0 * adc / (1023.0 - adc)
+        value = int(round(temperature_from_resistance(resistance) + 40.0))
+        values.append(max(0, min(255, value)))
+
+    return bins, values
+
+
+def generate_iat_curve():
     points = [
         (-40.0 + 273.15, 100700.0),
         (30.0 + 273.15, 2238.0),
@@ -93,8 +132,8 @@ content = [
     "",
 ]
 
-clt_bins, clt_values = generate_thermistor_curve()
-iat_bins, iat_values = generate_thermistor_curve()
+clt_bins, clt_values = generate_clt_curve()
+iat_bins, iat_values = generate_iat_curve()
 o2_bins, o2_values = generate_wbo2_curve()
 
 for page_file in page_files:

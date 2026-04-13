@@ -271,10 +271,10 @@ static const uint16_t factory_clt_bins[] PROGMEM = {
 };
 
 static const uint16_t factory_clt_values[] PROGMEM = {
-  255, 165, 140, 126, 116, 109, 103, 98,
-  93, 89, 85, 82, 78, 75, 72, 69,
-  66, 63, 60, 58, 55, 52, 49, 45,
-  42, 38, 34, 29, 24, 16, 5, 0
+  255, 40, 40, 41, 42, 43, 45, 46,
+  48, 50, 52, 54, 56, 59, 62, 65,
+  69, 73, 78, 83, 90, 98, 107, 119,
+  135, 140, 140, 140, 140, 140, 140, 0
 };
 
 static const uint16_t factory_iat_bins[] PROGMEM = {

@@ -16,6 +16,7 @@ struct FactoryPageBlob
   eeprom_address_t eepromAddress;
   const uint8_t *data;
   uint16_t size;
+  uint8_t reversedTailSize;
 };
 
 static byte readFactoryByte(const uint8_t *data, uint16_t offset)
@@ -62,6 +63,29 @@ static void writeFactoryBlob(eeprom_address_t address, const uint8_t *data, uint
   for (uint16_t offset = 0U; offset < size; ++offset)
   {
     EEPROM.update(address + offset, readFactoryByte(data, offset));
+  }
+}
+
+static void writeFactoryBlobFromRam(eeprom_address_t address, const uint8_t *data, uint16_t size)
+{
+  for (uint16_t offset = 0U; offset < size; ++offset)
+  {
+    EEPROM.update(address + offset, data[offset]);
+  }
+}
+
+static void writeFactoryBlobWithReversedTail(eeprom_address_t address, const uint8_t *data, uint16_t size, uint8_t reversedTailSize)
+{
+  const uint16_t reversedStart = size - reversedTailSize;
+
+  for (uint16_t offset = 0U; offset < reversedStart; ++offset)
+  {
+    EEPROM.update(address + offset, readFactoryByte(data, offset));
+  }
+
+  for (uint8_t tailOffset = 0U; tailOffset < reversedTailSize; ++tailOffset)
+  {
+    EEPROM.update(address + reversedStart + tailOffset, readFactoryByte(data, (size - 1U) - tailOffset));
   }
 }
 
@@ -125,23 +149,41 @@ static void seedFactoryCalibrationDefaults(void)
   storeCalibrationCRC32(O2_CALIBRATION_PAGE, computeFactoryO2CalibrationCrc());
 }
 
+static void writeFactoryConfigPage2WithOverrides(void)
+{
+  config2 factoryConfigPage2;
+  uint8_t *rawConfig = reinterpret_cast<uint8_t *>(&factoryConfigPage2);
+
+  for (uint16_t offset = 0U; offset < sizeof(factoryConfigPage2); ++offset)
+  {
+    rawConfig[offset] = readFactoryByte(factory_page_1, offset);
+  }
+
+  factoryConfigPage2.reqFuel = 135U;
+  factoryConfigPage2.nCylinders = 4U;
+  factoryConfigPage2.nInjectors = 4U;
+  factoryConfigPage2.stoich = 147U;
+
+  writeFactoryBlobFromRam(EEPROM_CONFIG2_START, rawConfig, sizeof(factoryConfigPage2));
+}
+
 constexpr FactoryPageBlob FACTORY_PAGE_BLOBS[] = {
-  {0U, nullptr, 0U},
-  {EEPROM_CONFIG2_START, factory_page_1, sizeof(factory_page_1)},
-  {EEPROM_CONFIG1_MAP, factory_page_2, sizeof(factory_page_2)},
-  {EEPROM_CONFIG3_MAP, factory_page_3, sizeof(factory_page_3)},
-  {EEPROM_CONFIG4_START, factory_page_4, sizeof(factory_page_4)},
-  {EEPROM_CONFIG5_MAP, factory_page_5, sizeof(factory_page_5)},
-  {EEPROM_CONFIG6_START, factory_page_6, sizeof(factory_page_6)},
-  {EEPROM_CONFIG7_MAP1, factory_page_7, sizeof(factory_page_7)},
-  {EEPROM_CONFIG8_MAP1, factory_page_8, sizeof(factory_page_8)},
-  {EEPROM_CONFIG9_START, factory_page_9, sizeof(factory_page_9)},
-  {EEPROM_CONFIG10_START, factory_page_10, sizeof(factory_page_10)},
-  {EEPROM_CONFIG11_MAP, factory_page_11, sizeof(factory_page_11)},
-  {EEPROM_CONFIG12_MAP, factory_page_12, sizeof(factory_page_12)},
-  {EEPROM_CONFIG13_START, factory_page_13, sizeof(factory_page_13)},
-  {EEPROM_CONFIG14_MAP, factory_page_14, sizeof(factory_page_14)},
-  {EEPROM_CONFIG15_MAP, factory_page_15, sizeof(factory_page_15)},
+  {0U, nullptr, 0U, 0U},
+  {EEPROM_CONFIG2_START, factory_page_1, sizeof(factory_page_1), 0U},
+  {EEPROM_CONFIG1_MAP, factory_page_2, sizeof(factory_page_2), 16U},
+  {EEPROM_CONFIG3_MAP, factory_page_3, sizeof(factory_page_3), 16U},
+  {EEPROM_CONFIG4_START, factory_page_4, sizeof(factory_page_4), 0U},
+  {EEPROM_CONFIG5_MAP, factory_page_5, sizeof(factory_page_5), 16U},
+  {EEPROM_CONFIG6_START, factory_page_6, sizeof(factory_page_6), 0U},
+  {EEPROM_CONFIG7_MAP1, factory_page_7, sizeof(factory_page_7), 0U},
+  {EEPROM_CONFIG8_MAP1, factory_page_8, sizeof(factory_page_8), 0U},
+  {EEPROM_CONFIG9_START, factory_page_9, sizeof(factory_page_9), 0U},
+  {EEPROM_CONFIG10_START, factory_page_10, sizeof(factory_page_10), 0U},
+  {EEPROM_CONFIG11_MAP, factory_page_11, sizeof(factory_page_11), 16U},
+  {EEPROM_CONFIG12_MAP, factory_page_12, sizeof(factory_page_12), 0U},
+  {EEPROM_CONFIG13_START, factory_page_13, sizeof(factory_page_13), 0U},
+  {EEPROM_CONFIG14_MAP, factory_page_14, sizeof(factory_page_14), 16U},
+  {EEPROM_CONFIG15_MAP, factory_page_15, sizeof(factory_page_15), 0U},
 };
 
 static_assert((sizeof(FACTORY_PAGE_BLOBS) / sizeof(FACTORY_PAGE_BLOBS[0])) == 16U, "Factory page mapping must cover all logical pages");
@@ -177,7 +219,18 @@ bool seedFactoryDefaultsIfBlank(void)
   for (uint8_t page = 1U; page < getPageCount(); ++page)
   {
     const FactoryPageBlob &blob = FACTORY_PAGE_BLOBS[page];
-    writeFactoryBlob(blob.eepromAddress, blob.data, blob.size);
+    if (page == veSetPage)
+    {
+      writeFactoryConfigPage2WithOverrides();
+    }
+    else if (blob.reversedTailSize > 0U)
+    {
+      writeFactoryBlobWithReversedTail(blob.eepromAddress, blob.data, blob.size, blob.reversedTailSize);
+    }
+    else
+    {
+      writeFactoryBlob(blob.eepromAddress, blob.data, blob.size);
+    }
   }
 
   seedFactoryCalibrationDefaults();
