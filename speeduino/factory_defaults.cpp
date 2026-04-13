@@ -11,6 +11,13 @@ namespace {
 
 constexpr uint8_t FACTORY_DATA_VERSION = 24U;
 
+struct FactoryPageBlob
+{
+  eeprom_address_t eepromAddress;
+  const uint8_t *data;
+  uint16_t size;
+};
+
 static byte readFactoryByte(const uint8_t *data, uint16_t offset)
 {
 #if defined(CORE_AVR)
@@ -118,6 +125,40 @@ static void seedFactoryCalibrationDefaults(void)
   storeCalibrationCRC32(O2_CALIBRATION_PAGE, computeFactoryO2CalibrationCrc());
 }
 
+constexpr FactoryPageBlob FACTORY_PAGE_BLOBS[] = {
+  {0U, nullptr, 0U},
+  {EEPROM_CONFIG2_START, factory_page_1, sizeof(factory_page_1)},
+  {EEPROM_CONFIG1_MAP, factory_page_2, sizeof(factory_page_2)},
+  {EEPROM_CONFIG3_MAP, factory_page_3, sizeof(factory_page_3)},
+  {EEPROM_CONFIG4_START, factory_page_4, sizeof(factory_page_4)},
+  {EEPROM_CONFIG5_MAP, factory_page_5, sizeof(factory_page_5)},
+  {EEPROM_CONFIG6_START, factory_page_6, sizeof(factory_page_6)},
+  {EEPROM_CONFIG7_MAP1, factory_page_7, sizeof(factory_page_7)},
+  {EEPROM_CONFIG8_MAP1, factory_page_8, sizeof(factory_page_8)},
+  {EEPROM_CONFIG9_START, factory_page_9, sizeof(factory_page_9)},
+  {EEPROM_CONFIG10_START, factory_page_10, sizeof(factory_page_10)},
+  {EEPROM_CONFIG11_MAP, factory_page_11, sizeof(factory_page_11)},
+  {EEPROM_CONFIG12_MAP, factory_page_12, sizeof(factory_page_12)},
+  {EEPROM_CONFIG13_START, factory_page_13, sizeof(factory_page_13)},
+  {EEPROM_CONFIG14_MAP, factory_page_14, sizeof(factory_page_14)},
+  {EEPROM_CONFIG15_MAP, factory_page_15, sizeof(factory_page_15)},
+};
+
+static_assert((sizeof(FACTORY_PAGE_BLOBS) / sizeof(FACTORY_PAGE_BLOBS[0])) == 16U, "Factory page mapping must cover all logical pages");
+
+static bool validateFactoryPageBlobSizes(void)
+{
+  for (uint8_t page = 1U; page < getPageCount(); ++page)
+  {
+    if (FACTORY_PAGE_BLOBS[page].size != getPageSize(page))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 } // namespace
 
 bool seedFactoryDefaultsIfBlank(void)
@@ -128,21 +169,16 @@ bool seedFactoryDefaultsIfBlank(void)
     return false;
   }
 
-  writeFactoryBlob(EEPROM_CONFIG1_MAP, factory_page_1, sizeof(factory_page_1));
-  writeFactoryBlob(EEPROM_CONFIG2_START, factory_page_2, sizeof(factory_page_2));
-  writeFactoryBlob(EEPROM_CONFIG3_MAP, factory_page_3, sizeof(factory_page_3));
-  writeFactoryBlob(EEPROM_CONFIG4_START, factory_page_4, sizeof(factory_page_4));
-  writeFactoryBlob(EEPROM_CONFIG5_MAP, factory_page_5, sizeof(factory_page_5));
-  writeFactoryBlob(EEPROM_CONFIG6_START, factory_page_6, sizeof(factory_page_6));
-  writeFactoryBlob(EEPROM_CONFIG7_MAP1, factory_page_7, sizeof(factory_page_7));
-  writeFactoryBlob(EEPROM_CONFIG8_MAP1, factory_page_8, sizeof(factory_page_8));
-  writeFactoryBlob(EEPROM_CONFIG9_START, factory_page_9, sizeof(factory_page_9));
-  writeFactoryBlob(EEPROM_CONFIG10_START, factory_page_10, sizeof(factory_page_10));
-  writeFactoryBlob(EEPROM_CONFIG11_MAP, factory_page_11, sizeof(factory_page_11));
-  writeFactoryBlob(EEPROM_CONFIG12_MAP, factory_page_12, sizeof(factory_page_12));
-  writeFactoryBlob(EEPROM_CONFIG13_START, factory_page_13, sizeof(factory_page_13));
-  writeFactoryBlob(EEPROM_CONFIG14_MAP, factory_page_14, sizeof(factory_page_14));
-  writeFactoryBlob(EEPROM_CONFIG15_MAP, factory_page_15, sizeof(factory_page_15));
+  if (!validateFactoryPageBlobSizes())
+  {
+    return false;
+  }
+
+  for (uint8_t page = 1U; page < getPageCount(); ++page)
+  {
+    const FactoryPageBlob &blob = FACTORY_PAGE_BLOBS[page];
+    writeFactoryBlob(blob.eepromAddress, blob.data, blob.size);
+  }
 
   seedFactoryCalibrationDefaults();
 
