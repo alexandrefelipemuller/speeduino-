@@ -41,6 +41,7 @@
 #define DECODER_ROVERMEMS		      25
 #define DECODER_SUZUKI_K6A        26
 #define DECODER_HONDA_J32         27
+#define DECODER_VX1100            28
 
 #define BIT_DECODER_2ND_DERIV           0 //The use of the 2nd derivative calculation is limited to certain decoders. This is set to either true or false in each decoders setup routine
 #define BIT_DECODER_IS_SEQUENTIAL       1 //Whether or not the decoder supports sequential operation
@@ -269,6 +270,12 @@ void triggerSec_SuzukiK6A(void);
 uint16_t getRPM_SuzukiK6A(void);
 int getCrankAngle_SuzukiK6A(void);
 void triggerSetEndTeeth_SuzukiK6A(void);
+
+void triggerSetup_VX1100(void);
+void triggerPri_VX1100(void);
+uint16_t getRPM_VX1100(void);
+int getCrankAngle_VX1100(void);
+void triggerSetEndTeeth_VX1100(void);
 
 /**
  * @brief This function is called when the engine is stopped, or when the engine is started. It resets the decoder state and the tooth tracking variables

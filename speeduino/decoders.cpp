@@ -58,6 +58,7 @@ void (*triggerSetEndTeeth)(void) = triggerSetEndTeeth_missingTooth; ///Pointer t
 
 static void triggerRoverMEMSCommon(void);
 static inline void triggerRecordVVT1Angle (void);
+static void triggerSetup_VX1100Common(void);
 
 volatile unsigned long curTime;
 volatile unsigned long curGap;
@@ -67,6 +68,26 @@ volatile unsigned long curTime3;
 volatile unsigned long curGap3;
 volatile unsigned long lastGap;
 volatile unsigned long targetGap;
+
+static constexpr uint16_t VX1100_PRIMARY_TEETH = 5U;
+static constexpr uint16_t VX1100_DEGREES_PER_SECTOR = 90U;
+static constexpr uint16_t VX1100_SHORT_GAP_MIN_DEG = 5U;
+static constexpr uint16_t VX1100_SHORT_GAP_SYNC_RATIO_NUM = 2U;
+static constexpr uint16_t VX1100_SHORT_GAP_SYNC_RATIO_DEN = 5U;
+static constexpr uint16_t VX1100_SHORT_GAP_RECOVERY_RATIO_NUM = 3U;
+static constexpr uint16_t VX1100_SHORT_GAP_RECOVERY_RATIO_DEN = 4U;
+static constexpr uint16_t VX1100_SHORT_GAP_DEFAULT_DEG = 12U;
+static constexpr int16_t VX1100_PMS_OFFSET_DEG = 180;
+static constexpr uint8_t VX1100_TOOTH_1 = 1U;
+static constexpr uint8_t VX1100_TOOTH_2 = 2U;
+static constexpr uint8_t VX1100_TOOTH_3 = 3U;
+static constexpr uint8_t VX1100_TOOTH_4 = 4U;
+static constexpr uint8_t VX1100_TOOTH_5 = 5U;
+
+static volatile uint16_t vx1100_short_gap_angle = VX1100_SHORT_GAP_DEFAULT_DEG;
+static volatile unsigned long vx1100_last_normal_gap = 0;
+static volatile bool vx1100_seen_sync_marker = false;
+static volatile bool vx1100_revolution_one = false;
 
 TESTABLE_STATIC unsigned long MAX_STALL_TIME = MICROS_PER_SEC/2U; //The maximum time (in uS) that the system will continue to function before the engine is considered stalled/stopped. This is unique to each decoder, depending on the number of teeth etc. 500000 (half a second) is used as the default value, most decoders will be much less.
 volatile uint16_t toothCurrentCount = 0; //The current number of teeth (Once sync has been achieved, this can never actually be 0
@@ -5963,5 +5984,220 @@ void triggerSetEndTeeth_SuzukiK6A(void)
   ignition3EndTooth = calcEndTeeth_SuzukiK6A(ignition3EndAngle);
 }
 
-/** @} */
+/** Yamaha VX1100 4+1 crank wheel.
+ *
+ * The wheel has four main teeth spaced at 90 crank degrees and one extra tooth
+ * that appears shortly after tooth 4. The short interval is detected by ratio
+ * against the previous normal 90 degree gap, not by any fixed angle.
+ *
+ * Internal convention:
+ * - tooth #1 is the tooth immediately after the long sector that follows the short tooth
+ * - the extra tooth is tooth #5 and is the sync marker
+ * - the factory mechanical reference places the PMS 1/4 relationship about 180 degrees from the physical tooth-1 reference
+ *
+ * This decoder is conservative and safe for wasted spark / batch fuel use. It does not
+ * attempt to infer a cam phase, so it should not be treated as a true sequential decoder.
+ * @defgroup dec_vx1100 Yamaha VX1100
+ * @{
+ */
+void triggerSetup_VX1100(void)
+{
+  triggerSetup_VX1100Common();
+}
 
+static void triggerSetup_VX1100Common(void)
+{
+  configPage4.TrigSpeed = CRANK_SPEED;
+  configPage4.triggerTeeth = VX1100_PRIMARY_TEETH;
+  configPage4.triggerMissingTeeth = 0U;
+  triggerActualTeeth = VX1100_PRIMARY_TEETH;
+  triggerToothAngle = 0U;
+  triggerFilterTime = (MICROS_PER_DEG_1_RPM / 50U) * VX1100_SHORT_GAP_MIN_DEG;
+  MAX_STALL_TIME = (MICROS_PER_DEG_1_RPM / 50U) * VX1100_DEGREES_PER_SECTOR;
+
+  BIT_CLEAR(decoderState, BIT_DECODER_2ND_DERIV);
+  BIT_CLEAR(decoderState, BIT_DECODER_IS_SEQUENTIAL);
+  BIT_CLEAR(decoderState, BIT_DECODER_HAS_SECONDARY);
+  BIT_CLEAR(decoderState, BIT_DECODER_TOOTH_ANG_CORRECT);
+
+  toothCurrentCount = 0U;
+  toothLastToothTime = 0U;
+  toothLastMinusOneToothTime = 0U;
+  toothOneTime = 0U;
+  toothOneMinusOneTime = 0U;
+  vx1100_short_gap_angle = VX1100_SHORT_GAP_DEFAULT_DEG;
+  vx1100_last_normal_gap = 0U;
+  vx1100_seen_sync_marker = false;
+  vx1100_revolution_one = false;
+  currentStatus.hasSync = false;
+  currentStatus.startRevolutions = 0U;
+}
+
+void triggerPri_VX1100(void)
+{
+  curTime = micros();
+  curGap = curTime - toothLastToothTime;
+
+  if (curGap < triggerFilterTime)
+  {
+    return;
+  }
+
+  BIT_SET(decoderState, BIT_DECODER_VALID_TRIGGER);
+  toothLastMinusOneToothTime = toothLastToothTime;
+  toothLastToothTime = curTime;
+
+  if (vx1100_last_normal_gap == 0U)
+  {
+    vx1100_last_normal_gap = curGap;
+  }
+
+  const bool saw_short_gap = (vx1100_last_normal_gap > 0U) &&
+    ((curGap * VX1100_SHORT_GAP_SYNC_RATIO_DEN) < (vx1100_last_normal_gap * VX1100_SHORT_GAP_SYNC_RATIO_NUM));
+  const bool saw_recovery_gap = vx1100_seen_sync_marker &&
+    ((curGap * VX1100_SHORT_GAP_RECOVERY_RATIO_DEN) > (vx1100_last_normal_gap * VX1100_SHORT_GAP_RECOVERY_RATIO_NUM));
+
+  if (saw_short_gap)
+  {
+    vx1100_short_gap_angle = (uint16_t)clamp((uint32_t)((VX1100_DEGREES_PER_SECTOR * curGap) / vx1100_last_normal_gap), (uint32_t)VX1100_SHORT_GAP_MIN_DEG, (uint32_t)(VX1100_DEGREES_PER_SECTOR - VX1100_SHORT_GAP_MIN_DEG));
+    toothCurrentCount = VX1100_TOOTH_5;
+    vx1100_seen_sync_marker = true;
+    currentStatus.hasSync = true;
+  }
+  else if (vx1100_seen_sync_marker && saw_recovery_gap && (toothCurrentCount == VX1100_TOOTH_5))
+  {
+    toothCurrentCount = VX1100_TOOTH_1;
+    vx1100_revolution_one = !vx1100_revolution_one;
+    currentStatus.startRevolutions++;
+    if (toothOneTime != 0U)
+    {
+      toothOneMinusOneTime = toothOneTime;
+    }
+    toothOneTime = curTime;
+  }
+  else
+  {
+    if (toothCurrentCount == 0U)
+    {
+      toothCurrentCount = VX1100_TOOTH_1;
+    }
+    else if (toothCurrentCount < VX1100_TOOTH_5)
+    {
+      toothCurrentCount++;
+    }
+    else
+    {
+      toothCurrentCount = VX1100_TOOTH_1;
+    }
+
+    vx1100_last_normal_gap = curGap;
+  }
+
+  if (currentStatus.hasSync == false)
+  {
+    if (toothCurrentCount == VX1100_TOOTH_5)
+    {
+      currentStatus.hasSync = true;
+    }
+  }
+}
+
+uint16_t getRPM_VX1100(void)
+{
+  uint16_t tempRPM = 0U;
+  unsigned long tempToothLastToothTime;
+  unsigned long tempToothLastMinusOneToothTime;
+  uint16_t tempToothCount;
+  noInterrupts();
+  tempToothCount = toothCurrentCount;
+  tempToothLastToothTime = toothLastToothTime;
+  tempToothLastMinusOneToothTime = toothLastMinusOneToothTime;
+  interrupts();
+
+  if ((tempToothLastToothTime == 0U) || (tempToothLastMinusOneToothTime == 0U))
+  {
+    return 0U;
+  }
+
+  const unsigned long tooth_gap = tempToothLastToothTime - tempToothLastMinusOneToothTime;
+  if (tooth_gap == 0U)
+  {
+    return 0U;
+  }
+
+  if (tempToothCount == VX1100_TOOTH_5)
+  {
+    tempRPM = (uint16_t)(((unsigned long)vx1100_short_gap_angle * (MICROS_PER_MIN / 10U)) / tooth_gap);
+  }
+  else
+  {
+    tempRPM = (uint16_t)(((unsigned long)VX1100_DEGREES_PER_SECTOR * (MICROS_PER_MIN / 10U)) / tooth_gap);
+  }
+
+  return tempRPM;
+}
+
+int getCrankAngle_VX1100(void)
+{
+  unsigned long tempToothLastToothTime;
+  uint16_t tempToothCount;
+  bool tempHasSync;
+  bool tempRevolutionOne;
+  uint16_t tempShortGapAngle;
+
+  noInterrupts();
+  tempToothCount = toothCurrentCount;
+  tempToothLastToothTime = toothLastToothTime;
+  tempHasSync = currentStatus.hasSync;
+  tempRevolutionOne = vx1100_revolution_one;
+  tempShortGapAngle = vx1100_short_gap_angle;
+  lastCrankAngleCalc = micros();
+  interrupts();
+
+  int crankAngle;
+  switch (tempToothCount)
+  {
+    case VX1100_TOOTH_1:
+      crankAngle = 0;
+      break;
+    case VX1100_TOOTH_2:
+      crankAngle = VX1100_DEGREES_PER_SECTOR;
+      break;
+    case VX1100_TOOTH_3:
+      crankAngle = 2 * VX1100_DEGREES_PER_SECTOR;
+      break;
+    case VX1100_TOOTH_4:
+      crankAngle = 3 * VX1100_DEGREES_PER_SECTOR;
+      break;
+    case VX1100_TOOTH_5:
+      crankAngle = (3 * VX1100_DEGREES_PER_SECTOR) + tempShortGapAngle;
+      break;
+    default:
+      crankAngle = 0;
+      break;
+  }
+
+  crankAngle += VX1100_PMS_OFFSET_DEG + configPage4.triggerAngle;
+  if (tempHasSync && (configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && tempRevolutionOne)
+  {
+    crankAngle += 360;
+  }
+
+  elapsedTime = lastCrankAngleCalc - tempToothLastToothTime;
+  crankAngle += (int)timeToAngleDegPerMicroSec(elapsedTime);
+
+  if (crankAngle >= 720) { crankAngle -= 720; }
+  if (crankAngle < 0) { crankAngle += 720; }
+
+  return crankAngle;
+}
+
+void triggerSetEndTeeth_VX1100(void)
+{
+  ignition1EndTooth = 1U;
+  ignition2EndTooth = 2U;
+  ignition3EndTooth = 3U;
+  ignition4EndTooth = 4U;
+}
+
+/** @} */

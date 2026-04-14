@@ -3605,6 +3605,19 @@ void initialiseTriggers(void)
       attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
       break;
 
+    case DECODER_VX1100:
+      triggerSetup_VX1100();
+      triggerHandler = triggerPri_VX1100;
+      getRPM = getRPM_VX1100;
+      getCrankAngle = getCrankAngle_VX1100;
+      triggerSetEndTeeth = triggerSetEndTeeth_VX1100;
+
+      if(configPage4.TrigEdge == 0) { primaryTriggerEdge = RISING; }
+      else { primaryTriggerEdge = FALLING; }
+
+      attachInterrupt(triggerInterrupt, triggerHandler, primaryTriggerEdge);
+      break;
+
 
     default:
       triggerHandler = triggerPri_missingTooth;
