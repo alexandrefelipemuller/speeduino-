@@ -3,7 +3,6 @@
 #include "data/can_aux_status.h"
 #include "data/logger_status.h"
 #include "logger_private.h"
-#include "data/sd_logging_status.h"
 #include "support/maths.h"
 #include "support/utilities.h"
 #include "support/preprocessor.h"
@@ -23,22 +22,6 @@ byte buildEngineStatus(const statuses &current)
     current.isDeceleratingTPS,
   };
   return setStatusBits(0U, bits);
-}
-
-byte buildSdCardStatus(const statuses &current)
-{
-  UNUSED(current);
-  bool bits[] = {
-    currentSdLoggingStatus.card_present,
-    currentSdLoggingStatus.card_type == 1U,
-    currentSdLoggingStatus.card_ready,
-    currentSdLoggingStatus.card_logging,
-    currentSdLoggingStatus.card_error,
-    false, // Unused
-    currentSdLoggingStatus.card_fs == 1U,
-    currentSdLoggingStatus.card_unused,
-  };
-  return setStatusBits(0, bits);
 }
 
 /** 

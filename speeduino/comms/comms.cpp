@@ -13,19 +13,20 @@ A full copy of the license may be found in the projects root directory
 #include "support/maths.h"
 #include "support/utilities.h"
 #include "engine/decoders.h"
-#include "modules/logging/TS_CommandButtonHandler.h"
+#include "modules/sd_logging/TS_CommandButtonHandler.h"
 #include "storage/pages.h"
 #include "storage/page_crc.h"
 #include "modules/logging/logger.h"
 #include "modules/logging/logger_controls.h"
+#include "modules/sd_logging/module_sd_logging.h"
 #include "comms/comms_legacy.h"
 #include <FastCRC.h>
 #ifdef RTC_ENABLED
-  #include "modules/logging/rtc_common.h"
+  #include "modules/sd_logging/rtc_common.h"
   #include "comms/comms_sd.h"
 #endif
 #ifdef SD_LOGGING
-  #include "modules/logging/SD_logger.h"
+  #include "modules/sd_logging/SD_logger.h"
 #endif
 #include "support/units.h"
 #include "engine/sensors.h"

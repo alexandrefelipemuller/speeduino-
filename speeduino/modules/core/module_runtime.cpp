@@ -3,8 +3,19 @@
 #include "module_registry.h"
 
 namespace {
+static bool registry_is_valid(void)
+{
+  static const bool valid = core_modules_validate_registry();
+  return valid;
+}
+
 static void run_phase(module_hook_phase_t phase, module_runtime_context_t &context)
 {
+  if (!registry_is_valid())
+  {
+    return;
+  }
+
   const module_descriptor_t *modules = getRegisteredModules();
   const uint8_t moduleCount = getRegisteredModuleCount();
 
@@ -88,6 +99,11 @@ void core_modules_tick_1hz(const statuses &current)
 
 void core_modules_apply_table_switching(statuses &current)
 {
+  if (!registry_is_valid())
+  {
+    return;
+  }
+
   const module_descriptor_t *modules = getRegisteredModules();
   const uint8_t moduleCount = getRegisteredModuleCount();
 
@@ -102,6 +118,11 @@ void core_modules_apply_table_switching(statuses &current)
 
 statuses::scheduler_cut_t core_modules_get_scheduler_cut(statuses &current)
 {
+  if (!registry_is_valid())
+  {
+    return current.schedulerCutState;
+  }
+
   const module_descriptor_t *modules = getRegisteredModules();
   const uint8_t moduleCount = getRegisteredModuleCount();
   statuses::scheduler_cut_t result = current.schedulerCutState;
