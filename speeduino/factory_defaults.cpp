@@ -89,6 +89,29 @@ static void writeFactoryBlobWithReversedTail(eeprom_address_t address, const uin
   }
 }
 
+static void writeFactoryPage7Blob(eeprom_address_t address, const uint8_t *data)
+{
+  constexpr uint16_t kTableBlockSize = 80U;
+  constexpr uint16_t kYAxisOffset = 72U;
+  constexpr uint8_t kAxisSize = 8U;
+  constexpr uint8_t kTableCount = 3U;
+
+  for (uint8_t tableIndex = 0U; tableIndex < kTableCount; ++tableIndex)
+  {
+    const uint16_t tableBase = static_cast<uint16_t>(tableIndex) * kTableBlockSize;
+
+    for (uint16_t offset = 0U; offset < kYAxisOffset; ++offset)
+    {
+      EEPROM.update(address + tableBase + offset, readFactoryByte(data, tableBase + offset));
+    }
+
+    for (uint8_t axisOffset = 0U; axisOffset < kAxisSize; ++axisOffset)
+    {
+      EEPROM.update(address + tableBase + kYAxisOffset + axisOffset, readFactoryByte(data, tableBase + kYAxisOffset + (kAxisSize - 1U) - axisOffset));
+    }
+  }
+}
+
 static uint32_t computeCalibrationCrc(const void *data, uint16_t size)
 {
   FastCRC32 crcCalc;
@@ -159,7 +182,7 @@ static void writeFactoryConfigPage2WithOverrides(void)
     rawConfig[offset] = readFactoryByte(factory_page_1, offset);
   }
 
-  factoryConfigPage2.reqFuel = 135U;
+  factoryConfigPage2.reqFuel = 100U;
   factoryConfigPage2.nCylinders = 4U;
   factoryConfigPage2.nInjectors = 4U;
   factoryConfigPage2.stoich = 147U;
@@ -222,6 +245,10 @@ bool seedFactoryDefaultsIfBlank(void)
     if (page == veSetPage)
     {
       writeFactoryConfigPage2WithOverrides();
+    }
+    else if (page == boostvvtPage)
+    {
+      writeFactoryPage7Blob(blob.eepromAddress, blob.data);
     }
     else if (blob.reversedTailSize > 0U)
     {

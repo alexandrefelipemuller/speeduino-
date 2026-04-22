@@ -115,7 +115,7 @@ def generate_wbo2_curve():
 
 
 project_dir = Path(env["PROJECT_DIR"])
-source_dir = project_dir / "speeduino_kiasoul"
+source_dir = project_dir / "kia_final"
 output_dir = project_dir / "speeduino" / "generated"
 output_file = output_dir / "factory_defaults_data.h"
 
