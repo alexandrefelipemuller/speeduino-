@@ -89,25 +89,31 @@ static void writeFactoryBlobWithReversedTail(eeprom_address_t address, const uin
   }
 }
 
-static void writeFactoryPage7Blob(eeprom_address_t address, const uint8_t *data)
+static void writeFactoryPage7Blob(const uint8_t *data)
 {
   constexpr uint16_t kTableBlockSize = 80U;
   constexpr uint16_t kYAxisOffset = 72U;
   constexpr uint8_t kAxisSize = 8U;
   constexpr uint8_t kTableCount = 3U;
+  constexpr eeprom_address_t kTableAddresses[kTableCount] = {
+    EEPROM_CONFIG7_MAP1,
+    EEPROM_CONFIG7_MAP2,
+    EEPROM_CONFIG7_MAP3,
+  };
 
   for (uint8_t tableIndex = 0U; tableIndex < kTableCount; ++tableIndex)
   {
     const uint16_t tableBase = static_cast<uint16_t>(tableIndex) * kTableBlockSize;
+    const eeprom_address_t tableAddress = kTableAddresses[tableIndex];
 
     for (uint16_t offset = 0U; offset < kYAxisOffset; ++offset)
     {
-      EEPROM.update(address + tableBase + offset, readFactoryByte(data, tableBase + offset));
+      EEPROM.update(tableAddress + offset, readFactoryByte(data, tableBase + offset));
     }
 
     for (uint8_t axisOffset = 0U; axisOffset < kAxisSize; ++axisOffset)
     {
-      EEPROM.update(address + tableBase + kYAxisOffset + axisOffset, readFactoryByte(data, tableBase + kYAxisOffset + (kAxisSize - 1U) - axisOffset));
+      EEPROM.update(tableAddress + kYAxisOffset + axisOffset, readFactoryByte(data, tableBase + kYAxisOffset + (kAxisSize - 1U) - axisOffset));
     }
   }
 }
@@ -248,7 +254,7 @@ bool seedFactoryDefaultsIfBlank(void)
     }
     else if (page == boostvvtPage)
     {
-      writeFactoryPage7Blob(blob.eepromAddress, blob.data);
+      writeFactoryPage7Blob(blob.data);
     }
     else if (blob.reversedTailSize > 0U)
     {

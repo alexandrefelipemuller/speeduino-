@@ -21,26 +21,32 @@ def format_words(values):
 
 def generate_clt_curve():
     points = [
-        (0.0, 200.0),
-        (27.0, 2500.0),
-        (100.0, 9000.0),
+        (0.0, 4900.0),
+        (30.0, 1600.0),
+        (100.0, 260.0),
     ]
+    pullup_resistance = 2200.0
 
     def temperature_from_resistance(resistance):
-        if resistance <= points[0][1]:
-            return points[0][0]
-        if resistance >= points[-1][1]:
-            return points[-1][0]
+        min_temp_point = min(points, key=lambda point: point[0])
+        max_temp_point = max(points, key=lambda point: point[0])
+        max_res_point = max(points, key=lambda point: point[1])
+        min_res_point = min(points, key=lambda point: point[1])
+
+        if resistance >= max_res_point[1]:
+            return min_temp_point[0]
+        if resistance <= min_res_point[1]:
+            return max_temp_point[0]
 
         for (temp_a, res_a), (temp_b, res_b) in zip(points, points[1:]):
-            if res_a <= resistance <= res_b:
+            if min(res_a, res_b) <= resistance <= max(res_a, res_b):
                 span = res_b - res_a
                 if span == 0:
                     return temp_a
                 ratio = (resistance - res_a) / span
                 return temp_a + ((temp_b - temp_a) * ratio)
 
-        return points[-1][0]
+        return max_temp_point[0]
 
     bins = [(index * 33) for index in range(31)] + [1023]
     values = []
@@ -51,7 +57,7 @@ def generate_clt_curve():
         if adc >= 1023:
             values.append(0)
             continue
-        resistance = 2490.0 * adc / (1023.0 - adc)
+        resistance = pullup_resistance * adc / (1023.0 - adc)
         value = int(round(temperature_from_resistance(resistance) + 40.0))
         values.append(max(0, min(255, value)))
 
@@ -60,33 +66,32 @@ def generate_clt_curve():
 
 def generate_iat_curve():
     points = [
-        (-40.0 + 273.15, 100700.0),
-        (30.0 + 273.15, 2238.0),
-        (99.0 + 273.15, 177.0),
+        (0.0, 4900.0),
+        (30.0, 1600.0),
+        (100.0, 260.0),
     ]
-    logs = [__import__("math").log(resistance) for temperature, resistance in points]
-    inv_t = [1.0 / temperature for temperature, resistance in points]
-    matrix = [[1.0, logs[index], logs[index] ** 3] for index in range(3)]
-    augmented = [row[:] + [inv_t[index]] for index, row in enumerate(matrix)]
-    for pivot_index in range(3):
-        pivot = max(range(pivot_index, 3), key=lambda row_index: abs(augmented[row_index][pivot_index]))
-        augmented[pivot_index], augmented[pivot] = augmented[pivot], augmented[pivot_index]
-        divisor = augmented[pivot_index][pivot_index]
-        for column in range(pivot_index, 4):
-            augmented[pivot_index][column] /= divisor
-        for row_index in range(3):
-            if row_index == pivot_index:
-                continue
-            factor = augmented[row_index][pivot_index]
-            for column in range(pivot_index, 4):
-                augmented[row_index][column] -= factor * augmented[pivot_index][column]
-
-    a_coef, b_coef, c_coef = [augmented[index][3] for index in range(3)]
+    pullup_resistance = 2200.0
 
     def temperature_from_resistance(resistance):
-        log_resistance = __import__("math").log(resistance)
-        inv_temperature = a_coef + b_coef * log_resistance + c_coef * (log_resistance ** 3)
-        return (1.0 / inv_temperature) - 273.15
+        min_temp_point = min(points, key=lambda point: point[0])
+        max_temp_point = max(points, key=lambda point: point[0])
+        max_res_point = max(points, key=lambda point: point[1])
+        min_res_point = min(points, key=lambda point: point[1])
+
+        if resistance >= max_res_point[1]:
+            return min_temp_point[0]
+        if resistance <= min_res_point[1]:
+            return max_temp_point[0]
+
+        for (temp_a, res_a), (temp_b, res_b) in zip(points, points[1:]):
+            if min(res_a, res_b) <= resistance <= max(res_a, res_b):
+                span = res_b - res_a
+                if span == 0:
+                    return temp_a
+                ratio = (resistance - res_a) / span
+                return temp_a + ((temp_b - temp_a) * ratio)
+
+        return max_temp_point[0]
 
     bins = [(index * 33) for index in range(31)] + [1023]
     values = []
@@ -97,7 +102,7 @@ def generate_iat_curve():
         if adc >= 1023:
             values.append(0)
             continue
-        resistance = 2490.0 * adc / (1023.0 - adc)
+        resistance = pullup_resistance * adc / (1023.0 - adc)
         value = int(round(temperature_from_resistance(resistance) + 40.0))
         values.append(max(0, min(255, value)))
 
