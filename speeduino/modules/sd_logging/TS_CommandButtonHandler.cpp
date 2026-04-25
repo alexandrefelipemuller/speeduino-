@@ -19,6 +19,7 @@
 #include "storage/pages.h"
 #include "engine/scheduledIO_ign.h"
 #include "engine/scheduledIO_inj.h"
+#include "engine/auxiliaries.h"
 #ifdef USE_MC33810
   #include "engine/acc_mc33810.h"
 #endif
@@ -31,6 +32,7 @@ extern volatile byte HWTest_IGN_Pulsed;
 static bool commandRequiresStoppedEngine(uint16_t buttonCommand)
 {
   return ((buttonCommand >= TS_CMD_INJ1_ON) && (buttonCommand <= TS_CMD_IGN8_PULSED)) 
+      || (buttonCommand == TS_CMD_FUELPUMP_ON)
       || ((buttonCommand == TS_CMD_TEST_ENBL) || (buttonCommand == TS_CMD_TEST_DSBL));
 }
 
@@ -84,6 +86,8 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       #if INJ_CHANNELS >= 8
       closeInjector8();
       #endif
+
+      fuelPumpOff();
 
       HWTest_INJ_Pulsed = 0;
       HWTest_IGN_Pulsed = 0;
@@ -299,6 +303,14 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
     case TS_CMD_IGN8_PULSED: // cmd group is for spark8 50%dc actions
       if( currentStatus.isTestModeActive ) { BIT_SET(HWTest_IGN_Pulsed, IGN8_CMD_BIT); }
       if(!BIT_CHECK(HWTest_IGN_Pulsed, IGN8_CMD_BIT)) { endCoil8Charge(); } //Ensure this output is turned off (Otherwise the output may stay on permanently)
+      break;
+
+    case TS_CMD_FUELPUMP_ON: // cmd group is for fuel pump on actions
+      if( currentStatus.isTestModeActive ) { fuelPumpOn(); }
+      break;
+
+    case TS_CMD_FUELPUMP_OFF: // cmd group is for fuel pump off actions
+      if( currentStatus.isTestModeActive ) { fuelPumpOff(); }
       break;
 
     //VSS Calibration routines
