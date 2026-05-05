@@ -75,7 +75,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       closeInjector8();
       #endif
 
-      fuelPumpOff();
+      FUEL_PUMP_OFF();
 
       HWTest_INJ_Pulsed = 0;
       HWTest_IGN_Pulsed = 0;
@@ -295,11 +295,11 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_FUELPUMP_ON: // cmd group is for fuel pump on actions
-      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { fuelPumpOn(); }
+      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { FUEL_PUMP_ON(); }
       break;
 
     case TS_CMD_FUELPUMP_OFF: // cmd group is for fuel pump off actions
-      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { fuelPumpOff(); }
+      if( BIT_CHECK(currentStatus.testOutputs, 1) ) { FUEL_PUMP_OFF(); }
       break;
 
     //VSS Calibration routines
