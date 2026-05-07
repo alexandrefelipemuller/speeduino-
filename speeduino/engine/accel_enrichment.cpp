@@ -6,6 +6,7 @@
 #include "engine/sensors.h"
 #include "support/maths.h"
 #include "support/preprocessor.h"
+#include "support/units.h"
 #include "support/unit_testing.h"
 
 static uint16_t aeActivatedReading;

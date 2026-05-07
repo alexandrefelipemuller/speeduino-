@@ -1,6 +1,7 @@
 #pragma once
 
 #include "modules/core/module_interfaces.h"
+#include "modules/core/module_registry.h"
 
 constexpr uint8_t canbusPage = 9;
 

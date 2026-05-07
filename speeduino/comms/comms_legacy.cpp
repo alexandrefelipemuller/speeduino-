@@ -22,6 +22,7 @@ A full copy of the license may be found in the projects root directory
 #include "modules/logging/logger_controls.h"
 #include "modules/sd_logging/module_sd_logging.h"
 #include "modules/boost/boost.h"
+#include "modules/can/module_can.h"
 #include "modules/comms_extended/module_comms_extended.h"
 #include "modules/logging/module_logging.h"
 #include "modules/table_switching/module_table_switching.h"

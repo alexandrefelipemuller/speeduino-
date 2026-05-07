@@ -1,7 +1,8 @@
 #include "logger.h"
 
 #include "data/sd_logging_status.h"
-#include "logger_private.h"
+#include "support/preprocessor.h"
+#include "modules/logging/logger_private.h"
 
 byte buildSdCardStatus(const statuses &current)
 {

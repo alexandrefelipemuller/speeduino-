@@ -88,7 +88,6 @@ enum class module_capability_t : uint8_t
   programmable_io,
   nitrous,
   wmi,
-  launch,
   advanced_engine,
   table_switching,
 };

@@ -31,8 +31,7 @@ constexpr module_capability_t knockProvides[] = { module_capability_t::knock };
 constexpr module_capability_t vvtProvides[] = { module_capability_t::vvt };
 constexpr module_capability_t engineProtectionProvides[] = { module_capability_t::engine_protection };
 constexpr module_capability_t launchFlatShiftProvides[] = { module_capability_t::launch_flatshift };
-constexpr module_capability_t launchControlProvides[] = { module_capability_t::launch_control };
-constexpr module_capability_t launchProvides[] = { module_capability_t::launch };
+constexpr module_capability_t launchControlProvides[] = { module_capability_t::launch, module_capability_t::launch_control };
 constexpr module_capability_t fanAirconProvides[] = { module_capability_t::fan_aircon };
 constexpr module_capability_t programmableIoProvides[] = { module_capability_t::programmable_io };
 constexpr module_capability_t nitrousProvides[] = { module_capability_t::nitrous };
@@ -41,8 +40,7 @@ constexpr module_capability_t advancedEngineProvides[] = { module_capability_t::
 constexpr module_capability_t tableSwitchingProvides[] = { module_capability_t::table_switching };
 
 constexpr module_capability_t sdLoggingRequires[] = { module_capability_t::logging };
-constexpr module_capability_t launchFlatShiftRequires[] = { module_capability_t::launch_control };
-constexpr module_capability_t launchControlRequires[] = { module_capability_t::launch };
+constexpr module_capability_t launchFlatShiftRequires[] = { module_capability_t::launch };
 
 static bool contains_capability(const module_capability_list_t &list, module_capability_t capability)
 {
@@ -100,7 +98,6 @@ static const module_capability_list_t vvtProvidesList = { vvtProvides, _countof(
 static const module_capability_list_t engineProtectionProvidesList = { engineProtectionProvides, _countof(engineProtectionProvides) };
 static const module_capability_list_t launchFlatShiftProvidesList = { launchFlatShiftProvides, _countof(launchFlatShiftProvides) };
 static const module_capability_list_t launchControlProvidesList = { launchControlProvides, _countof(launchControlProvides) };
-static const module_capability_list_t launchProvidesList = { launchProvides, _countof(launchProvides) };
 static const module_capability_list_t fanAirconProvidesList = { fanAirconProvides, _countof(fanAirconProvides) };
 static const module_capability_list_t programmableIoProvidesList = { programmableIoProvides, _countof(programmableIoProvides) };
 static const module_capability_list_t nitrousProvidesList = { nitrousProvides, _countof(nitrousProvides) };
@@ -110,7 +107,6 @@ static const module_capability_list_t tableSwitchingProvidesList = { tableSwitch
 static const module_capability_list_t emptyCapabilityList = { nullptr, 0U };
 static const module_capability_list_t sdLoggingRequiresList = { sdLoggingRequires, _countof(sdLoggingRequires) };
 static const module_capability_list_t launchFlatShiftRequiresList = { launchFlatShiftRequires, _countof(launchFlatShiftRequires) };
-static const module_capability_list_t launchControlRequiresList = { launchControlRequires, _countof(launchControlRequires) };
 
 static void hook_logging_init_pre_pin_mapping(module_runtime_context_t &)
 {
@@ -454,7 +450,7 @@ static const module_descriptor_t registeredModules[] = {
   { vvtProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { vvtHooks, _countof(vvtHooks) }, nullptr, nullptr },
   { engineProtectionProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { engineProtectionHooks, _countof(engineProtectionHooks) }, nullptr, hook_engine_protection_scheduler_cut },
   { launchFlatShiftProvidesList, launchFlatShiftRequiresList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { launchFlatShiftHooks, _countof(launchFlatShiftHooks) }, nullptr, nullptr },
-  { launchControlProvidesList, launchControlRequiresList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { launchControlHooks, _countof(launchControlHooks) }, nullptr, nullptr },
+  { launchControlProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { launchControlHooks, _countof(launchControlHooks) }, nullptr, nullptr },
   { fanAirconProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { fanAirconHooks, _countof(fanAirconHooks) }, nullptr, nullptr },
   { programmableIoProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { programmableIoHooks, _countof(programmableIoHooks) }, nullptr, nullptr },
   { nitrousProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { nitrousHooks, _countof(nitrousHooks) }, nullptr, nullptr },

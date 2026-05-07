@@ -25,6 +25,7 @@ There are 2 top level functions that call more detailed corrections for Fuel and
 #include "data/advanced_engine_status.h"
 
 #include "engine/corrections.h"
+#include "engine/accel_enrichment.h"
 #include "data/core_constants.h"
 #include "data/runtime_state.h"
 #include "orchestration/timers.h"
@@ -54,9 +55,6 @@ static uint8_t knockLastRecoveryStep;
 //static int16_t knockWindowMin; //The current minimum crank angle for a knock pulse to be valid
 //static int16_t knockWindowMax;//The current maximum crank angle for a knock pulse to be valid
 static uint8_t dfcoTaper;
-
-TESTABLE_CONSTEXPR table2D_u8_u8_4 taeTable(&configPage4.taeBins, &configPage4.taeValues);
-TESTABLE_CONSTEXPR table2D_u8_u8_4 maeTable(&configPage4.maeBins, &configPage4.maeRates);
 TESTABLE_CONSTEXPR table2D_u8_u8_10 WUETable(&configPage4.wueBins, &configPage2.wueValues);
 TESTABLE_CONSTEXPR table2D_u8_u8_4 ASETable(&configPage2.aseBins, &configPage2.asePct);
 TESTABLE_CONSTEXPR table2D_u8_u8_4 ASECountTable(&configPage2.aseBins, &configPage2.aseCount);
