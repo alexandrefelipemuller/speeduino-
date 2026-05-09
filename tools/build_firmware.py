@@ -22,6 +22,7 @@ MODULE_FLAGS = {
     "launch_flatshift": "FEATURE_MODULE_LAUNCH_FLATSHIFT",
     "launch_control": "FEATURE_MODULE_LAUNCH_CONTROL",
     "launch_control": "FEATURE_MODULE_LAUNCH_CONTROL",
+    "etb": "FEATURE_MODULE_ETB",
     "fan_aircon": "FEATURE_MODULE_FAN_AIRCON",
     "programmable_io": "FEATURE_MODULE_PROGRAMMABLE_IO",
     "nitrous": "FEATURE_MODULE_NITROUS",
@@ -70,6 +71,11 @@ MODULE_SOURCES = {
         "modules/table_switching/module_table_switching.cpp",
         "modules/table_switching/page_registry_tables.cpp",
         "modules/table_switching/secondaryTables.cpp",
+    ],
+    "etb": [
+        "modules/etb/module_etb.cpp",
+        "modules/etb/page_registry_etb.cpp",
+        "modules/etb/etb_storage.cpp",
     ],
     "knock": [
         "modules/knock/module_knock.cpp",

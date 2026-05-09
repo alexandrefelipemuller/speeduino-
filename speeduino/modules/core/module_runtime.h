@@ -7,6 +7,7 @@ void core_modules_init_post_pin_mapping(void);
 void core_modules_poll(void);
 void core_modules_on_engine_stop(void);
 void core_modules_tick_50hz(void);
+void core_modules_tick_200hz(void);
 void core_modules_tick_30hz(void);
 void core_modules_tick_15hz(void);
 void core_modules_tick_10hz(void);

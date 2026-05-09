@@ -64,6 +64,12 @@ void core_modules_tick_50hz(void)
   run_phase(module_hook_phase_t::tick_50hz, context);
 }
 
+void core_modules_tick_200hz(void)
+{
+  module_runtime_context_t context;
+  run_phase(module_hook_phase_t::tick_200hz, context);
+}
+
 void core_modules_tick_30hz(void)
 {
   module_runtime_context_t context;

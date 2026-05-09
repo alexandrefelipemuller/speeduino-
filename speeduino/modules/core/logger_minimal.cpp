@@ -189,6 +189,13 @@ byte getTSLogEntry(uint16_t byteNum)
     case 136: statusValue = lowByte(currentStatus.PW8); break;
     case 137: statusValue = highByte(currentStatus.PW8); break;
     case 138: statusValue = currentStatus.systemTemp; break;
+    case 139: statusValue = buildEtbStatus(currentStatus); break;
+    case 140: statusValue = currentEtbStatus.fault_code; break;
+    case 141: statusValue = currentEtbStatus.pedal_percent; break;
+    case 142: statusValue = currentEtbStatus.throttle_percent; break;
+    case 143: statusValue = currentEtbStatus.target_percent; break;
+    case 144: statusValue = currentEtbStatus.open_duty; break;
+    case 145: statusValue = currentEtbStatus.close_duty; break;
     default: statusValue = 0U; break;
   }
 

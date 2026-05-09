@@ -7,6 +7,8 @@
 #include "modules/can/module_can.h"
 #include "modules/boost/boost.h"
 #include "modules/engine_protection/engine_protection.h"
+#include "modules/etb/etb.h"
+#include "modules/etb/etb_storage.h"
 #include "modules/fan_aircon/module_fan_aircon.h"
 #include "modules/launch_flatshift/launch_flatshift.h"
 #include "modules/launch_control/launch_control.h"
@@ -29,6 +31,7 @@ constexpr module_capability_t canProvides[] = { module_capability_t::can };
 constexpr module_capability_t boostProvides[] = { module_capability_t::boost };
 constexpr module_capability_t knockProvides[] = { module_capability_t::knock };
 constexpr module_capability_t vvtProvides[] = { module_capability_t::vvt };
+constexpr module_capability_t etbProvides[] = { module_capability_t::etb };
 constexpr module_capability_t engineProtectionProvides[] = { module_capability_t::engine_protection };
 constexpr module_capability_t launchFlatShiftProvides[] = { module_capability_t::launch_flatshift };
 constexpr module_capability_t launchControlProvides[] = { module_capability_t::launch, module_capability_t::launch_control };
@@ -95,6 +98,7 @@ static const module_capability_list_t canProvidesList = { canProvides, _countof(
 static const module_capability_list_t boostProvidesList = { boostProvides, _countof(boostProvides) };
 static const module_capability_list_t knockProvidesList = { knockProvides, _countof(knockProvides) };
 static const module_capability_list_t vvtProvidesList = { vvtProvides, _countof(vvtProvides) };
+static const module_capability_list_t etbProvidesList = { etbProvides, _countof(etbProvides) };
 static const module_capability_list_t engineProtectionProvidesList = { engineProtectionProvides, _countof(engineProtectionProvides) };
 static const module_capability_list_t launchFlatShiftProvidesList = { launchFlatShiftProvides, _countof(launchFlatShiftProvides) };
 static const module_capability_list_t launchControlProvidesList = { launchControlProvides, _countof(launchControlProvides) };
@@ -203,6 +207,21 @@ static void hook_vvt_on_engine_stop(module_runtime_context_t &)
   vvt1Off();
   vvt2Off();
   DISABLE_VVT_TIMER();
+}
+
+static void hook_etb_init_post_pin_mapping(module_runtime_context_t &)
+{
+  module_etb_init_post_pin_mapping();
+}
+
+static void hook_etb_tick_200hz(module_runtime_context_t &)
+{
+  module_etb_tick_200hz();
+}
+
+static void hook_etb_on_engine_stop(module_runtime_context_t &)
+{
+  module_etb_on_engine_stop();
 }
 
 static void hook_comms_extended_tick_50hz(module_runtime_context_t &)
@@ -361,6 +380,16 @@ static constexpr module_hook_descriptor_t vvtHooks[] = {
   { module_hook_phase_t::tick_30hz, hook_vvt_tick_30hz },
 };
 
+static constexpr module_hook_descriptor_t etbHooks[] = {
+  { module_hook_phase_t::init_post_pin_mapping, hook_etb_init_post_pin_mapping },
+  { module_hook_phase_t::tick_200hz, hook_etb_tick_200hz },
+  { module_hook_phase_t::on_engine_stop, hook_etb_on_engine_stop },
+};
+
+static constexpr module_page_storage_descriptor_t etbPageStorage[] = {
+  { etbPage, module_etb_save_pages, module_etb_load_pages },
+};
+
 static constexpr module_hook_descriptor_t engineProtectionHooks[] = {};
 
 static constexpr module_hook_descriptor_t launchFlatShiftHooks[] = {
@@ -448,6 +477,7 @@ static const module_descriptor_t registeredModules[] = {
   { coreProvidesList, emptyCapabilityList, getCorePageDescriptors(), getCoreStorageMaps(), { nullptr, 0U }, { coreHooks, _countof(coreHooks) }, nullptr, nullptr },
   { boostProvidesList, emptyCapabilityList, getBoostPageDescriptors(), getBoostStorageMaps(), { boostPageStorage, _countof(boostPageStorage) }, { boostHooks, _countof(boostHooks) }, nullptr, nullptr },
   { vvtProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { vvtHooks, _countof(vvtHooks) }, nullptr, nullptr },
+  { etbProvidesList, emptyCapabilityList, getEtbPageDescriptors(), getEtbStorageMaps(), { etbPageStorage, _countof(etbPageStorage) }, { etbHooks, _countof(etbHooks) }, nullptr, nullptr },
   { engineProtectionProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { engineProtectionHooks, _countof(engineProtectionHooks) }, nullptr, hook_engine_protection_scheduler_cut },
   { launchFlatShiftProvidesList, launchFlatShiftRequiresList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { launchFlatShiftHooks, _countof(launchFlatShiftHooks) }, nullptr, nullptr },
   { launchControlProvidesList, emptyCapabilityList, { nullptr, 0U }, { nullptr, 0U }, { nullptr, 0U }, { launchControlHooks, _countof(launchControlHooks) }, nullptr, nullptr },

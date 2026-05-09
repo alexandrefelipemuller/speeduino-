@@ -7,3 +7,4 @@ struct config9 configPage9;
 struct config10 configPage10;
 struct config13 configPage13;
 struct config15 configPage15;
+struct config16 configPage16;

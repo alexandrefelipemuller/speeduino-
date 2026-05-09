@@ -14,7 +14,7 @@
 #include "data/statuses.h"
 
 #ifndef UNIT_TEST // Scope guard for unit testing
-  #define LOG_ENTRY_SIZE      138 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
+  #define LOG_ENTRY_SIZE      146 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
 #else
   #define LOG_ENTRY_SIZE      1 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
 #endif

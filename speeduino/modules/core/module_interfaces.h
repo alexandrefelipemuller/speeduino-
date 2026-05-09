@@ -18,6 +18,10 @@ void module_can_tick_10hz(void);
 void module_can_tick_4hz(uint8_t sensor_status, statuses &current, const can_extended_config_t &config);
 void module_can_on_engine_stop(void);
 
+void module_etb_init_post_pin_mapping(void);
+void module_etb_tick_200hz(void);
+void module_etb_on_engine_stop(void);
+
 void module_comms_extended_init(void);
 void module_comms_extended_poll(uint8_t internal_can_enabled, uint8_t can_wbo_enabled);
 void module_comms_extended_tick_50hz(void);

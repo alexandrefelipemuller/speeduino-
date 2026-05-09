@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "data/advanced_engine_status.h"
+#include "data/etb_status.h"
 #include "data/logger_status.h"
 #include "data/statuses.h"
 #include "support/bit_manip.h"
@@ -130,6 +131,17 @@ static inline byte buildEngineProtectStatus(const statuses &current)
     current.engineProtectClt,
     false,
     current.engineProtectIoError,
+  };
+  return setStatusBits(0U, bits);
+}
+
+static inline byte buildEtbStatus(const statuses &current)
+{
+  (void)current;
+  bool bits[] = {
+    currentEtbStatus.enabled,
+    currentEtbStatus.fault,
+    currentEtbStatus.pedal_percent > 0U,
   };
   return setStatusBits(0U, bits);
 }

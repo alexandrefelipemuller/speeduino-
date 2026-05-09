@@ -16,7 +16,7 @@ constexpr uint8_t ignSetPage    = 4;
 constexpr uint8_t afrMapPage    = 5;
 constexpr uint8_t afrSetPage    = 6;
 constexpr uint8_t MIN_PAGE_NUM  = veSetPage;
-constexpr uint8_t MAX_PAGE_NUM  = 16U;
+constexpr uint8_t MAX_PAGE_NUM  = 17U;
 
 /** @brief Fill the tune (config pages & tables) with zeroes. */
 void setTuneToEmpty(void);

@@ -927,3 +927,51 @@ struct config15 : public config_page_t {
   byte Unused15_106_255[150];
 
 } __attribute__((packed,aligned(__alignof__(uint16_t)))); //The 32 bit systems require all structs to be fully packed, aligned to their largest member type 
+
+/**
+Page 16 - electronic throttle body / drive-by-wire control.
+256 bytes long.
+*/
+struct config16 : public config_page_t {
+  byte etbEnabled : 1;
+  byte etbOpenPolarity : 1;
+  byte etbClosePolarity : 1;
+  byte etbPedal2Invert : 1;
+  byte etbThrottle2Invert : 1;
+  byte etbUnused0 : 3;
+
+  byte etbOpenPin : 6;
+  byte etbOpenPinUnused : 2;
+  byte etbClosePin : 6;
+  byte etbClosePinUnused : 2;
+  byte etbPedal1Pin : 6;
+  byte etbPedal1PinUnused : 2;
+  byte etbPedal2Pin : 6;
+  byte etbPedal2PinUnused : 2;
+  byte etbThrottle2Pin : 6;
+  byte etbThrottle2PinUnused : 2;
+
+  byte etbPedal1Min;
+  byte etbPedal1Max;
+  byte etbPedal2Min;
+  byte etbPedal2Max;
+  byte etbThrottle2Min;
+  byte etbThrottle2Max;
+  byte etbTargetMin;
+  byte etbTargetMax;
+  byte etbDeadband;
+  byte etbPedalMismatch;
+  byte etbThrottleMismatch;
+  byte etbMinDuty;
+  byte etbKP;
+  byte etbKI;
+  byte etbKD;
+
+  byte etbTargetCurve[16];
+
+  byte etbLimpTarget;
+  byte etbFailsafeTarget;
+
+  byte Unused16_39_255[217];
+
+} __attribute__((packed,aligned(__alignof__(uint16_t))));

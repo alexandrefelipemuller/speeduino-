@@ -9,3 +9,4 @@ extern struct config9 configPage9;
 extern struct config10 configPage10;
 extern struct config13 configPage13;
 extern struct config15 configPage15;
+extern struct config16 configPage16;

@@ -62,6 +62,7 @@ enum class module_hook_phase_t : uint8_t
   poll,
   on_engine_stop,
   tick_50hz,
+  tick_200hz,
   tick_30hz,
   tick_15hz,
   tick_10hz,
@@ -80,6 +81,7 @@ enum class module_capability_t : uint8_t
   boost,
   knock,
   vvt,
+  etb,
   engine_protection,
   launch,
   launch_control,
@@ -140,6 +142,10 @@ module_page_descriptors_t getCorePageDescriptors();
 module_page_maps_t getCanPageMaps();
 module_storage_maps_t getCanStorageMaps();
 module_page_descriptors_t getCanPageDescriptors();
+
+module_page_maps_t getEtbPageMaps();
+module_storage_maps_t getEtbStorageMaps();
+module_page_descriptors_t getEtbPageDescriptors();
 
 module_page_maps_t getBoostPageMaps();
 module_storage_maps_t getBoostStorageMaps();

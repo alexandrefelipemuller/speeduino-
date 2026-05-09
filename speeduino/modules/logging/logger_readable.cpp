@@ -119,6 +119,13 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 96: statusValue = currentStatus.PW7; break;
     case 97: statusValue = currentStatus.PW8; break;
     case 98: statusValue = currentStatus.systemTemp; break;
+    case 99: statusValue = buildEtbStatus(currentStatus); break;
+    case 100: statusValue = currentEtbStatus.fault_code; break;
+    case 101: statusValue = currentEtbStatus.pedal_percent; break;
+    case 102: statusValue = currentEtbStatus.throttle_percent; break;
+    case 103: statusValue = currentEtbStatus.target_percent; break;
+    case 104: statusValue = currentEtbStatus.open_duty; break;
+    case 105: statusValue = currentEtbStatus.close_duty; break;
     default: statusValue = 0; break;
   }
 
@@ -141,6 +148,11 @@ float getReadableFloatLogEntry(uint16_t logIndex)
     case 54: statusValue = currentStatus.PW2 / 1000.0F; break;
     case 55: statusValue = currentStatus.PW3 / 1000.0F; break;
     case 56: statusValue = currentStatus.PW4 / 1000.0F; break;
+    case 101: statusValue = currentEtbStatus.pedal_percent / 2.0F; break;
+    case 102: statusValue = currentEtbStatus.throttle_percent / 2.0F; break;
+    case 103: statusValue = currentEtbStatus.target_percent / 2.0F; break;
+    case 104: statusValue = currentEtbStatus.open_duty / 2.0F; break;
+    case 105: statusValue = currentEtbStatus.close_duty / 2.0F; break;
     default: statusValue = getReadableLogEntry(logIndex); break;
   }
 

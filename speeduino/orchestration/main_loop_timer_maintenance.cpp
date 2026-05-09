@@ -19,6 +19,7 @@ void runMainLoopTimerMaintenanceTasks(void)
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_200HZ))
     {
       BIT_CLEAR(TIMER_mask, BIT_TIMER_200HZ);
+      core_modules_tick_200hz();
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_50HZ))
     {
