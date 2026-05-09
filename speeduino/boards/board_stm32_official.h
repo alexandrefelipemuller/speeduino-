@@ -251,6 +251,7 @@ extern STM32RTC& rtc;
 #define IGN3_COMPARE (TIM2)->CCR3
 #define IGN4_COMPARE (TIM2)->CCR4
 
+#if defined(TIM5)
 #define FUEL5_COUNTER (TIM5)->CNT
 #define FUEL6_COUNTER (TIM5)->CNT
 #define FUEL7_COUNTER (TIM5)->CNT
@@ -301,6 +302,7 @@ static inline void FUEL5_TIMER_DISABLE(void) {(TIM5)->DIER &= ~TIM_DIER_CC1IE;}
 static inline void FUEL6_TIMER_DISABLE(void) {(TIM5)->DIER &= ~TIM_DIER_CC2IE;}
 static inline void FUEL7_TIMER_DISABLE(void) {(TIM5)->DIER &= ~TIM_DIER_CC3IE;}
 static inline void FUEL8_TIMER_DISABLE(void) {(TIM5)->DIER &= ~TIM_DIER_CC4IE;}
+#endif
 
 static inline void IGN5_TIMER_ENABLE(void)  {(TIM4)->CR1 |= TIM_CR1_CEN; (TIM4)->SR = ~TIM_FLAG_CC1; (TIM4)->DIER |= TIM_DIER_CC1IE;}
 static inline void IGN6_TIMER_ENABLE(void)  {(TIM4)->CR1 |= TIM_CR1_CEN; (TIM4)->SR = ~TIM_FLAG_CC2; (TIM4)->DIER |= TIM_DIER_CC2IE;}

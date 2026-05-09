@@ -7,7 +7,6 @@ A full copy of the license may be found in the projects root directory
 /*
 This is for handling the data broadcasted to various CAN dashes and instrument clusters.
 */
-#if defined(NATIVE_CAN_AVAILABLE)
 #include "comms/comms_CAN.h"
 #include "data/advanced_engine_status.h"
 #include "data/can_aux_status.h"
@@ -18,6 +17,8 @@ This is for handling the data broadcasted to various CAN dashes and instrument c
 #include "support/utilities.h"
 #include "support/maths.h"
 #include "support/units.h"
+
+#if defined(NATIVE_CAN_AVAILABLE)
 
 extern struct statuses currentStatus;
 extern struct config2 configPage2;

@@ -4,6 +4,8 @@
 #include "engine/auxiliaries.h"
 #include "engine/idle.h"
 #include "orchestration/scheduler.h"
+#include "support/preprocessor.h"
+#include "data/tune_registry.h"
 #include "HardwareTimer.h"
 #include "orchestration/timers.h"
 #include "modules/secondary_serial/secondary_serial.h"

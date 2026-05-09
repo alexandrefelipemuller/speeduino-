@@ -1,6 +1,7 @@
 #include "modules/boost/boost.h"
 
 #include "data/advanced_engine_status.h"
+#include "data/pin_registry.h"
 #include "support/atomic.h"
 #include "boards/board_definition.h"
 #include "support/maths.h"
