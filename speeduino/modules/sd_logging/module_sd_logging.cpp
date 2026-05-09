@@ -1,6 +1,7 @@
 #include "module_sd_logging.h"
 
 #include "support/preprocessor.h"
+#include "data/runtime_constants.h"
 
 #if FEATURE_MODULE_SD_LOGGING && defined(SD_LOGGING)
 
