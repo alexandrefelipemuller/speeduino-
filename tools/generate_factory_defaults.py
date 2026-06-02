@@ -19,20 +19,38 @@ def format_words(values):
     return ",\n".join(lines)
 
 
-def generate_clt_curve():
-    points = [
-        (0.0, 4900.0),
-        (30.0, 1600.0),
-        (100.0, 260.0),
-    ]
-    pullup_resistance = 2200.0
+TEMP_PRESETS = {
+    "Fiat": {
+        "pullup_resistance": 2200.0,
+        "points": [
+            (0.0, 9000.0),
+            (27.0, 2500.0),
+            (100.0, 200.0),
+        ],
+    },
+    "Hyundai HB20": {
+        "pullup_resistance": 2200.0,
+        "points": [
+            (0.0, 9000.0),
+            (40.0, 1100.0),
+            (80.0, 320.0),
+        ],
+    },
+}
+
+DEFAULT_TEMP_PRESET = "Hyundai HB20"
+
+
+def generate_temp_curve(preset_name: str):
+    preset = TEMP_PRESETS[preset_name]
+    points = preset["points"]
+    pullup_resistance = preset["pullup_resistance"]
+    min_temp_point = min(points, key=lambda point: point[0])
+    max_temp_point = max(points, key=lambda point: point[0])
+    max_res_point = max(points, key=lambda point: point[1])
+    min_res_point = min(points, key=lambda point: point[1])
 
     def temperature_from_resistance(resistance):
-        min_temp_point = min(points, key=lambda point: point[0])
-        max_temp_point = max(points, key=lambda point: point[0])
-        max_res_point = max(points, key=lambda point: point[1])
-        min_res_point = min(points, key=lambda point: point[1])
-
         if resistance >= max_res_point[1]:
             return min_temp_point[0]
         if resistance <= min_res_point[1]:
@@ -52,58 +70,12 @@ def generate_clt_curve():
     values = []
     for adc in bins:
         if adc <= 0:
-            values.append(255)
-            continue
-        if adc >= 1023:
-            values.append(0)
-            continue
-        resistance = pullup_resistance * adc / (1023.0 - adc)
-        value = int(round(temperature_from_resistance(resistance) + 40.0))
-        values.append(max(0, min(255, value)))
-
-    return bins, values
-
-
-def generate_iat_curve():
-    points = [
-        (0.0, 4900.0),
-        (30.0, 1600.0),
-        (100.0, 260.0),
-    ]
-    pullup_resistance = 2200.0
-
-    def temperature_from_resistance(resistance):
-        min_temp_point = min(points, key=lambda point: point[0])
-        max_temp_point = max(points, key=lambda point: point[0])
-        max_res_point = max(points, key=lambda point: point[1])
-        min_res_point = min(points, key=lambda point: point[1])
-
-        if resistance >= max_res_point[1]:
-            return min_temp_point[0]
-        if resistance <= min_res_point[1]:
-            return max_temp_point[0]
-
-        for (temp_a, res_a), (temp_b, res_b) in zip(points, points[1:]):
-            if min(res_a, res_b) <= resistance <= max(res_a, res_b):
-                span = res_b - res_a
-                if span == 0:
-                    return temp_a
-                ratio = (resistance - res_a) / span
-                return temp_a + ((temp_b - temp_a) * ratio)
-
-        return max_temp_point[0]
-
-    bins = [(index * 33) for index in range(31)] + [1023]
-    values = []
-    for adc in bins:
-        if adc <= 0:
-            values.append(255)
-            continue
-        if adc >= 1023:
-            values.append(0)
-            continue
-        resistance = pullup_resistance * adc / (1023.0 - adc)
-        value = int(round(temperature_from_resistance(resistance) + 40.0))
+            value = int(round(max_temp_point[0] + 40.0))
+        elif adc >= 1023:
+            value = int(round(min_temp_point[0] + 40.0))
+        else:
+            resistance = pullup_resistance * adc / (1023.0 - adc)
+            value = int(round(temperature_from_resistance(resistance) + 40.0))
         values.append(max(0, min(255, value)))
 
     return bins, values
@@ -137,8 +109,8 @@ content = [
     "",
 ]
 
-clt_bins, clt_values = generate_clt_curve()
-iat_bins, iat_values = generate_iat_curve()
+clt_bins, clt_values = generate_temp_curve(DEFAULT_TEMP_PRESET)
+iat_bins, iat_values = generate_temp_curve(DEFAULT_TEMP_PRESET)
 o2_bins, o2_values = generate_wbo2_curve()
 
 for page_file in page_files:
