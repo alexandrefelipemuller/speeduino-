@@ -20,6 +20,14 @@ def format_words(values):
 
 
 TEMP_PRESETS = {
+    "HB20 / Fiat": {
+        "pullup_resistance": 2200.0,
+        "points": [
+            (15.0, 5000.0),
+            (40.0, 1600.0),
+            (80.0, 300.0),
+        ],
+    },
     "Fiat": {
         "pullup_resistance": 2200.0,
         "points": [
@@ -38,7 +46,7 @@ TEMP_PRESETS = {
     },
 }
 
-DEFAULT_TEMP_PRESET = "Hyundai HB20"
+DEFAULT_TEMP_PRESET = "HB20 / Fiat"
 
 
 def generate_temp_curve(preset_name: str):
