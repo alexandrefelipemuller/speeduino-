@@ -77,6 +77,12 @@ static constexpr uint8_t NO_FUEL_CORRECTION = ONE_HUNDRED_PCT;
 // (yes, it's the same as NO_FUEL_CORRECTION, but captures a slightly different concept)
 static constexpr uint8_t BASELINE_FUEL_CORRECTION = ONE_HUNDRED_PCT;
 
+#ifdef UNIT_TEST
+uint8_t correctionLaunch(void)
+{
+  return launch_control_fuel_correction();
+}
+#endif
 
 /** Initialise instances and vars related to corrections (at ECU boot-up).
  */

@@ -1,11 +1,14 @@
 #include "modules/launch_control/launch_control.h"
 
+#include "support/preprocessor.h"
+
 #include "data/advanced_engine_status.h"
 #include "data/core_constants.h"
 #include "data/runtime_state.h"
 #include "data/tune_registry.h"
 #include "support/units.h"
 
+#if FEATURE_MODULE_LAUNCH_CONTROL
 static constexpr uint8_t NO_FUEL_CORRECTION = 100U;
 
 uint8_t launch_control_fuel_correction(void)
@@ -52,3 +55,5 @@ int8_t launch_control_soft_ignition_correction(int8_t advance)
 
   return advance;
 }
+
+#endif

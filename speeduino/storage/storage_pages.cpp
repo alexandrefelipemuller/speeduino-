@@ -72,24 +72,50 @@ constexpr uint16_t EEPROM_CONFIG15_START = 3281;
 #if defined(UNIT_TEST)
 extern const uint16_t MAX_PAGE_ADDRESS = EEPROM_LAST_BARO-sizeof(uint8_t);
 extern const uint16_t STORAGE_SIZE = STORAGE_END;
+#endif
+
+static const void *getEntityPointer(const entity_t &entity)
+{
+  if (entity.type == EntityType::Table)
+  {
+    return entity.pTable;
+  }
+  if (entity.type == EntityType::Raw)
+  {
+    return entity.pRaw;
+  }
+  return nullptr;
+}
 
 // Maps an entity to its storage start address on the EEPROM.
 //
 // This is *THE* single source of truth for mapping the tune
 // (I.e page entities) to EEPROM locations.
-uint16_t getEntityStartAddress(page_iterator_t iter)
+static uint16_t findEntityStartAddress(const entity_t &entity)
 {
+  const void *entityPointer = getEntityPointer(entity);
+  if (entityPointer == nullptr)
+  {
+    return 0U;
+  }
+
   const entity_storage_map_t *pMapEntry = getEntityStorageMap();
   const entity_storage_map_t *entityMapEnd = pMapEntry + getEntityStorageMapSize();
 
-  while ((pMapEntry != entityMapEnd) && (iter.entity.pRaw != pgm_read_ptr(&pMapEntry->pEntity))) {
+  while ((pMapEntry != entityMapEnd) && (entityPointer != pMapEntry->pEntity)) {
     ++pMapEntry;
   }
   uint16_t address = 0U;
   if (pMapEntry != entityMapEnd) {
-    address = pgm_read_word(&(pMapEntry->eepromStartAddress));
+    address = pMapEntry->eepromStartAddress;
   }
   return address;
+}
+
+#if defined(UNIT_TEST)
+uint16_t getEntityStartAddress(page_iterator_t iter)
+{
+  return findEntityStartAddress(iter.entity);
 }
 #endif
 
@@ -151,45 +177,47 @@ void saveAllPages(void)
   }
 }
 
+static uint16_t writeEntity(const page_iterator_t &iter, uint16_t address, uint16_t writesRemaining)
+{
+  if (iter.entity.type == EntityType::Raw)
+  {
+    return write_range((byte *)iter.entity.pRaw, (byte *)iter.entity.pRaw + iter.entity.size, address, writesRemaining);
+  }
+  if (iter.entity.type == EntityType::Table)
+  {
+    return writeTable(iter.entity.pTable, iter.entity.table_key, address, writesRemaining);
+  }
+  return writesRemaining;
+}
+
+static bool saveMappedPage(uint8_t pageNum, uint16_t &writesRemaining)
+{
+  bool savedAny = false;
+  page_iterator_t iter = page_begin(pageNum);
+  while ((iter.entity.type != EntityType::End) && (writesRemaining > 0U))
+  {
+    uint16_t address = findEntityStartAddress(iter.entity);
+    if ((address == 0U) && (getEntityPointer(iter.entity) != nullptr))
+    {
+      return false;
+    }
+    if (address != 0U)
+    {
+      writesRemaining = writeEntity(iter, address, writesRemaining);
+      savedAny = true;
+    }
+    iter = advance(iter);
+  }
+  return savedAny;
+}
+
 void savePage(uint8_t pageNum)
 {
   uint16_t writesRemaining = getStorageAPI().getMaxWriteBlockSize(currentStatus);
 
-  if (core_modules_save_page(pageNum, writesRemaining))
+  if (!core_modules_save_page(pageNum, writesRemaining))
   {
-  }
-  else switch(pageNum)
-  {
-    case veMapPage:
-      writesRemaining = writeTable(&fuelTable, decltype(fuelTable)::type_key, EEPROM_CONFIG1_MAP, writesRemaining);
-      break;
-    case veSetPage:
-      writesRemaining = write_range((byte *)&configPage2, (byte *)&configPage2+sizeof(configPage2), EEPROM_CONFIG2_START, writesRemaining);
-      break;
-    case ignMapPage:
-      writesRemaining = writeTable(&ignitionTable, decltype(ignitionTable)::type_key, EEPROM_CONFIG3_MAP, writesRemaining);
-      break;
-    case ignSetPage:
-      writesRemaining = write_range((byte *)&configPage4, (byte *)&configPage4+sizeof(configPage4), EEPROM_CONFIG4_START, writesRemaining);
-      break;
-    case afrMapPage:
-      writesRemaining = writeTable(&afrTable, decltype(afrTable)::type_key, EEPROM_CONFIG5_MAP, writesRemaining);
-      break;
-    case afrSetPage:
-      writesRemaining = write_range((byte *)&configPage6, (byte *)&configPage6+sizeof(configPage6), EEPROM_CONFIG6_START, writesRemaining);
-      break;
-    case seqFuelPage:
-      writesRemaining = writeTable(&trim1Table, decltype(trim1Table)::type_key, EEPROM_CONFIG8_MAP1, writesRemaining);
-      writesRemaining = writeTable(&trim2Table, decltype(trim2Table)::type_key, EEPROM_CONFIG8_MAP2, writesRemaining);
-      writesRemaining = writeTable(&trim3Table, decltype(trim3Table)::type_key, EEPROM_CONFIG8_MAP3, writesRemaining);
-      writesRemaining = writeTable(&trim4Table, decltype(trim4Table)::type_key, EEPROM_CONFIG8_MAP4, writesRemaining);
-      writesRemaining = writeTable(&trim5Table, decltype(trim5Table)::type_key, EEPROM_CONFIG8_MAP5, writesRemaining);
-      writesRemaining = writeTable(&trim6Table, decltype(trim6Table)::type_key, EEPROM_CONFIG8_MAP6, writesRemaining);
-      writesRemaining = writeTable(&trim7Table, decltype(trim7Table)::type_key, EEPROM_CONFIG8_MAP7, writesRemaining);
-      writesRemaining = writeTable(&trim8Table, decltype(trim8Table)::type_key, EEPROM_CONFIG8_MAP8, writesRemaining);
-      break;
-    default:
-      break;
+    (void)saveMappedPage(pageNum, writesRemaining);
   }
 
   setEepromWritePending(writesRemaining==0U);
@@ -234,22 +262,41 @@ static inline uint16_t loadTable(table3d_t *pTable, TableType key, uint16_t addr
                   load(rows_begin(pTable, key), address)));
 }
 
+static void loadEntity(const page_iterator_t &iter, uint16_t address)
+{
+  if (iter.entity.type == EntityType::Raw)
+  {
+    (void)load_range(address, (byte *)iter.entity.pRaw, (byte *)iter.entity.pRaw + iter.entity.size);
+  }
+  else if (iter.entity.type == EntityType::Table)
+  {
+    (void)loadTable(iter.entity.pTable, iter.entity.table_key, address);
+  }
+  else
+  {
+  }
+}
+
+static void loadMappedPage(uint8_t pageNum)
+{
+  page_iterator_t iter = page_begin(pageNum);
+  while (iter.entity.type != EntityType::End)
+  {
+    uint16_t address = findEntityStartAddress(iter.entity);
+    if (address != 0U)
+    {
+      loadEntity(iter, address);
+    }
+    iter = advance(iter);
+  }
+}
+
 void loadAllPages(void)
 {
-  (void)loadTable(&fuelTable, decltype(fuelTable)::type_key, EEPROM_CONFIG1_MAP);
-  (void)load_range(EEPROM_CONFIG2_START, (byte *)&configPage2, (byte *)&configPage2+sizeof(configPage2));
-  (void)loadTable(&ignitionTable, decltype(ignitionTable)::type_key, EEPROM_CONFIG3_MAP);
-  (void)load_range(EEPROM_CONFIG4_START, (byte *)&configPage4, (byte *)&configPage4+sizeof(configPage4));
-  (void)loadTable(&afrTable, decltype(afrTable)::type_key, EEPROM_CONFIG5_MAP);
-  (void)load_range(EEPROM_CONFIG6_START, (byte *)&configPage6, (byte *)&configPage6+sizeof(configPage6));
-  (void)loadTable(&trim1Table, decltype(trim1Table)::type_key, EEPROM_CONFIG8_MAP1);
-  (void)loadTable(&trim2Table, decltype(trim2Table)::type_key, EEPROM_CONFIG8_MAP2);
-  (void)loadTable(&trim3Table, decltype(trim3Table)::type_key, EEPROM_CONFIG8_MAP3);
-  (void)loadTable(&trim4Table, decltype(trim4Table)::type_key, EEPROM_CONFIG8_MAP4);
-  (void)loadTable(&trim5Table, decltype(trim5Table)::type_key, EEPROM_CONFIG8_MAP5);
-  (void)loadTable(&trim6Table, decltype(trim6Table)::type_key, EEPROM_CONFIG8_MAP6);
-  (void)loadTable(&trim7Table, decltype(trim7Table)::type_key, EEPROM_CONFIG8_MAP7);
-  (void)loadTable(&trim8Table, decltype(trim8Table)::type_key, EEPROM_CONFIG8_MAP8);
+  for (uint8_t page = MIN_PAGE_NUM; page < MAX_PAGE_NUM; ++page)
+  {
+    loadMappedPage(page);
+  }
   core_modules_load_pages();
 }
 
