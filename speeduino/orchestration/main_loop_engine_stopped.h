@@ -1,3 +1,3 @@
 #pragma once
 
-void runMainLoopEngineStoppedTasks(void);
+void runMainLoopEngineStoppedTasks(bool resetDecoder);
