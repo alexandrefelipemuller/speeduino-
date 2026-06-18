@@ -37,6 +37,8 @@ uint16_t freeRam()
 }
 
 void doSystemReset() { return; }
+void serviceWatchdog(void) { return; }
+
 void jumpToBootloader() { return; }
 
 #endif

@@ -1,6 +1,7 @@
 #include "orchestration/main_loop_io.h"
 
 #include "data/runtime_state.h"
+#include "boards/board_definition.h"
 #include "support/hw_test_bits.h"
 #include "support/atomic.h"
 #include "comms/comms.h"
@@ -12,6 +13,7 @@
 void runMainLoopIoTasks(void)
 {
       if(mainLoopCount < UINT16_MAX) { mainLoopCount++; }
+      serviceWatchdog();
       ATOMIC()
       {
         LOOP_TIMER = TIMER_mask;

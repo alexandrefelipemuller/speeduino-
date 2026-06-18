@@ -610,6 +610,12 @@ void test_rotary_channel_calcs(void)
 
 }
 
+static void test_ignitionStartIsDueNow(void)
+{
+  TEST_ASSERT_TRUE(ignitionStartIsDueNow(224, 224));
+  TEST_ASSERT_FALSE(ignitionStartIsDueNow(224, 225));
+}
+
 void test_calc_ign_timeout(void)
 {
   SET_UNITY_FILENAME() {
@@ -617,5 +623,6 @@ void test_calc_ign_timeout(void)
     RUN_TEST(test_calc_ign_timeout_360);
     RUN_TEST(test_calc_ign_timeout_720);
     RUN_TEST(test_rotary_channel_calcs);
+    RUN_TEST(test_ignitionStartIsDueNow);
   }
 }

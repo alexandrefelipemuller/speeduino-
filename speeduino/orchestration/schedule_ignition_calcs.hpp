@@ -47,6 +47,11 @@ static inline uint16_t _adjustToIgnChannel(int angle, int channelInjDegrees)
   return angle;
 }
 
+static inline bool ignitionStartIsDueNow(int startAngle, int crankAngle)
+{
+  return startAngle == crankAngle;
+}
+
 static inline uint32_t calculateIgnitionTimeout(const IgnitionSchedule &schedule, int startAngle, int channelIgnDegrees, int crankAngle)
 {
   if (channelIgnDegrees == 0)

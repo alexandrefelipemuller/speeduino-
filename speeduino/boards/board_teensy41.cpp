@@ -321,6 +321,8 @@ static  time_t getTeensy3Time()
 }
 
 void doSystemReset() { return; }
+void serviceWatchdog(void) { return; }
+
 void jumpToBootloader() { return; }
 
 //Checks if the request pin is being used for rx/tx on secondary serial. Primary (USB) serial does not need to be checked as it is not broken out to an IO on Teensy

@@ -15,6 +15,11 @@ static inline uint16_t calculateInjectorStartAngle(uint16_t pwDegrees, int16_t i
   return startAngle;
 }
 
+static inline bool injectorStartIsDueNow(int openAngle, int crankAngle)
+{
+  return openAngle == crankAngle;
+}
+
 static inline uint32_t calculateInjectorTimeout(const FuelSchedule &schedule, int openAngle, int crankAngle)
 {
   int16_t delta = openAngle - crankAngle;

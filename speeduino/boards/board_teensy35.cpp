@@ -422,6 +422,8 @@ static time_t getTeensy3Time()
 }
 
 void doSystemReset() { return; }
+void serviceWatchdog(void) { return; }
+
 void jumpToBootloader() { return; }
 
 uint8_t getSystemTemp(void)

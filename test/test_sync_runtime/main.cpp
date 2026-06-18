@@ -23,6 +23,36 @@ static decoder_status_t getUnsyncedDecoderStatus(void)
   return decoder_status_t{false, false, SyncStatus::None};
 }
 
+static decoder_status_t getSyncedDecoderStatus(void)
+{
+  return decoder_status_t{false, false, SyncStatus::Partial};
+}
+
+static uint16_t getDecoderRpmDuringSync(void)
+{
+  return 150U;
+}
+
+static void test_synced_runtime_uses_decoder_rpm_before_status_rpm_is_published(void)
+{
+  currentStatus = statuses{};
+  configPage2.fanWhenCranking = 1U;
+  configPage4.ignBypassEnabled = 0U;
+  currentStatus.crankRPM = 300U;
+  currentStatus.RPM = 0U;
+  currentStatus.engineIsRunning = false;
+  currentStatus.engineIsCranking = false;
+
+  currentStatus.decoder = decoder_builder_t()
+                            .setGetStatus(getSyncedDecoderStatus)
+                            .setGetRPM(getDecoderRpmDuringSync)
+                            .build();
+
+  TEST_ASSERT_TRUE(syncRuntimeUpdateEngineState());
+  TEST_ASSERT_TRUE(currentStatus.engineIsCranking);
+  TEST_ASSERT_FALSE(currentStatus.engineIsRunning);
+}
+
 static void test_unsynced_runtime_does_not_reset_or_rebuild_decoder(void)
 {
   currentStatus = statuses{};
@@ -75,6 +105,7 @@ static void test_stopped_lifecycle_resets_decoder_once_after_confirmed_stop(void
 static void runSyncRuntimeTests(void)
 {
   RUN_TEST(test_unsynced_runtime_does_not_reset_or_rebuild_decoder);
+  RUN_TEST(test_synced_runtime_uses_decoder_rpm_before_status_rpm_is_published);
   RUN_TEST(test_stopped_lifecycle_does_not_reset_decoder_before_engine_was_active);
   RUN_TEST(test_stopped_lifecycle_debounces_transient_stall_before_decoder_reset);
   RUN_TEST(test_stopped_lifecycle_resets_decoder_once_after_confirmed_stop);

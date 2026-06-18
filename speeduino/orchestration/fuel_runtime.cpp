@@ -14,6 +14,8 @@ constexpr table2D_u8_u8_10 idleTargetTable(&configPage6.iacBins, &configPage6.ia
 
 namespace {
 
+static constexpr uint32_t MINIMUM_SCHEDULE_DELAY_US = ticksToMicros((COMPARE_TYPE)1U);
+
 uint16_t set_fuel_trim_to_pw(trimTable3d *pTrimTable, uint16_t fuelLoad, int16_t RPM, uint16_t currentPW)
 {
     uint8_t pw1percent = 100U + get3DTableValue(pTrimTable, fuelLoad, RPM) - OFFSET_FUELTRIM;
@@ -25,8 +27,9 @@ void set_fuel_schedule(FuelSchedule &schedule, uint8_t channel, uint16_t pw, uin
   if( (pw != 0U) && (BIT_CHECK(fuelChannelsOn, INJ1_CMD_BIT+channel-1U)) )
   {
     uint32_t timeOut = calculateInjectorTimeout(schedule, startAngle, crankAngle);
-    if (timeOut>0U)
+    if ((timeOut > 0U) || injectorStartIsDueNow(startAngle, crankAngle))
     {
+      if (timeOut == 0U) { timeOut = MINIMUM_SCHEDULE_DELAY_US; }
       setFuelSchedule(schedule, timeOut, pw);
     }
   }

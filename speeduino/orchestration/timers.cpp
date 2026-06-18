@@ -18,6 +18,7 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
 #include "data/runtime_state.h"
 #include "engine/sensors.h"
 #include "orchestration/scheduler.h"
+#include "orchestration/scheduler_lifecycle.h"
 #include "orchestration/scheduler_priming.h"
 #include "engine/auxiliaries.h"
 #include "comms/comms.h"
@@ -134,6 +135,27 @@ static inline void applyAllOverDwellChecks(uint32_t nowUs, uint32_t dwellLimitUs
 TESTABLE_INLINE_STATIC bool engineAllowsHardwareTestOutputs(void)
 {
   return (currentStatus.RPM == 0U) && !currentStatus.engineIsRunning && !currentStatus.engineIsCranking;
+}
+
+TESTABLE_INLINE_STATIC bool mainLoopStallRequiresSafeStop(uint16_t loopsLastSecond)
+{
+  return (loopsLastSecond == 0U) && ((currentStatus.RPM > 0U) || currentStatus.engineIsRunning || currentStatus.engineIsCranking);
+}
+
+static inline void applyMainLoopStallFailSafe(uint16_t loopsLastSecond)
+{
+  if (!mainLoopStallRequiresSafeStop(loopsLastSecond)) { return; }
+
+  stopEngineOutputsAndSchedulers();
+  fuelPumpOff();
+  if ((resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) && currentStatus.resetPreventActive)
+  {
+    digitalWrite(pinResetControl, LOW);
+    currentStatus.resetPreventActive = false;
+  }
+  currentStatus.engineIsRunning = false;
+  currentStatus.engineIsCranking = false;
+  setRpm(currentStatus, 0U);
 }
 
 void oneMSInterval(void)
@@ -314,8 +336,10 @@ void oneMSInterval(void)
     }
     //**************************************************************************************************************************************************
     //This records the number of main loops the system has completed in the last second
-    currentStatus.loopsPerSecond = mainLoopCount;
+    const uint16_t loopsLastSecond = mainLoopCount;
+    currentStatus.loopsPerSecond = loopsLastSecond;
     mainLoopCount = 0;
+    applyMainLoopStallFailSafe(loopsLastSecond);
     //**************************************************************************************************************************************************
     //increment secl (secl is simply a counter that increments every second and is used to track whether the system has unexpectedly reset
     currentStatus.secl++;

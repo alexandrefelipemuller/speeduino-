@@ -374,7 +374,9 @@ STM32RTC& rtc = STM32RTC::getInstance();
     NVIC_SystemReset();
   }
 
-  void jumpToBootloader( void ) // https://github.com/3devo/Arduino_Core_STM32/blob/jumpSysBL/libraries/SrcWrapper/src/stm32/bootloader.c
+  void serviceWatchdog(void) { return; }
+
+void jumpToBootloader( void ) // https://github.com/3devo/Arduino_Core_STM32/blob/jumpSysBL/libraries/SrcWrapper/src/stm32/bootloader.c
   { // https://github.com/markusgritsch/SilF4ware/blob/master/SilF4ware/drv_reset.c
     #if !defined(STM32F103xB)
     HAL_RCC_DeInit();

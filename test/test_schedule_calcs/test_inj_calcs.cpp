@@ -298,6 +298,12 @@ static void test_calculateInjectorTimeout(void)
   TEST_ASSERT_EQUAL(5500, calculateInjectorTimeout(schedule, 123U, 351U));
 }
 
+static void test_injectorStartIsDueNow(void)
+{
+  TEST_ASSERT_TRUE(injectorStartIsDueNow(123, 123));
+  TEST_ASSERT_FALSE(injectorStartIsDueNow(123, 351));
+}
+
 // 
 void test_calc_inj_timeout(void)
 {
@@ -306,5 +312,6 @@ void test_calc_inj_timeout(void)
     RUN_TEST(test_calc_inj_timeout_360);
     RUN_TEST(test_calc_inj_timeout_720);
     RUN_TEST(test_calculateInjectorTimeout);
+    RUN_TEST(test_injectorStartIsDueNow);
   }
 }
