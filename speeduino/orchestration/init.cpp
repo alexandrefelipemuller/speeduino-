@@ -190,6 +190,7 @@ void initialiseAll(void)
     initialiseAuxPWM();
     initialiseCorrections();
     currentStatus.engineProtectIoError = false; //Clear the I/O error bit. The bit will be set in initialiseADC() if there is problem in there.
+    currentStatus.schedulerCutState = { 0x00U, 0xFFU, 0xFFU };
     initialiseADC();
     initialiseMAPBaro();
     initialiseFlexSensor(configPage2, currentStatus, pinFlex);

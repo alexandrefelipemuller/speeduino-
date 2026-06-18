@@ -297,6 +297,10 @@ void stopEngineOutputsAndSchedulers(void)
 
     stopIgnitionOutputs();
     stopFuelOutputs();
+
+    // Keep compare interrupts armed so the next crank sync can schedule outputs again.
+    startIgnitionSchedulers();
+    startFuelSchedulers();
 }
 
 void refreshIgnitionSchedule1(unsigned long timeToEnd)
