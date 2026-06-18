@@ -2,6 +2,7 @@
 
 #include "data/runtime_state.h"
 #include "support/hw_test_bits.h"
+#include "support/atomic.h"
 #include "comms/comms.h"
 #include "comms/comms_legacy.h"
 #include "modules/core/module_runtime.h"
@@ -11,7 +12,11 @@
 void runMainLoopIoTasks(void)
 {
       if(mainLoopCount < UINT16_MAX) { mainLoopCount++; }
-      LOOP_TIMER = TIMER_mask;
+      ATOMIC()
+      {
+        LOOP_TIMER = TIMER_mask;
+        TIMER_mask = 0U;
+      }
 
       if (serialTransmitInProgress())
       {

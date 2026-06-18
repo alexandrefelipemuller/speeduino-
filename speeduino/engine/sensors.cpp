@@ -102,7 +102,13 @@ table2D_u16_u8_32 o2CalibrationTable(&o2Calibration_bins, &o2Calibration_values)
  */
 TESTABLE_INLINE_STATIC int16_t fastMap10Bit(uint16_t value, int16_t rangeMin, int16_t rangeMax) 
 {
-  uint16_t range = rangeMax-rangeMin; // Must be positive (assuming rangeMax>=rangeMin)
+  if (rangeMax <= rangeMin)
+  {
+    return rangeMin;
+  }
+
+  if (value > 1023U) { value = 1023U; }
+  uint16_t range = rangeMax-rangeMin;
   uint16_t fromStartOfRange = (uint16_t)rshift<10>((uint32_t)value * range);
   return rangeMin + (int16_t)fromStartOfRange;
 }
@@ -616,9 +622,16 @@ static inline void readTPS(uint8_t tpsADC)
     tempTPSMin = UINT8_MAX - configPage2.tpsMin;
   }
 
-  //Check that the ADC values fall within the min and max ranges (Should always be the case, but noise can cause these to fluctuate outside the defined range).
-  tpsADC = clamp(tpsADC, tempTPSMin, tempTPSMax);
-  currentStatus.TPS = map(tpsADC, tempTPSMin, tempTPSMax, 0, 200); //Take the raw TPS ADC value and convert it into a TPS% based on the calibrated values
+  if (tempTPSMin == tempTPSMax)
+  {
+    currentStatus.TPS = 0U;
+  }
+  else
+  {
+    //Check that the ADC values fall within the min and max ranges (Should always be the case, but noise can cause these to fluctuate outside the defined range).
+    tpsADC = clamp(tpsADC, tempTPSMin, tempTPSMax);
+    currentStatus.TPS = map(tpsADC, tempTPSMin, tempTPSMax, 0, 200);
+  } //Take the raw TPS ADC value and convert it into a TPS% based on the calibrated values
 
   //Check whether the closed throttle position sensor is active
   currentStatus.CTPSActive = configPage2.CTPSEnabled == true && isCTPSSensorActive();
@@ -859,10 +872,17 @@ static inline uint16_t getSpeed(void)
     }
 
     pulseTime = fast_div(vssTotalTime,  VSS_SAMPLES - 1UL);
-    if ( (micros() - vssTimes[vssIndex]) > MICROS_PER_SEC ) { tempSpeed = 0; } // Check that the car hasn't come to a stop. Is true if last pulse was more than 1 second ago
+
+    noInterrupts();
+    uint32_t lastPulseTime = vssTimes[vssIndex];
+    interrupts();
+
+    if ( (configPage2.vssPulsesPerKm == 0U) || (pulseTime == 0U) || ((micros() - lastPulseTime) > MICROS_PER_SEC) ) { tempSpeed = 0; } // Check that the car hasn't come to a stop. Is true if last pulse was more than 1 second ago
     else 
     {
-      tempSpeed = fast_div(MICROS_PER_HOUR, pulseTime * configPage2.vssPulsesPerKm); //Convert the pulse gap into km/h
+      uint32_t speedDivisor = pulseTime * (uint32_t)configPage2.vssPulsesPerKm;
+      if (speedDivisor == 0U) { tempSpeed = 0U; }
+      else { tempSpeed = fast_div(MICROS_PER_HOUR, speedDivisor); } //Convert the pulse gap into km/h
       tempSpeed = LOW_PASS_FILTER(tempSpeed, configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
     }
     if(tempSpeed > 1000U) { tempSpeed = currentStatus.vss; } //Safety check. This usually occurs when there is a hardware issue
@@ -880,7 +900,7 @@ static inline void readSpeed(void)
 static inline byte getGear(void)
 {
   byte tempGear = 0U; //Unknown gear
-  if(currentStatus.vss > 0U)
+  if((currentStatus.vss > 0U) && (currentStatus.RPM > 0U))
   {
     //If the speed is non-zero, default to the last calculated gear
     tempGear = currentStatus.gear;

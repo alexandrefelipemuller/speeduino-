@@ -46,6 +46,7 @@ extern byte pinResetControl;
 
 /** @brief Processes a message once it has been fully received */
 void processSerialCommand(void);
+static void sendReturnCodeMsg(byte returnCode);
 
 /** @brief Should be called when ::serialStatusFlag == SERIAL_TRANSMIT_TOOTH_INPROGRESS, */
 void sendToothLog(void);
@@ -89,6 +90,8 @@ static constexpr byte testCommsResponse[] PROGMEM = { SERIAL_RC_OK, 255 };
  * I.e. we can only be receiving or transmitting at any one time.
  */
 static uint16_t serialBytesRxTx = 0; 
+static bool serialResetPending = false;
+static uint32_t serialResetStartTime = 0U;
 
 static constexpr uint16_t SERIAL_TIMEOUT = 400; //!< Timeout threshold in milliseconds
 uint32_t serialReceiveStartTime = 0; //!< The time in milliseconds at which the serial receive started. Used for calculating whether a timeout has occurred
@@ -111,6 +114,7 @@ static uint32_t SDreadCompletedSectors = 0;
 #endif
 static uint8_t serialPayload[TS_SERIAL_BUFFER_SIZE]; //!< Serial payload buffer. */
 static uint16_t serialPayloadLength = 0; //!< How many bytes in serialPayload were received or sent */
+static constexpr uint16_t SERIAL_PAYLOAD_CAPACITY = sizeof(serialPayload);
 Stream* pPrimarySerial;
 static uint32_t deferEEPROMWritesUntil = 0; //!< Point in time that we can resume writing pages
 static constexpr uint32_t EEPROM_DEFER_DELAY = MICROS_PER_SEC; //1.0 second pause after large comms before writing to EEPROM
@@ -289,6 +293,12 @@ static uint16_t sendBufferAndCrcNonBlocking(const byte *buffer, size_t start, si
 */
 static void sendSerialPayloadNonBlocking(uint16_t payloadLength)
 {
+  if (payloadLength > SERIAL_PAYLOAD_CAPACITY)
+  {
+    sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+    return;
+  }
+
   //Start new transmission session
   serialStatusFlag = SERIAL_TRANSMIT_INPROGRESS;
   serialWrite(payloadLength);
@@ -313,6 +323,84 @@ static void sendReturnCodeMsg(byte returnCode)
   (void)serialWrite(CRC32_serial.crc32(&returnCode, sizeof(returnCode)));
 }
 
+static bool payloadHasBytes(uint16_t minimumLength)
+{
+  if (serialPayloadLength >= minimumLength)
+  {
+    return true;
+  }
+
+  sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+  return false;
+}
+
+static bool payloadRangeAvailable(uint16_t offset, uint16_t length)
+{
+  if ((offset <= serialPayloadLength) && (length <= (serialPayloadLength - offset)))
+  {
+    return true;
+  }
+
+  sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+  return false;
+}
+
+static bool engineIsActive(void)
+{
+  return (currentStatus.RPM > 0U) || currentStatus.engineIsRunning || currentStatus.engineIsCranking;
+}
+
+static bool engineAllowsSerialReset(void)
+{
+  return !engineIsActive();
+}
+
+static bool isRuntimeCriticalConfigPage(uint8_t pageNum)
+{
+  return (pageNum == veSetPage)
+      || (pageNum == ignSetPage)
+      || (pageNum == afrSetPage)
+      || (pageNum == 9U)
+      || (pageNum == 10U)
+      || (pageNum == 13U)
+      || (pageNum == 15U);
+}
+
+static bool canModifyPageNow(uint8_t pageNum)
+{
+  return !engineIsActive() || !isRuntimeCriticalConfigPage(pageNum);
+}
+
+static void beginSerialResetWait(void)
+{
+  serialResetPending = true;
+  serialResetStartTime = millis();
+}
+
+static bool servicePendingSerialReset(void)
+{
+  if (!serialResetPending)
+  {
+    return false;
+  }
+
+  if (primarySerial.available() > 0)
+  {
+    (void)primarySerial.read();
+    serialResetPending = false;
+    digitalWrite(pinResetControl, LOW);
+    return true;
+  }
+
+  if ((millis() - serialResetStartTime) > SERIAL_TIMEOUT)
+  {
+    serialResetPending = false;
+    sendReturnCodeMsg(SERIAL_RC_TIMEOUT);
+  }
+
+  return true;
+}
+
 // ====================================== Command/Action Support =============================
 
 // The functions in this section are abstracted out to prevent enlarging callers stack frame, 
@@ -330,7 +418,8 @@ static void sendReturnCodeMsg(byte returnCode)
  */
 static bool updatePageValues(uint8_t pageNum, uint16_t offset, const byte *buffer, uint16_t length)
 {
-  if ( (offset + length) <= getPageSize(pageNum) )
+  const uint16_t pageSize = getPageSize(pageNum);
+  if ( (offset <= pageSize) && (length <= (pageSize - offset)) )
   {
     for(uint16_t i = 0; i < length; i++)
     {
@@ -351,12 +440,20 @@ static bool updatePageValues(uint8_t pageNum, uint16_t offset, const byte *buffe
  * @param buffer The buffer to read from
  * @param length The buffer length
  */
-static void loadPageValuesToBuffer(uint8_t pageNum, uint16_t offset, byte *buffer, uint16_t length)
+static bool loadPageValuesToBuffer(uint8_t pageNum, uint16_t offset, byte *buffer, uint16_t length)
 {
+  const uint16_t pageSize = getPageSize(pageNum);
+  if ( (offset > pageSize) || (length > (pageSize - offset)) )
+  {
+    return false;
+  }
+
   for(uint16_t i = 0; i < length; i++)
   {
     buffer[i] = getPageValue(pageNum, offset + i);
   }
+
+  return true;
 }
 
 /** @brief Send a status record back to tuning/logging SW.
@@ -365,8 +462,13 @@ static void loadPageValuesToBuffer(uint8_t pageNum, uint16_t offset, byte *buffe
  * @param packetLength - Length of actual message (after possible ack/confirm headers)
  * E.g. tuning sw command 'A' (Send all values) will send data from field number 0, LOG_ENTRY_SIZE fields.
  */
-static void generateLiveValues(uint16_t offset, uint16_t packetLength)
+static bool generateLiveValues(uint16_t offset, uint16_t packetLength)
 {  
+  if (packetLength > (SERIAL_PAYLOAD_CAPACITY - 1U))
+  {
+    return false;
+  }
+
   if(firstCommsRequest) 
   { 
     firstCommsRequest = false;
@@ -380,6 +482,7 @@ static void generateLiveValues(uint16_t offset, uint16_t packetLength)
   }
   // Reset any flags that are being used to trigger page refreshes
   currentStatus.vssUiRefresh = false;
+  return true;
 }
 
 // Abstract the FastCrC32 functions 
@@ -484,6 +587,11 @@ Commands are single byte (letter symbol) commands.
 */
 void serialReceive(void)
 {
+  if (servicePendingSerialReset())
+  {
+    return;
+  }
+
   //Check for an existing legacy command in progress
   if(serialStatusFlag==SERIAL_COMMAND_INPROGRESS_LEGACY)
   {
@@ -519,8 +627,18 @@ void serialReceive(void)
       serialPayloadLength = readSerialIntegralTimeout<uint16_t>();
       if (!isRxTimeout()) 
       {
-        serialBytesRxTx = 0U;
-        serialStatusFlag = SERIAL_RECEIVE_INPROGRESS; //Flag the serial receive as being in progress
+        if ((serialPayloadLength == 0U) || (serialPayloadLength > SERIAL_PAYLOAD_CAPACITY))
+        {
+          serialPayloadLength = 0U;
+          serialStatusFlag = SERIAL_INACTIVE;
+          flushRXbuffer();
+          sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+        }
+        else
+        {
+          serialBytesRxTx = 0U;
+          serialStatusFlag = SERIAL_RECEIVE_INPROGRESS; //Flag the serial receive as being in progress
+        }
       }
     }
   }
@@ -596,34 +714,47 @@ void serialTransmit(void)
   }
 }
 
-static void burnSinglePage(uint8_t page)
+static bool burnSinglePage(uint8_t page)
 {
+  if (!canModifyPageNow(page))
+  {
+    return false;
+  }
+
   if( storageWriteTimeoutExpired()) { 
     savePage(page); 
   } else { 
     setEepromWritePending(true); 
   }
+  return true;
 }
 
 void processSerialCommand(void)
 {
+  if (!payloadHasBytes(1U))
+  {
+    return;
+  }
+
   switch (serialPayload[0])
   {
 
     case 'A': // send x bytes of realtime values in legacy support format
-      generateLiveValues(0, LOG_ENTRY_SIZE); 
+      if (!generateLiveValues(0, LOG_ENTRY_SIZE)) { sendReturnCodeMsg(SERIAL_RC_RANGE_ERR); }
       break;
 
     case 'b': // New EEPROM burn command to only burn a single page at a time 
-      burnSinglePage(serialPayload[2]);     
-      sendReturnCodeMsg(SERIAL_RC_BURN_OK);
+      if (!payloadHasBytes(3U)) { break; }
+      if (burnSinglePage(serialPayload[2])) { sendReturnCodeMsg(SERIAL_RC_BURN_OK); }
+      else { sendReturnCodeMsg(SERIAL_RC_BUSY_ERR); }
       break;
 
     case 'B': // Same as above, but for the comms compat mode. Slows down the burn rate and increases the defer time
+      if (!payloadHasBytes(3U)) { break; }
       currentStatus.commCompat = true; //Force the compat mode
       setStorageWriteTimeout(deferEEPROMWritesUntil + (EEPROM_DEFER_DELAY/4U)); //Add 25% more to the EEPROM defer time
-      burnSinglePage(serialPayload[2]);      
-      sendReturnCodeMsg(SERIAL_RC_BURN_OK);
+      if (burnSinglePage(serialPayload[2])) { sendReturnCodeMsg(SERIAL_RC_BURN_OK); }
+      else { sendReturnCodeMsg(SERIAL_RC_BUSY_ERR); }
       break;
 
     case 'C': // test communications. This is used by Tunerstudio to see whether there is an ECU on a given serial port
@@ -633,6 +764,7 @@ void processSerialCommand(void)
 
     case 'd': // Send a CRC32 hash of a given page
     {
+      if (!payloadHasBytes(3U)) { break; }
       uint32_t CRC32_val = reverse_bytes(calculatePageCRC32( serialPayload[2] ));
 
       serialPayload[0] = SERIAL_RC_OK;
@@ -642,8 +774,9 @@ void processSerialCommand(void)
     }
 
     case 'E': // receive command button commands
-      (void)TS_CommandButtonsHandler(word(serialPayload[1], serialPayload[2]));
-      sendReturnCodeMsg(SERIAL_RC_OK);
+      if (!payloadHasBytes(3U)) { break; }
+      if (TS_CommandButtonsHandler(word(serialPayload[1], serialPayload[2]))) { sendReturnCodeMsg(SERIAL_RC_OK); }
+      else { sendReturnCodeMsg(SERIAL_RC_BUSY_ERR); }
       break;
 
     case 'f': //Send serial capability details
@@ -689,6 +822,7 @@ void processSerialCommand(void)
 
     case 'k': //Send CRC values for the calibration pages
     {
+      if (!payloadHasBytes(3U)) { break; }
       uint32_t CRC32_val = reverse_bytes(loadCalibrationCrc((SensorCalibrationTable)serialPayload[2])); //Get the CRC for the requested page
 
       serialPayload[0] = SERIAL_RC_OK;
@@ -699,13 +833,20 @@ void processSerialCommand(void)
 
     case 'M':
     {
+      if (!payloadHasBytes(7U)) { break; }
       //New write command
       //7 bytes required:
       //2 - Page identifier
       //2 - offset
       //2 - Length
       //1 - 1st New value
-      if (updatePageValues(serialPayload[2], word(serialPayload[4], serialPayload[3]), &serialPayload[7], word(serialPayload[6], serialPayload[5])))
+      uint16_t length = word(serialPayload[6], serialPayload[5]);
+      uint8_t pageNum = serialPayload[2];
+      if (!canModifyPageNow(pageNum))
+      {
+        sendReturnCodeMsg(SERIAL_RC_BUSY_ERR);
+      }
+      else if (payloadRangeAvailable(7U, length) && updatePageValues(pageNum, word(serialPayload[4], serialPayload[3]), &serialPayload[7], length))
       {
         sendReturnCodeMsg(SERIAL_RC_OK);    
       }
@@ -746,12 +887,26 @@ void processSerialCommand(void)
       //2 - Page identifier
       //2 - offset
       //2 - Length
+      if (!payloadHasBytes(7U)) { break; }
       uint16_t length = word(serialPayload[6], serialPayload[5]);
 
       //Setup the transmit buffer
-      serialPayload[0] = SERIAL_RC_OK;
-      loadPageValuesToBuffer(serialPayload[2], word(serialPayload[4], serialPayload[3]), &serialPayload[1], length);
-      sendSerialPayloadNonBlocking(length + 1U);
+      if (length > (SERIAL_PAYLOAD_CAPACITY - 1U))
+      {
+        sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+      }
+      else
+      {
+        serialPayload[0] = SERIAL_RC_OK;
+        if (loadPageValuesToBuffer(serialPayload[2], word(serialPayload[4], serialPayload[3]), &serialPayload[1], length))
+        {
+          sendSerialPayloadNonBlocking(length + 1U);
+        }
+        else
+        {
+          sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+        }
+      }
       break;
     }
 
@@ -762,6 +917,7 @@ void processSerialCommand(void)
 
     case 'r': //New format for the optimised OutputChannels
     {
+      if (!payloadHasBytes(7U)) { break; }
       uint8_t cmd = serialPayload[2];
       uint16_t offset = word(serialPayload[4], serialPayload[3]);
       uint16_t length = word(serialPayload[6], serialPayload[5]);
@@ -772,8 +928,8 @@ void processSerialCommand(void)
 
       if(cmd == SEND_OUTPUT_CHANNELS) //Send output channels command 0x30 is 48dec
       {
-        generateLiveValues(offset, length);
-        sendSerialPayloadNonBlocking(length + 1U);
+        if (generateLiveValues(offset, length)) { sendSerialPayloadNonBlocking(length + 1U); }
+        else { sendReturnCodeMsg(SERIAL_RC_RANGE_ERR); }
       }
       else if(cmd == 0x0fU)
       {
@@ -910,12 +1066,26 @@ void processSerialCommand(void)
 
     case 't': // receive new Calibration info. Command structure: "t", <tble_idx> <data array>.
     {
+      if (!payloadHasBytes(7U)) { break; }
+      if (engineIsActive())
+      {
+        sendReturnCodeMsg(SERIAL_RC_BUSY_ERR);
+        break;
+      }
+
       SensorCalibrationTable cmd = (SensorCalibrationTable)serialPayload[2];
       uint16_t offset = word(serialPayload[3], serialPayload[4]);
       uint16_t calibrationLength = word(serialPayload[5], serialPayload[6]); // Should be 256
 
+      if (!payloadRangeAvailable(7U, calibrationLength)) { break; }
+
       if(cmd == SensorCalibrationTable::O2Sensor)
       {
+        if ((offset > 1024U) || (calibrationLength > (1024U - offset)))
+        {
+          sendReturnCodeMsg(SERIAL_RC_RANGE_ERR);
+          break;
+        }
         loadO2CalibrationChunk(offset, calibrationLength);
         sendReturnCodeMsg(SERIAL_RC_OK);
         primarySerial.flush(); //This is safe because engine is assumed to not be running during calibration
@@ -938,12 +1108,17 @@ void processSerialCommand(void)
     case 'U': //User wants to reset the Arduino (probably for FW update)
       if (resetControl != RESET_CONTROL_DISABLED)
       {
+        if (!engineAllowsSerialReset())
+        {
+          sendReturnCodeMsg(SERIAL_RC_BUSY_ERR);
+          break;
+        }
+
       #ifndef SMALL_FLASH_MODE
         if (serialStatusFlag == SERIAL_INACTIVE) { primarySerial.println(F("Comms halted. Next byte will reset the Arduino.")); }
       #endif
 
-        while (primarySerial.available() == 0) { }
-        digitalWrite(pinResetControl, LOW);
+        beginSerialResetWait();
       }
       else
       {
@@ -956,6 +1131,7 @@ void processSerialCommand(void)
     case 'w':
     {
 #ifdef COMMS_SD
+      if (!payloadHasBytes(7U)) { break; }
       uint8_t cmd = serialPayload[2];
       uint16_t SD_arg1 = word(serialPayload[3], serialPayload[4]);
       uint16_t SD_arg2 = word(serialPayload[5], serialPayload[6]);

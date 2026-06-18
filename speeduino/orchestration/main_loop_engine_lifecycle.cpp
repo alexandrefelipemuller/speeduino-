@@ -80,7 +80,7 @@ void runMainLoopEngineLifecycleTasks(void)
     }
     else
     {
-      runMainLoopEngineStoppedTasks(shouldResetStoppedDecoder(decoderReportsRunning, engineWasActive, currentLoopTime));
+      runMainLoopEngineStoppedTasks(shouldResetStoppedDecoder(decoderReportsRunning, engineWasActive, currentLoopTime), engineWasActive);
     }
 }
 

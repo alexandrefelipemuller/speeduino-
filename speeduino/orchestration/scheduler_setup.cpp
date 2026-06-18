@@ -1,6 +1,7 @@
 #include "orchestration/scheduler.h"
 
 #include "data/core_constants.h"
+#include "support/atomic.h"
 #include "support/preprocessor.h"
 #include "support/units.h"
 
@@ -40,15 +41,16 @@ void setSchedule(Schedule &schedule, uint32_t delay, uint16_t duration, bool all
 {
   if((delay>0U) && (delay < MAX_TIMER_PERIOD) && (duration > 0U))
   {
-    noInterrupts();
-    if(!isRunning(schedule))
+    ATOMIC()
     {
-      setScheduleRunning(schedule, delay, duration);
+      if(!isRunning(schedule))
+      {
+        setScheduleRunning(schedule, delay, duration);
+      }
+      else if(allowQueuedSchedule)
+      {
+        setScheduleNext(schedule, delay, duration);
+      }
     }
-    else if(allowQueuedSchedule)
-    {
-      setScheduleNext(schedule, delay, duration);
-    }
-    interrupts();
   }
 }

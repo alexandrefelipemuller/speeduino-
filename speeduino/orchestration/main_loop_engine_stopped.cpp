@@ -5,6 +5,7 @@
 #include "data/runtime_state.h"
 #include "data/tune_registry.h"
 #include "orchestration/loop_helpers.h"
+#include "orchestration/scheduler_lifecycle.h"
 #include "comms/comms.h"
 #include "modules/core/module_runtime.h"
 #include "engine/auxiliaries.h"
@@ -17,8 +18,13 @@
 
 #ifndef UNIT_TEST
 
-void runMainLoopEngineStoppedTasks(bool resetDecoder)
+void runMainLoopEngineStoppedTasks(bool resetDecoder, bool forceOutputsOff)
 {
+    if (forceOutputsOff || resetDecoder)
+    {
+      stopEngineOutputsAndSchedulers();
+    }
+
     setRpm(currentStatus, 0);
     currentStatus.PW1 = 0;
     currentStatus.VE = 0;

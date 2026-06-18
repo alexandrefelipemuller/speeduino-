@@ -26,6 +26,7 @@ Timers are typically low resolution (Compared to Schedulers), with maximum frequ
 #include "data/tune_registry.h"
 #include "engine/scheduledIO_ign.h"
 #include "engine/scheduledIO_inj.h"
+#include "support/unit_testing.h"
 extern volatile uint8_t flexCounter;
 
 volatile uint16_t lastRPM_100ms; //Need to record this for rpmDOT calculation
@@ -37,7 +38,7 @@ volatile byte loop100ms;
 volatile byte loop250ms;
 volatile int loopSec;
 
-volatile unsigned int dwellLimit_uS;
+volatile uint32_t dwellLimit_uS;
 
 volatile uint8_t tachoEndTime; //The time (in ms) that the tacho pulse needs to end at
 volatile TachoOutputStatus tachoOutputFlag;
@@ -91,11 +92,48 @@ void tachoPulseLow(void)
   TACHO_PULSE_LOW();
 }
 
-static inline void applyOverDwellCheck(IgnitionSchedule &schedule, uint32_t targetOverdwellTime) {
-  //Check first whether each spark output is currently on. Only check it's dwell time if it is
-  if ((isRunning(schedule)) && (schedule.startTime < targetOverdwellTime)) { 
-    schedule.pEndCallback(); schedule.Status = OFF; 
+static constexpr uint32_t HARD_OVERDWELL_LIMIT_US = 250000UL;
+
+TESTABLE_INLINE_STATIC bool hasDwellExceededLimit(uint32_t nowUs, uint32_t startUs, uint32_t dwellLimitUs)
+{
+  return ((uint32_t)(nowUs - startUs) > dwellLimitUs);
+}
+
+static inline void applyOverDwellCheck(IgnitionSchedule &schedule, uint32_t nowUs, uint32_t dwellLimitUs) {
+  //Check first whether each spark output is currently on. Only check its dwell time if it is.
+  if ((isRunning(schedule)) && hasDwellExceededLimit(nowUs, schedule.startTime, dwellLimitUs)) {
+    schedule.pEndCallback(); schedule.Status = OFF;
   }
+}
+
+static inline void applyAllOverDwellChecks(uint32_t nowUs, uint32_t dwellLimitUs) {
+  applyOverDwellCheck(ignitionSchedule1, nowUs, dwellLimitUs);
+#if IGN_CHANNELS >= 2
+  applyOverDwellCheck(ignitionSchedule2, nowUs, dwellLimitUs);
+#endif
+#if IGN_CHANNELS >= 3
+  applyOverDwellCheck(ignitionSchedule3, nowUs, dwellLimitUs);
+#endif
+#if IGN_CHANNELS >= 4
+  applyOverDwellCheck(ignitionSchedule4, nowUs, dwellLimitUs);
+#endif
+#if IGN_CHANNELS >= 5
+  applyOverDwellCheck(ignitionSchedule5, nowUs, dwellLimitUs);
+#endif
+#if IGN_CHANNELS >= 6
+  applyOverDwellCheck(ignitionSchedule6, nowUs, dwellLimitUs);
+#endif
+#if IGN_CHANNELS >= 7
+  applyOverDwellCheck(ignitionSchedule7, nowUs, dwellLimitUs);
+#endif
+#if IGN_CHANNELS >= 8
+  applyOverDwellCheck(ignitionSchedule8, nowUs, dwellLimitUs);
+#endif
+}
+
+TESTABLE_INLINE_STATIC bool engineAllowsHardwareTestOutputs(void)
+{
+  return (currentStatus.RPM == 0U) && !currentStatus.engineIsRunning && !currentStatus.engineIsCranking;
 }
 
 void oneMSInterval(void)
@@ -112,33 +150,15 @@ void oneMSInterval(void)
   loop250ms++;
   loopSec++;
 
-  //Overdwell check
-  uint32_t targetOverdwellTime = micros() - dwellLimit_uS; //Set a target time in the past that all coil charging must have begun after. If the coil charge began before this time, it's been running too long
+  //Overdwell check. The hard cap is independent of the user-configured limiter and
+  //prevents a stuck charged coil from remaining on indefinitely after a missed event.
+  uint32_t nowUs = micros();
+  applyAllOverDwellChecks(nowUs, HARD_OVERDWELL_LIMIT_US);
+
   bool isCrankLocked = configPage4.ignCranklock && (currentStatus.RPM < currentStatus.crankRPM); //Dwell limiter is disabled during cranking on setups using the locked cranking timing. WE HAVE to do the RPM check here as relying on the engine cranking bit can be potentially too slow in updating
-  if ((configPage4.useDwellLim == 1) && (isCrankLocked != true)) 
+  if ((configPage4.useDwellLim == 1) && (isCrankLocked != true))
   {
-    applyOverDwellCheck(ignitionSchedule1, targetOverdwellTime);
-#if IGN_CHANNELS >= 2
-    applyOverDwellCheck(ignitionSchedule2, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 3
-    applyOverDwellCheck(ignitionSchedule3, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 4
-    applyOverDwellCheck(ignitionSchedule4, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 5
-    applyOverDwellCheck(ignitionSchedule5, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 6
-    applyOverDwellCheck(ignitionSchedule6, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 7
-    applyOverDwellCheck(ignitionSchedule7, targetOverdwellTime);
-#endif
-#if IGN_CHANNELS >= 8
-    applyOverDwellCheck(ignitionSchedule8, targetOverdwellTime);
-#endif
+    applyAllOverDwellChecks(nowUs, dwellLimit_uS);
   }
 
   //Tacho is flagged as being ready for a pulse by the ignition outputs, or the sweep interval upon startup
@@ -210,7 +230,7 @@ void oneMSInterval(void)
     loop33ms = 0;
 
     //Pulse fuel and ignition test outputs are set at 30Hz
-    if( (currentStatus.isTestModeActive) && (currentStatus.RPM == 0) )
+    if( currentStatus.isTestModeActive && engineAllowsHardwareTestOutputs() )
     {
       //Check for pulsed injector output test
       if(BIT_CHECK(HWTest_INJ_Pulsed, INJ1_CMD_BIT)) { openInjector1(); }
@@ -281,7 +301,7 @@ void oneMSInterval(void)
     loopSec = 0; //Reset counter.
     BIT_SET(TIMER_mask, BIT_TIMER_1HZ);
 
-    dwellLimit_uS = (1000 * configPage4.dwellLimit); //Update uS value in case setting has changed
+    dwellLimit_uS = (1000UL * configPage4.dwellLimit); //Update uS value in case setting has changed
     currentStatus.crankRPM = ((unsigned int)configPage4.crankRPM * 10);
 
     //**************************************************************************************************************************************************

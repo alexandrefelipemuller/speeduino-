@@ -916,6 +916,11 @@ decoder_t __attribute__((optimize("Os"))) triggerSetup_missingTooth(void)
 {
   decoderFeatures = decoder_features_t();
 	sharedDecoderReset();
+  if ((configPage4.triggerTeeth == 0U) || (configPage4.triggerMissingTeeth >= configPage4.triggerTeeth))
+  {
+    return decoder_builder_t().build();
+  }
+
   decoderFeatures.supportsPerToothIgnition = true;
   triggerToothAngle = 360 / configPage4.triggerTeeth; //The number of degrees that passes from tooth to tooth
   if(configPage4.TrigSpeed == CAM_SPEED) 
@@ -1144,6 +1149,11 @@ decoder_t  __attribute__((optimize("Os"))) triggerSetup_DualWheel(void)
 {
   decoderFeatures = decoder_features_t();
 	sharedDecoderReset();
+  if (configPage4.triggerTeeth == 0U)
+  {
+    return decoder_builder_t().build();
+  }
+
   triggerToothAngle = 360 / configPage4.triggerTeeth; //The number of degrees that passes from tooth to tooth
   if(configPage4.TrigSpeed == CAM_SPEED) { triggerToothAngle = 720 / configPage4.triggerTeeth; } //Account for cam speed
   toothCurrentCount = UINT8_MAX; //Default value
@@ -6425,7 +6435,7 @@ decoder_t  __attribute__((optimize("Os"))) triggerSetup_FordTFI(void)
 
   triggerToothAngle = 720U / triggerActualTeeth; //The number of degrees that passes from tooth to tooth, half cylinder count
   toothCurrentCount = 0; //Default value
-  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 30U * configPage2.nCylinders)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
+  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 30U * triggerActualTeeth)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
   triggerSecFilterTime = triggerFilterTime * 4U /5u; //Same as above, but slightly about lower due to signature trigger (about 80%)
   lastSyncRevolution = 0;
   decoderFeatures.supportsSequential = true;

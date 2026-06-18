@@ -17,13 +17,11 @@ void runMainLoopTimerEngineIdleTasks(void)
 {
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ))
     {
-      BIT_CLEAR(TIMER_mask, BIT_TIMER_10HZ);
       idleControl();
       core_modules_tick_10hz();
     }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
     {
-      BIT_CLEAR(TIMER_mask, BIT_TIMER_4HZ);
       if( (configPage2.idleAdvEnabled != IDLEADVANCE_MODE_OFF) || (configPage6.iacAlgorithm != IAC_ALGORITHM_NONE) )
       {
         currentStatus.CLIdleTarget = getIdleTarget(currentStatus.coolant);

@@ -2,6 +2,9 @@
 
 #include "orchestration/schedule_angles.h"
 #include "orchestration/schedule_calcs.h"
+#include "engine/scheduledIO_ign.h"
+#include "engine/scheduledIO_inj.h"
+#include "support/atomic.h"
 #include "support/preprocessor.h"
 
 static void resetSchedule(Schedule &schedule)
@@ -193,9 +196,114 @@ void stopFuelSchedulers(void)
 #endif
 }
 
+
+static void cancelSchedule(Schedule &schedule)
+{
+    schedule.Status = OFF;
+}
+
+static void cancelIgnitionSchedule(IgnitionSchedule &schedule)
+{
+    cancelSchedule(schedule);
+    schedule.endScheduleSetByDecoder = false;
+}
+
+static void cancelFuelSchedules(void)
+{
+    cancelSchedule(fuelSchedule1);
+    cancelSchedule(fuelSchedule2);
+    cancelSchedule(fuelSchedule3);
+    cancelSchedule(fuelSchedule4);
+#if INJ_CHANNELS >= 5
+    cancelSchedule(fuelSchedule5);
+#endif
+#if INJ_CHANNELS >= 6
+    cancelSchedule(fuelSchedule6);
+#endif
+#if INJ_CHANNELS >= 7
+    cancelSchedule(fuelSchedule7);
+#endif
+#if INJ_CHANNELS >= 8
+    cancelSchedule(fuelSchedule8);
+#endif
+}
+
+static void cancelIgnitionSchedules(void)
+{
+    cancelIgnitionSchedule(ignitionSchedule1);
+    cancelIgnitionSchedule(ignitionSchedule2);
+    cancelIgnitionSchedule(ignitionSchedule3);
+    cancelIgnitionSchedule(ignitionSchedule4);
+#if IGN_CHANNELS >= 5
+    cancelIgnitionSchedule(ignitionSchedule5);
+#endif
+#if IGN_CHANNELS >= 6
+    cancelIgnitionSchedule(ignitionSchedule6);
+#endif
+#if IGN_CHANNELS >= 7
+    cancelIgnitionSchedule(ignitionSchedule7);
+#endif
+#if IGN_CHANNELS >= 8
+    cancelIgnitionSchedule(ignitionSchedule8);
+#endif
+}
+
+static void stopIgnitionOutputs(void)
+{
+    endCoil1Charge();
+    endCoil2Charge();
+    endCoil3Charge();
+    endCoil4Charge();
+    endCoil5Charge();
+#if IGN_CHANNELS >= 6
+    endCoil6Charge();
+#endif
+#if IGN_CHANNELS >= 7
+    endCoil7Charge();
+#endif
+#if IGN_CHANNELS >= 8
+    endCoil8Charge();
+#endif
+}
+
+static void stopFuelOutputs(void)
+{
+    closeInjector1();
+    closeInjector2();
+    closeInjector3();
+    closeInjector4();
+    closeInjector5();
+#if INJ_CHANNELS >= 6
+    closeInjector6();
+#endif
+#if INJ_CHANNELS >= 7
+    closeInjector7();
+#endif
+#if INJ_CHANNELS >= 8
+    closeInjector8();
+#endif
+}
+
+void stopEngineOutputsAndSchedulers(void)
+{
+    stopIgnitionSchedulers();
+    stopFuelSchedulers();
+
+    ATOMIC()
+    {
+      cancelIgnitionSchedules();
+      cancelFuelSchedules();
+    }
+
+    stopIgnitionOutputs();
+    stopFuelOutputs();
+}
+
 void refreshIgnitionSchedule1(unsigned long timeToEnd)
 {
-  if( (isRunning(ignitionSchedule1)) && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.duration) )
+  if( (isRunning(ignitionSchedule1))
+   && (timeToEnd > IGNITION_REFRESH_THRESHOLD)
+   && (uS_TO_TIMER_COMPARE(timeToEnd) < ignitionSchedule1.duration) )
   {
     ATOMIC() {
       ignitionSchedule1.endCompare = IGN1_COUNTER + uS_TO_TIMER_COMPARE(timeToEnd);
