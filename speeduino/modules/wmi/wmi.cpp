@@ -14,10 +14,10 @@
 
 void module_wmi_tick_30hz(void)
 {
-  int wmiPW = 0;
 
   if((configPage10.vvt2Enabled == 0) && (configPage10.wmiEnabled >= 1))
   {
+    int wmiPW = 0;
     if(WMI_TANK_IS_EMPTY())
     {
       currentAdvancedEngineStatus.wmi_tank_empty = false;

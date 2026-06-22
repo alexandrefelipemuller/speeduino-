@@ -296,6 +296,10 @@ void legacySerialCommand(void)
         {
           currentPage -= 55;
         }
+        else
+        {
+          // No-op: keep currentPage when command payload is out-of-range
+        }
         serialStatusFlag = SERIAL_INACTIVE;
       }
       break;
@@ -918,7 +922,7 @@ namespace {
     primarySerial.write((byte *)iter.entity.pRaw, iter.entity.size);
   }
 
-  inline void send_table_values(table_value_iterator it)
+  static inline void send_table_values(table_value_iterator it)
   {
     while (!it.at_end())
     {
@@ -928,7 +932,7 @@ namespace {
     }
   }
 
-  inline void send_table_axis(table_axis_iterator it)
+  static inline void send_table_axis(table_axis_iterator it)
   {
     while (!it.at_end())
     {

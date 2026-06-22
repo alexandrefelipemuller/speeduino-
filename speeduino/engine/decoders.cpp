@@ -777,8 +777,7 @@ static inline void triggerRecordVVT1Angle (void)
   //Record the VVT Angle
   if( (configPage6.vvtEnabled > 0) && (revolutionOne == 1) )
   {
-    int16_t curAngle;
-    curAngle = currentStatus.decoder.getCrankAngle();
+    int16_t curAngle = currentStatus.decoder.getCrankAngle();
     while(curAngle > 360) { curAngle -= 360; }
     curAngle -= configPage4.triggerAngle; //Value at TDC
     if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage10.vvtCL0DutyAng; }
@@ -791,8 +790,6 @@ static void triggerThird_missingTooth(void)
 {
 //Record the VVT2 Angle (the only purpose of the third trigger)
 //NB no filtering of this signal with current implementation unlike Cam (VVT1)
-
-  int16_t curAngle;
   curTime3 = micros();
   curGap3 = curTime3 - toothLastThirdToothTime;
 
@@ -802,11 +799,10 @@ static void triggerThird_missingTooth(void)
     curGap3 = 0; 
     toothLastThirdToothTime = curTime3;
   }
-
   if ( curGap3 >= triggerThirdFilterTime )
   {
     triggerThirdFilterTime = curGap3 >> 2; //Next third filter is 25% the current gap
-    
+    int16_t curAngle;
     curAngle = currentStatus.decoder.getCrankAngle();
     while(curAngle > 360) { curAngle -= 360; }
     curAngle -= configPage4.triggerAngle; //Value at TDC
@@ -1814,11 +1810,11 @@ static uint16_t getRPM_4G63(void)
   {
     if( (currentStatus.RPM < currentStatus.crankRPM)  )
     {
-      int tempToothAngle;
-      unsigned long toothTime;
       if( (toothLastToothTime == 0) || (toothLastMinusOneToothTime == 0) ) { tempRPM = 0; }
       else
       {
+        int tempToothAngle;
+        unsigned long toothTime;
         noInterrupts();
         tempToothAngle = triggerToothAngle;
         toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 70 and 110 depending on the last tooth that was seen (or 70/50 for 6 cylinders)
@@ -3846,11 +3842,11 @@ static uint16_t getRPM_Harley(void)
     if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100) )
     {
       // No difference with this option?
-      int tempToothAngle;
-      unsigned long toothTime;
       if ( (toothLastToothTime == 0) || (toothLastMinusOneToothTime == 0) ) { tempRPM = 0; }
       else
       {
+        int tempToothAngle;
+        unsigned long toothTime;
         noInterrupts();
         tempToothAngle = triggerToothAngle;
         /* High-res mode
@@ -5220,11 +5216,11 @@ static uint16_t getRPM_Vmax(void)
   {
     if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100) )
     {
-      int tempToothAngle;
-      unsigned long toothTime;
       if ( (toothLastToothTime == 0) || (toothLastMinusOneToothTime == 0) ) { tempRPM = 0; }
       else
       {
+        int tempToothAngle;
+        unsigned long toothTime;
         noInterrupts();
         tempToothAngle = triggerToothAngle;
         SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)

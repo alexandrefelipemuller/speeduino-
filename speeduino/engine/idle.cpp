@@ -237,11 +237,10 @@ False: If the motor is ready for another step
 */
 static inline uint8_t checkForStepping(void)
 {
-  bool isStepping = false;
-  unsigned int timeCheck;
-  
+   bool isStepping = false;
   if( (idleStepper.stepperStatus == STEPPING) || (idleStepper.stepperStatus == COOLING) )
   {
+    unsigned int timeCheck;
     if (idleStepper.stepperStatus == STEPPING)
     {
       timeCheck = iacStepTime_uS;

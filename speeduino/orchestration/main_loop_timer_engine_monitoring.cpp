@@ -23,7 +23,7 @@ void runMainLoopTimerEngineMonitoringTasks(void)
       }
 #endif
       core_modules_tick_15hz();
-      if(toothHistoryIndex > TOOTH_LOG_SIZE) { currentLoggerStatus.is_tooth_log_1_full = true; }
+      if(toothHistoryIndex >= TOOTH_LOG_SIZE) { currentLoggerStatus.is_tooth_log_1_full = true; }
     }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_1HZ))
     {

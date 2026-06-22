@@ -100,7 +100,7 @@ constexpr uint16_t TABLE_BLOCKING_FACTOR = 64;
 extern "C" char* sbrk(int incr); //Used to freeRam
 #endif
 #ifndef digitalPinToInterrupt
-inline uint32_t  digitalPinToInterrupt(uint32_t Interrupt_pin) { return Interrupt_pin; } //This isn't included in the stm32duino libs (yet)
+static inline uint32_t  digitalPinToInterrupt(uint32_t Interrupt_pin) { return Interrupt_pin; } //This isn't included in the stm32duino libs (yet)
 #endif
 
 #if defined(USER_BTN) 

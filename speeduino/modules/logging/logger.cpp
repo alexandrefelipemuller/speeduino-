@@ -304,7 +304,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 81: statusValue = highByte(currentStatus.PW4); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
 
     case 82: statusValue = buildStatus3(currentStatus); break;
-    case 83: statusValue = buildEngineProtectStatus(currentStatus); break; //RPM(0), MAP(1), OIL(2), AFR(3), Unused(4:7)
+    case 83: statusValue = buildEngineProtectStatus(currentStatus); break; //RPM(0), MAP(1), OIL(2), AFR(3), Coolant(4), Unused(5:6), IOError(7)
     case 84: statusValue = lowByte(currentStatus.fuelLoad); break;
     case 85: statusValue = highByte(currentStatus.fuelLoad); break;
     case 86: statusValue = lowByte(currentStatus.ignLoad); break;

@@ -15,9 +15,16 @@
 
 void runMainLoopTimerEngineIdleTasks(void)
 {
-    if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ))
+    if( (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OL)
+    || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_CL)
+    || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OLCL)
+    || BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ) )
     {
       idleControl();
+    }
+
+    if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_10HZ))
+    {
       core_modules_tick_10hz();
     }
     if (BIT_CHECK(LOOP_TIMER, BIT_TIMER_4HZ))
@@ -29,13 +36,6 @@ void runMainLoopTimerEngineIdleTasks(void)
       }
 
       core_modules_tick_4hz(statusSensors, currentStatus);
-    }
-
-    if( (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OL)
-    || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_CL)
-    || (configPage6.iacAlgorithm == IAC_ALGORITHM_STEP_OLCL) )
-    {
-      idleControl();
     }
 }
 

@@ -877,7 +877,9 @@ static inline uint16_t getSpeed(void)
     uint32_t lastPulseTime = vssTimes[vssIndex];
     interrupts();
 
-    if ( (configPage2.vssPulsesPerKm == 0U) || (pulseTime == 0U) || ((micros() - lastPulseTime) > MICROS_PER_SEC) ) { tempSpeed = 0; } // Check that the car hasn't come to a stop. Is true if last pulse was more than 1 second ago
+    uint32_t timeSinceLastPulse = (micros() - lastPulseTime);
+
+    if ( (configPage2.vssPulsesPerKm == 0U) || (pulseTime == 0U) || (timeSinceLastPulse > MICROS_PER_SEC) ) { tempSpeed = 0; } // Check that the car hasn't come to a stop. Is true if last pulse was more than 1 second ago
     else 
     {
       uint32_t speedDivisor = pulseTime * (uint32_t)configPage2.vssPulsesPerKm;
