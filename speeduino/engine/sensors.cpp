@@ -109,7 +109,8 @@ TESTABLE_INLINE_STATIC int16_t fastMap10Bit(uint16_t value, int16_t rangeMin, in
 
   if (value > 1023U) { value = 1023U; }
   uint16_t range = rangeMax-rangeMin;
-  uint16_t fromStartOfRange = (uint16_t)rshift<10>((uint32_t)value * range);
+  uint32_t fromStartOfRange = rshift<10>((uint32_t)value * (uint32_t)range);
+  if (fromStartOfRange > (uint32_t)UINT16_MAX) { fromStartOfRange = (uint32_t)UINT16_MAX; }
   return rangeMin + (int16_t)fromStartOfRange;
 }
 
@@ -630,7 +631,8 @@ static inline void readTPS(uint8_t tpsADC)
   {
     //Check that the ADC values fall within the min and max ranges (Should always be the case, but noise can cause these to fluctuate outside the defined range).
     tpsADC = clamp(tpsADC, tempTPSMin, tempTPSMax);
-    currentStatus.TPS = map(tpsADC, tempTPSMin, tempTPSMax, 0, 200);
+    uint32_t tempTPS = map(tpsADC, tempTPSMin, tempTPSMax, 0, 200);
+    currentStatus.TPS = (tempTPS > 200U) ? 200U : (uint8_t)tempTPS;
   } //Take the raw TPS ADC value and convert it into a TPS% based on the calibrated values
 
   //Check whether the closed throttle position sensor is active
@@ -682,8 +684,8 @@ static inline bool isValidBaro(uint8_t baro)
 static inline void setBaroFromSensorReading(uint16_t sensorReading) 
 {
   currentStatus.baroADC = sensorReading;
-  int16_t tempValue = fastMap10Bit(currentStatus.baroADC, configPage2.baroMin, configPage2.baroMax);
-  currentStatus.baro = (uint8_t)max((int16_t)0, tempValue);
+  int32_t tempValue = fastMap10Bit(currentStatus.baroADC, configPage2.baroMin, configPage2.baroMax);
+  currentStatus.baro = (tempValue < 0) ? 0U : (tempValue > (int32_t)UINT8_MAX ? UINT8_MAX : (uint8_t)tempValue);
 }
 
 // Should only be called when the engine isn't running.
@@ -782,7 +784,7 @@ static inline void readO2(void)
 
 static inline void readBat(void)
 {
-  int16_t tempReading = fastMap10Bit(readAnalogSensor(pinBat), 0, 245); //Get the current raw Battery value. Permissible values are from 0v to 24.5v (245)
+  int32_t tempReading = fastMap10Bit(readAnalogSensor(pinBat), 0, 245); //Get the current raw Battery value. Permissible values are from 0v to 24.5v (245)
 
   //Apply the offset calibration value to the reading
   tempReading += configPage4.batVoltCorrect;
@@ -808,7 +810,7 @@ static inline void readBat(void)
     }
   }
 
-  currentStatus.battery10 = LOW_PASS_FILTER(tempReading, configPage4.ADCFILTER_BAT, currentStatus.battery10);
+  currentStatus.battery10 = LOW_PASS_FILTER((uint16_t)tempReading, configPage4.ADCFILTER_BAT, currentStatus.battery10);
 }
 
 #if defined(ANALOG_ISR)
@@ -843,21 +845,21 @@ uint32_t vssGetPulseGap(uint8_t historyIndex)
 
 static inline uint16_t getSpeed(void)
 {
-  uint16_t tempSpeed = 0;
+  uint32_t tempSpeed = 0U;
   // Get VSS from CAN, Serial or Analog by using Aux input channels.
   if(configPage2.vssMode == VSS_MODE_INTERNAL_PIN)
   {
     // Direct reading from Aux channel
     if (configPage2.vssPulsesPerKm == 0U)
     {
-      tempSpeed = currentCanAuxStatus.values[configPage2.vssAuxCh];
+      tempSpeed = (uint32_t)currentCanAuxStatus.values[configPage2.vssAuxCh];
     }
     // Adjust the reading by dividing it by set amount.
     else
     {
-      tempSpeed = fast_div(currentCanAuxStatus.values[configPage2.vssAuxCh], configPage2.vssPulsesPerKm);
+      tempSpeed = (uint32_t)fast_div(currentCanAuxStatus.values[configPage2.vssAuxCh], configPage2.vssPulsesPerKm);
     }
-    tempSpeed = LOW_PASS_FILTER(tempSpeed, configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
+    tempSpeed = (uint32_t)LOW_PASS_FILTER((uint16_t)min(tempSpeed, (uint32_t)UINT16_MAX), configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
   }
   // Interrupt driven mode
   else if (isExternalVssMode(configPage2))
@@ -884,14 +886,14 @@ static inline uint16_t getSpeed(void)
     {
       uint32_t speedDivisor = pulseTime * (uint32_t)configPage2.vssPulsesPerKm;
       if (speedDivisor == 0U) { tempSpeed = 0U; }
-      else { tempSpeed = fast_div(MICROS_PER_HOUR, speedDivisor); } //Convert the pulse gap into km/h
-      tempSpeed = LOW_PASS_FILTER(tempSpeed, configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
+      else { tempSpeed = (uint32_t)fast_div(MICROS_PER_HOUR, speedDivisor); } //Convert the pulse gap into km/h
+      tempSpeed = (uint32_t)LOW_PASS_FILTER((uint16_t)min(tempSpeed, (uint32_t)UINT16_MAX), configPage2.vssSmoothing, currentStatus.vss); //Apply speed smoothing factor
     }
     if(tempSpeed > 1000U) { tempSpeed = currentStatus.vss; } //Safety check. This usually occurs when there is a hardware issue
   } else {
     // Do nothing
   }
-  return tempSpeed;
+  return (tempSpeed > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)tempSpeed;
 }
 
 static inline void readSpeed(void)
@@ -907,7 +909,7 @@ static inline byte getGear(void)
     //If the speed is non-zero, default to the last calculated gear
     tempGear = currentStatus.gear;
 
-    uint16_t pulsesPer1000rpm = fast_div32_16((uint32_t)(currentStatus.vss * 10000UL), currentStatus.RPM); //Gives the current pulses per 1000RPM, multiplied by 10 (10x is the multiplication factor for the ratios in TS)
+    uint32_t pulsesPer1000rpm = (uint32_t)fast_div32_16((uint32_t)(currentStatus.vss * 10000UL), currentStatus.RPM); //Gives the current pulses per 1000RPM, multiplied by 10 (10x is the multiplication factor for the ratios in TS)
     //Begin gear detection
     if( (pulsesPer1000rpm > (configPage2.vssRatio1 - VSS_GEAR_HYSTERESIS)) && (pulsesPer1000rpm < (configPage2.vssRatio1 + VSS_GEAR_HYSTERESIS)) ) { tempGear = 1; }
     else if( (pulsesPer1000rpm > (configPage2.vssRatio2 - VSS_GEAR_HYSTERESIS)) && (pulsesPer1000rpm < (configPage2.vssRatio2 + VSS_GEAR_HYSTERESIS)) ) { tempGear = 2; }
@@ -930,17 +932,17 @@ static inline void readGear(void)
 
 static inline byte getFuelPressure(void)
 {
-  int16_t tempFuelPressure = 0;
+  int32_t tempFuelPressure = 0;
 
   if(configPage10.fuelPressureEnable > 0U)
   {
-    tempFuelPressure = fastMap10Bit(readAnalogSensor(pinFuelPressure), configPage10.fuelPressureMin, configPage10.fuelPressureMax);
-    tempFuelPressure = LOW_PASS_FILTER(tempFuelPressure, ADCFILTER_PSI_DEFAULT, currentStatus.fuelPressure); //Apply smoothing factor
+    tempFuelPressure = (int32_t)fastMap10Bit(readAnalogSensor(pinFuelPressure), configPage10.fuelPressureMin, configPage10.fuelPressureMax);
+    tempFuelPressure = (int32_t)LOW_PASS_FILTER((int16_t)tempFuelPressure, ADCFILTER_PSI_DEFAULT, currentStatus.fuelPressure); //Apply smoothing factor
     //Sanity checks
-    tempFuelPressure = clamp(tempFuelPressure, (int16_t)0, (int16_t)configPage10.fuelPressureMax);
+    tempFuelPressure = clamp(tempFuelPressure, (int32_t)0, (int32_t)configPage10.fuelPressureMax);
   }
 
-  return (byte)tempFuelPressure;
+  return (tempFuelPressure > (int32_t)UINT8_MAX) ? UINT8_MAX : (byte)tempFuelPressure;
 }
 
 static inline void updateFuelPressure(void)
@@ -950,19 +952,19 @@ static inline void updateFuelPressure(void)
 
 static inline byte getOilPressure(void)
 {
-  int16_t tempOilPressure = 0;
+  int32_t tempOilPressure = 0;
 
   if(configPage10.oilPressureEnable > 0U)
   {
     //Perform ADC read
-    tempOilPressure = fastMap10Bit(readAnalogSensor(pinOilPressure), configPage10.oilPressureMin, configPage10.oilPressureMax);
-    tempOilPressure = LOW_PASS_FILTER(tempOilPressure, ADCFILTER_PSI_DEFAULT, currentStatus.oilPressure); //Apply smoothing factor
+    tempOilPressure = (int32_t)fastMap10Bit(readAnalogSensor(pinOilPressure), configPage10.oilPressureMin, configPage10.oilPressureMax);
+    tempOilPressure = (int32_t)LOW_PASS_FILTER((int16_t)tempOilPressure, ADCFILTER_PSI_DEFAULT, currentStatus.oilPressure); //Apply smoothing factor
     //Sanity check
-    tempOilPressure = clamp(tempOilPressure, (int16_t)0, (int16_t)configPage10.oilPressureMax);
+    tempOilPressure = clamp(tempOilPressure, (int32_t)0, (int32_t)configPage10.oilPressureMax);
   }
 
 
-  return (byte)tempOilPressure;
+  return (tempOilPressure > (int32_t)UINT8_MAX) ? UINT8_MAX : (byte)tempOilPressure;
 }
 
 static inline void updateOilPressure(void)
@@ -1002,7 +1004,7 @@ uint8_t getAnalogKnock(void)
   }
 
   //Perform ADC read
-  return (uint8_t)fastMap10Bit(readAnalogSensor(pinKnock), 0U, 255U);
+  return (uint8_t)clamp(fastMap10Bit(readAnalogSensor(pinKnock), 0U, 255U), 0, 255);
 }
 
 #if defined(CORE_AVR)

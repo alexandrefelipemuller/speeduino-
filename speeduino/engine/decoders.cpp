@@ -437,7 +437,8 @@ static bool UpdateRevolutionTimeFromTeeth(bool isCamTeeth) {
 }
 
 static inline uint16_t RpmFromRevolutionTimeUs(uint32_t revTime) {
-  return clamp(fast_div_closest((uint32_t)MICROS_PER_MIN, revTime), (uint32_t)0UL, (uint32_t)MAX_RPM); //Calc RPM based on last full revolution time
+  const uint32_t rpm = clamp(fast_div_closest((uint32_t)MICROS_PER_MIN, revTime), (uint32_t)0UL, (uint32_t)MAX_RPM); //Calc RPM based on last full revolution time
+  return (rpm > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)rpm;
 }
 
 /** Compute RPM.
@@ -816,7 +817,7 @@ static void triggerThird_missingTooth(void)
 
 static uint16_t getRPM_missingTooth(void)
 {
-  uint16_t tempRPM = 0;
+  uint32_t tempRPM = 0U;
   if( currentStatus.RPM < currentStatus.crankRPM )
   {
     if(toothCurrentCount != 1)
@@ -829,7 +830,7 @@ static uint16_t getRPM_missingTooth(void)
   {
     tempRPM = stdGetRPM(configPage4.TrigSpeed==CAM_SPEED); //Account for cam speed
   }
-  return tempRPM;
+  return (tempRPM > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)tempRPM;
 }
 
 static int16_t getCrankAngle_missingTooth(void)
@@ -3240,7 +3241,7 @@ static void triggerSec_Nissan360(void)
 static uint16_t getRPM_Nissan360(void)
 {
   //Can't use stdGetRPM as there is no separate cranking RPM calc (stdGetRPM returns 0 if cranking)
-  uint16_t tempRPM;
+  uint32_t tempRPM;
   if( (decoderStatus.syncStatus==SyncStatus::Full) && (toothLastToothTime != 0) && (toothLastMinusOneToothTime != 0) )
   {
     if(currentStatus.startRevolutions < 2)
@@ -3260,7 +3261,7 @@ static uint16_t getRPM_Nissan360(void)
   }
   else { tempRPM = 0; }
 
-  return tempRPM;
+  return (tempRPM > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)tempRPM;
 }
 
 static int16_t getCrankAngle_Nissan360(void)

@@ -51,6 +51,10 @@ void setSchedule(Schedule &schedule, uint32_t delay, uint16_t duration, bool all
       {
         setScheduleNext(schedule, delay, duration);
       }
+      else
+      {
+        ;
+      }
     }
   }
 }

@@ -99,12 +99,12 @@ static void boostByGear(void)
     {
       switch (currentStatus.gear)
       {
-        case 1: currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear1 * 2 * 100; break;
-        case 2: currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear2 * 2 * 100; break;
-        case 3: currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear3 * 2 * 100; break;
-        case 4: currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear4 * 2 * 100; break;
-        case 5: currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear5 * 2 * 100; break;
-        case 6: currentAdvancedEngineStatus.boost_duty = configPage9.boostByGear6 * 2 * 100; break;
+        case 1: currentAdvancedEngineStatus.boost_duty = ((uint16_t)configPage9.boostByGear1 * 2U * 100U); break;
+        case 2: currentAdvancedEngineStatus.boost_duty = ((uint16_t)configPage9.boostByGear2 * 2U * 100U); break;
+        case 3: currentAdvancedEngineStatus.boost_duty = ((uint16_t)configPage9.boostByGear3 * 2U * 100U); break;
+        case 4: currentAdvancedEngineStatus.boost_duty = ((uint16_t)configPage9.boostByGear4 * 2U * 100U); break;
+        case 5: currentAdvancedEngineStatus.boost_duty = ((uint16_t)configPage9.boostByGear5 * 2U * 100U); break;
+        case 6: currentAdvancedEngineStatus.boost_duty = ((uint16_t)configPage9.boostByGear6 * 2U * 100U); break;
         default: break;
       }
     }
@@ -140,6 +140,10 @@ static void boostByGear(void)
       }
     }
   }
+  else
+  {
+    ;
+  }
 }
 
 void boostControl(void)
@@ -149,7 +153,7 @@ void boostControl(void)
     if(configPage4.boostType == OPEN_LOOP_BOOST)
     {
       if((configPage9.boostByGearEnabled > 0) && isExternalVssMode(configPage2)) { boostByGear(); }
-      else { currentAdvancedEngineStatus.boost_duty = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) * 2 * 100; }
+      else { currentAdvancedEngineStatus.boost_duty = ((uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) * 2U * 100U); }
 
       if(currentAdvancedEngineStatus.boost_duty > 10000) { currentAdvancedEngineStatus.boost_duty = 10000; }
       if(currentAdvancedEngineStatus.boost_duty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); }
@@ -160,7 +164,7 @@ void boostControl(void)
       if((boostCounter & 7) == 1)
       {
         if((configPage9.boostByGearEnabled > 0) && isExternalVssMode(configPage2)) { boostByGear(); }
-        else { currentAdvancedEngineStatus.boost_target = get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) << 1; }
+        else { currentAdvancedEngineStatus.boost_target = ((uint16_t)get3DTableValue(&boostTable, (currentStatus.TPS * 2U), currentStatus.RPM) << 1U); }
 
         if(configPage2.flexEnabled == 1)
         {
@@ -186,7 +190,7 @@ void boostControl(void)
             else { boostPID.SetTunings(configPage6.boostKP, configPage6.boostKI, configPage6.boostKD); }
           }
 
-          const bool pid_computed = boostPID.Compute(get3DTableValue(&boostTableLookupDuty, currentAdvancedEngineStatus.boost_target, currentStatus.RPM) * 100 / 2);
+          const bool pid_computed = boostPID.Compute((uint16_t)get3DTableValue(&boostTableLookupDuty, currentAdvancedEngineStatus.boost_target, currentStatus.RPM) * 100U / 2U);
           if(currentAdvancedEngineStatus.boost_duty == 0) { DISABLE_BOOST_TIMER(); BOOST_PIN_LOW(); }
           else if(pid_computed) { boost_pwm_target_value = ((unsigned long)(currentAdvancedEngineStatus.boost_duty) * boost_pwm_max_count) / 10000; }
         }

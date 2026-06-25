@@ -88,6 +88,10 @@ byte pinTranslateAnalog(byte rawPin)
     #if BOARD_MAX_ADC_PINS >= 22
       case 22: outputPin = A22; break;
     #endif
+    default:
+      // Keep MISRA happy when a non-mapped value is passed.
+      outputPin = rawPin;
+      break;
   }
 
   return outputPin;

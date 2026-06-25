@@ -93,6 +93,10 @@ static inline void enableIdle(void)
   {
 
   }
+  else
+  {
+    ;
+  }
 }
 
 static inline void initialiseIdleUpOutput(void)
@@ -393,6 +397,10 @@ void idleControl(void)
         currentStatus.idleOn = false;
 		    currentStatus.idleLoad = 0;
       }
+  else
+  {
+    ;
+  }
       break;
 
     case IAC_ALGORITHM_PWM_OL:      //Case 2 is PWM open loop

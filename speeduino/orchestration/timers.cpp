@@ -231,6 +231,10 @@ void oneMSInterval(void)
       tachoOutputFlag = TACHO_INACTIVE;
     }
   }
+  else
+  {
+    ;
+  }
 
   //200Hz loop
   if(loop5ms == 5)

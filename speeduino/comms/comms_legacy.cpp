@@ -393,6 +393,11 @@ void legacySerialCommand(void)
 
         if(currentLoggerStatus.tooth_log_enabled == true) { sendToothLog_legacy(0); } //Sends tooth log values as ints
         else if (currentLoggerStatus.composite_trigger_used > 0U) { sendCompositeLog_legacy(0); }
+        else
+        {
+          /* MISRA 15.7: explicit default branch */
+          ;
+        }
         serialStatusFlag = SERIAL_INACTIVE;
       }
       break;
@@ -745,6 +750,11 @@ void sendValues(uint16_t offset, uint16_t packetLength, byte cmd, Stream &target
           secondarySerial.write("n");                       // confirm command type
           secondarySerial.write(cmd);                       // send command type  , 0x32 (dec50) is ascii '0'
           secondarySerial.write(NEW_CAN_PACKET_SIZE);       // send the packet size the receiving device should expect.
+        }
+        else
+        {
+          /* MISRA 15.7: explicit default branch */
+          ;
         }
     }  
   }

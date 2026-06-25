@@ -160,6 +160,10 @@ static inline uint16_t mapComputeAe(void)
   {
     aeEnrichment = calcAccelEnrichment(table2D_getValue(&maeTable, MAP_DOT.toRaw(currentStatus.mapDOT)));
   }
+  else
+  {
+    ;
+  }
 
   aeActivatedReading = (uint16_t)abs(currentStatus.mapDOT);
   return aeEnrichment;
@@ -225,6 +229,10 @@ static inline uint16_t tpsComputeAe(void)
   else if (currentStatus.tpsDOT > 0)
   {
     aeEnrichment = calcAccelEnrichment(table2D_getValue(&taeTable, TPS_DOT.toRaw(currentStatus.tpsDOT)));
+  }
+  else
+  {
+    ;
   }
   aeActivatedReading = (uint16_t)abs(currentStatus.tpsDOT);
   return aeEnrichment;

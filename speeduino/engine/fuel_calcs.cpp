@@ -39,8 +39,9 @@ static inline uint8_t calcNitrousStagePercent(uint8_t minRPMDiv100, uint8_t maxR
   }
 
   uint16_t rpmRange = maxRPM - minRPM;
-  auto adderPercent = (uint8_t)fast_div32_16((current.RPM - minRPM) * UINT32_C(100), rpmRange); //The percentage of the way through the RPM range
-  return 100U - adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
+  uint32_t adderPercent = fast_div32_16((current.RPM - minRPM) * UINT32_C(100), rpmRange); //The percentage of the way through the RPM range
+  if (adderPercent > 100U) { adderPercent = 100U; }
+  return 100U - (uint8_t)adderPercent; //Flip the percentage as we go from a higher adder to a lower adder as the RPMs rise
 }
 
 static inline uint16_t calcNitrousStagePulseWidth(uint8_t minRPMDiv100, uint8_t maxRPMDiv100, uint8_t adderMinDiv100, uint8_t adderMaxDiv100, const statuses &current)
@@ -67,11 +68,13 @@ TESTABLE_INLINE_STATIC uint16_t pwApplyNitrous(uint16_t pw, const config10 &page
   {
     if( (nitrousStatus == NITROUS_STAGE1) || (nitrousStatus == NITROUS_BOTH) )
     {
-      pw = pw + calcNitrousStagePulseWidth(page10.n2o_stage1_minRPM, page10.n2o_stage1_maxRPM, page10.n2o_stage1_adderMin, page10.n2o_stage1_adderMax, current);
+      uint32_t stagePw = (uint32_t)pw + (uint32_t)calcNitrousStagePulseWidth(page10.n2o_stage1_minRPM, page10.n2o_stage1_maxRPM, page10.n2o_stage1_adderMin, page10.n2o_stage1_adderMax, current);
+      pw = (stagePw > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)stagePw;
     }
     if( (nitrousStatus == NITROUS_STAGE2) || (nitrousStatus == NITROUS_BOTH) )
     {
-      pw = pw + calcNitrousStagePulseWidth(page10.n2o_stage2_minRPM, page10.n2o_stage2_maxRPM, page10.n2o_stage2_adderMin, page10.n2o_stage2_adderMax, current);
+      uint32_t stagePw = (uint32_t)pw + (uint32_t)calcNitrousStagePulseWidth(page10.n2o_stage2_minRPM, page10.n2o_stage2_maxRPM, page10.n2o_stage2_adderMin, page10.n2o_stage2_adderMax, current);
+      pw = (stagePw > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)stagePw;
     }
   }
 
@@ -103,7 +106,7 @@ TESTABLE_INLINE_STATIC uint16_t calculatePWLimit(const config2 &page2, const sta
       else { tempLimit = fast_div (tempLimit, current.nSquirts); }
       break;
   }
-  return (uint16_t)min(tempLimit, (uint32_t)UINT16_MAX);
+  return (tempLimit > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)tempLimit;
 }
 
 

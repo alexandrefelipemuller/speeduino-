@@ -43,14 +43,15 @@ static inline uint16_t calculateVvtPwmMaxCount(uint8_t configuredFrequency)
 {
   uint8_t frequency = (configuredFrequency == 0U) ? 1U : configuredFrequency;
 #if defined(CORE_AVR)
-  return (uint16_t)(MICROS_PER_SEC / (16U * frequency * 2U));
+  const uint32_t result = MICROS_PER_SEC / (16U * (uint32_t)frequency * 2U);
 #elif defined(CORE_TEENSY35)
-  return (uint16_t)(MICROS_PER_SEC / (32U * frequency * 2U));
+  const uint32_t result = MICROS_PER_SEC / (32U * (uint32_t)frequency * 2U);
 #elif defined(CORE_TEENSY41)
-  return (uint16_t)(MICROS_PER_SEC / (2U * frequency * 2U));
+  const uint32_t result = MICROS_PER_SEC / (2U * (uint32_t)frequency * 2U);
 #else
-  return (uint16_t)(MICROS_PER_SEC / (2U * frequency * 2U));
+  const uint32_t result = MICROS_PER_SEC / (2U * (uint32_t)frequency * 2U);
 #endif
+  return (result > UINT16_MAX) ? UINT16_MAX : (uint16_t)result;
 }
 
 #if(defined(CORE_TEENSY) || defined(CORE_STM32))

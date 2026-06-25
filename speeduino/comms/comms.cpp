@@ -1136,127 +1136,136 @@ void processSerialCommand(void)
       uint16_t SD_arg1 = word(serialPayload[3], serialPayload[4]);
       uint16_t SD_arg2 = word(serialPayload[5], serialPayload[6]);
       if(cmd == SD_READWRITE_PAGE)
-        { 
-          if((SD_arg1 == SD_WRITE_DO_ARG1) && (SD_arg2 == SD_WRITE_DO_ARG2))
-          {
-            /*
-            SD DO command. Single byte of data where the commands are:
-            0 Reset
-            1 Reset
-            2 Stop logging
-            3 Start logging
-            4 Load status variable
-            5 Init SD card
-            */
-            uint8_t command = serialPayload[7];
-            if(command == 2) { endSDLogging(); manualLogActive = false; }
-            else if(command == 3) { beginSDLogging(); manualLogActive = true; }
-            else if(command == 4) { setTS_SD_status(); }
-            //else if(command == 5) { initSD(); }
-            
-            sendReturnCodeMsg(SERIAL_RC_OK);
-          }
-          else if((SD_arg1 == SD_WRITE_DIR_ARG1) && (SD_arg2 == SD_WRITE_DIR_ARG2))
-          {
-            //Begin SD directory read. Value in payload represents the directory chunk to read
-            //Directory chunks are each 16 files long
-            SDcurrentDirChunk = word(serialPayload[7], serialPayload[8]);
-            sendReturnCodeMsg(SERIAL_RC_OK);
-          }
-          else if((SD_arg1 == SD_WRITE_READ_SEC_ARG1) && (SD_arg2 == SD_WRITE_READ_SEC_ARG2))
-          {
-            //Read sector Init? Unsure what this is meant to do however it is sent at the beginning of a Card Format request and requires an OK response
-            //Provided the sector being requested is x0 x0 x0 x0, we treat this as a SD Card format request
-            if( (serialPayload[7] == 0) && (serialPayload[8] == 0) && (serialPayload[9] == 0) && (serialPayload[10] == 0) )
-            {
-              //SD Card format request
-              formatExFat();
-            }
-            sendReturnCodeMsg(SERIAL_RC_OK);
-          }
-          else if((SD_arg1 == SD_WRITE_WRITE_SEC_ARG1) && (SD_arg2 == SD_WRITE_WRITE_SEC_ARG2))
-          {
-            //SD write sector command
-          }
-          else if((SD_arg1 == SD_ERASEFILE_ARG1) && (SD_arg2 == SD_ERASEFILE_ARG2))
-          {
-            //Erase file command
-            //We just need the 4 ASCII characters of the file name
-            char log1 = serialPayload[7];
-            char log2 = serialPayload[8];
-            char log3 = serialPayload[9];
-            char log4 = serialPayload[10];
-
-            deleteLogFile(log1, log2, log3, log4);
-            sendReturnCodeMsg(SERIAL_RC_OK);
-          }
-          else if((SD_arg1 == SD_SPD_TEST_ARG1) && (SD_arg2 == SD_SPD_TEST_ARG2))
-          {
-            //Perform a speed test on the SD card
-            //First 4 bytes are the sector number to write to
-            #if 0
-            TODO: Need to write test routine
-            uint32_t sector;
-            uint8_t sector1 = serialPayload[7];
-            uint8_t sector2 = serialPayload[8];
-            uint8_t sector3 = serialPayload[9];
-            uint8_t sector4 = serialPayload[10];
-            sector = (sector1 << 24) | (sector2 << 16) | (sector3 << 8) | sector4;
-
-
-            //Last 4 bytes are the number of sectors to test
-            uint32_t testSize;
-            uint8_t testSize1 = serialPayload[11];
-            uint8_t testSize2 = serialPayload[12];
-            uint8_t testSize3 = serialPayload[13];
-            uint8_t testSize4 = serialPayload[14];
-            testSize = (testSize1 << 24) | (testSize2 << 16) | (testSize3 << 8) | testSize4; 
-            #endif
-
-            sendReturnCodeMsg(SERIAL_RC_OK);
-
-          }
-          else if((SD_arg1 == SD_WRITE_COMP_ARG1) && (SD_arg2 == SD_WRITE_COMP_ARG2))
-          {
-            //Prepare to read a 2024 byte chunk of data from the SD card
-            uint8_t sector1 = serialPayload[7];
-            uint8_t sector2 = serialPayload[8];
-            uint8_t sector3 = serialPayload[9];
-            uint8_t sector4 = serialPayload[10];
-            //SDreadStartSector = (sector1 << 24) | (sector2 << 16) | (sector3 << 8) | sector4;
-            SDreadStartSector = (sector4 << 24) | (sector3 << 16) | (sector2 << 8) | sector1;
-            //SDreadStartSector = sector4 | (sector3 << 8) | (sector2 << 16) | (sector1 << 24);
-
-            //Next 4 bytes are the number of sectors to write
-            uint8_t sectorCount1 = serialPayload[11];
-            uint8_t sectorCount2 = serialPayload[12];
-            uint8_t sectorCount3 = serialPayload[13];
-            uint8_t sectorCount4 = serialPayload[14];
-            SDreadNumSectors = (sectorCount1 << 24) | (sectorCount2 << 16) | (sectorCount3 << 8) | sectorCount4;
-
-            //Reset the sector counter
-            SDreadCompletedSectors = 0;
-
-            sendReturnCodeMsg(SERIAL_RC_OK);
-          }
-        }
-        else if(cmd == SD_RTC_PAGE)
+      {
+        if((SD_arg1 == SD_WRITE_DO_ARG1) && (SD_arg2 == SD_WRITE_DO_ARG2))
         {
-          //Used for setting RTC settings
-          if((SD_arg1 == SD_RTC_WRITE_ARG1) && (SD_arg2 == SD_RTC_WRITE_ARG2))
-          {
-            //Set the RTC date/time
-            byte second = serialPayload[7];
-            byte minute = serialPayload[8];
-            byte hour = serialPayload[9];
-            //byte dow = serialPayload[10]; //Not used
-            byte day = serialPayload[11];
-            byte month = serialPayload[12];
-            uint16_t year = word(serialPayload[13], serialPayload[14]);
-            rtc_setTime(second, minute, hour, day, month, year);
-            sendReturnCodeMsg(SERIAL_RC_OK);
-          }
+          /*
+          SD DO command. Single byte of data where the commands are:
+          0 Reset
+          1 Reset
+          2 Stop logging
+          3 Start logging
+          4 Load status variable
+          5 Init SD card
+          */
+          uint8_t command = serialPayload[7];
+          if(command == 2) { endSDLogging(); manualLogActive = false; }
+          else if(command == 3) { beginSDLogging(); manualLogActive = true; }
+          else if(command == 4) { setTS_SD_status(); }
+          //else if(command == 5) { initSD(); }
+
+          sendReturnCodeMsg(SERIAL_RC_OK);
         }
+        else if((SD_arg1 == SD_WRITE_DIR_ARG1) && (SD_arg2 == SD_WRITE_DIR_ARG2))
+        {
+          //Begin SD directory read. Value in payload represents the directory chunk to read
+          //Directory chunks are each 16 files long
+          SDcurrentDirChunk = word(serialPayload[7], serialPayload[8]);
+          sendReturnCodeMsg(SERIAL_RC_OK);
+        }
+        else if((SD_arg1 == SD_WRITE_READ_SEC_ARG1) && (SD_arg2 == SD_WRITE_READ_SEC_ARG2))
+        {
+          //Read sector Init? Unsure what this is meant to do however it is sent at the beginning of a Card Format request and requires an OK response
+          //Provided the sector being requested is x0 x0 x0 x0, we treat this as a SD Card format request
+          if( (serialPayload[7] == 0) && (serialPayload[8] == 0) && (serialPayload[9] == 0) && (serialPayload[10] == 0) )
+          {
+            //SD Card format request
+            formatExFat();
+          }
+          sendReturnCodeMsg(SERIAL_RC_OK);
+        }
+        else if((SD_arg1 == SD_WRITE_WRITE_SEC_ARG1) && (SD_arg2 == SD_WRITE_WRITE_SEC_ARG2))
+        {
+          //SD write sector command
+        }
+        else if((SD_arg1 == SD_ERASEFILE_ARG1) && (SD_arg2 == SD_ERASEFILE_ARG2))
+        {
+          //Erase file command
+          //We just need the 4 ASCII characters of the file name
+          char log1 = serialPayload[7];
+          char log2 = serialPayload[8];
+          char log3 = serialPayload[9];
+          char log4 = serialPayload[10];
+
+          deleteLogFile(log1, log2, log3, log4);
+          sendReturnCodeMsg(SERIAL_RC_OK);
+        }
+        else if((SD_arg1 == SD_SPD_TEST_ARG1) && (SD_arg2 == SD_SPD_TEST_ARG2))
+        {
+          //Perform a speed test on the SD card
+          //First 4 bytes are the sector number to write to
+          #if 0
+          TODO: Need to write test routine
+          uint32_t sector;
+          uint8_t sector1 = serialPayload[7];
+          uint8_t sector2 = serialPayload[8];
+          uint8_t sector3 = serialPayload[9];
+          uint8_t sector4 = serialPayload[10];
+          sector = (sector1 << 24) | (sector2 << 16) | (sector3 << 8) | sector4;
+
+
+          //Last 4 bytes are the number of sectors to test
+          uint32_t testSize;
+          uint8_t testSize1 = serialPayload[11];
+          uint8_t testSize2 = serialPayload[12];
+          uint8_t testSize3 = serialPayload[13];
+          uint8_t testSize4 = serialPayload[14];
+          testSize = (testSize1 << 24) | (testSize2 << 16) | (testSize3 << 8) | testSize4;
+          #endif
+
+          sendReturnCodeMsg(SERIAL_RC_OK);
+        }
+        else if((SD_arg1 == SD_WRITE_COMP_ARG1) && (SD_arg2 == SD_WRITE_COMP_ARG2))
+        {
+          //Prepare to read a 2024 byte chunk of data from the SD card
+          uint8_t sector1 = serialPayload[7];
+          uint8_t sector2 = serialPayload[8];
+          uint8_t sector3 = serialPayload[9];
+          uint8_t sector4 = serialPayload[10];
+          //SDreadStartSector = (sector1 << 24) | (sector2 << 16) | (sector3 << 8) | sector4;
+          SDreadStartSector = (sector4 << 24) | (sector3 << 16) | (sector2 << 8) | sector1;
+          //SDreadStartSector = sector4 | (sector3 << 8) | (sector2 << 16) | (sector1 << 24);
+
+          //Next 4 bytes are the number of sectors to write
+          uint8_t sectorCount1 = serialPayload[11];
+          uint8_t sectorCount2 = serialPayload[12];
+          uint8_t sectorCount3 = serialPayload[13];
+          uint8_t sectorCount4 = serialPayload[14];
+          SDreadNumSectors = (sectorCount1 << 24) | (sectorCount2 << 16) | (sectorCount3 << 8) | sectorCount4;
+
+          //Reset the sector counter
+          SDreadCompletedSectors = 0;
+
+          sendReturnCodeMsg(SERIAL_RC_OK);
+        }
+        else
+        {
+          /* MISRA 15.7: explicit default branch */
+          ;
+        }
+      }
+      else if(cmd == SD_RTC_PAGE)
+      {
+        //Used for setting RTC settings
+        if((SD_arg1 == SD_RTC_WRITE_ARG1) && (SD_arg2 == SD_RTC_WRITE_ARG2))
+        {
+          //Set the RTC date/time
+          byte second = serialPayload[7];
+          byte minute = serialPayload[8];
+          byte hour = serialPayload[9];
+          //byte dow = serialPayload[10]; //Not used
+          byte day = serialPayload[11];
+          byte month = serialPayload[12];
+          uint16_t year = word(serialPayload[13], serialPayload[14]);
+          rtc_setTime(second, minute, hour, day, month, year);
+          sendReturnCodeMsg(SERIAL_RC_OK);
+        }
+      }
+      else
+      {
+        /* MISRA 15.7: explicit default branch */
+        ;
+      }
 #endif
       break;
     }

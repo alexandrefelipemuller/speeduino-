@@ -418,8 +418,9 @@ static inline uint8_t scale(const uint8_t from, const uint8_t fromRange, const u
 
   if (fromRange != 0U)
   {
-    const uint16_t scaled = (uint16_t)from * (uint16_t)toRange;
-    result = (uint8_t)(scaled / (uint16_t)fromRange);
+    const uint32_t scaled = (uint32_t)from * (uint32_t)toRange;
+    const uint32_t scaledResult = scaled / (uint32_t)fromRange;
+    result = (scaledResult > UINT8_MAX) ? UINT8_MAX : (uint8_t)scaledResult;
   }
 
   return result;
