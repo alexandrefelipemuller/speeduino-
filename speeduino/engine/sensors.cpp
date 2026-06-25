@@ -1004,7 +1004,7 @@ uint8_t getAnalogKnock(void)
   }
 
   //Perform ADC read
-  return (uint8_t)clamp(fastMap10Bit(readAnalogSensor(pinKnock), 0U, 255U), 0, 255);
+  return (uint8_t)clamp(fastMap10Bit(readAnalogSensor(pinKnock), 0U, 255U), (int16_t)0, (int16_t)255);
 }
 
 #if defined(CORE_AVR)
