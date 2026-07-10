@@ -3,6 +3,7 @@
 #include "data/config_pages.h"
 #include "data/pin_registry.h"
 #include "data/runtime_state.h"
+#include "data/table_registry.h"
 #include "data/tune_registry.h"
 #include "engine/corrections.h"
 #include "engine/dwell.h"
@@ -24,6 +25,8 @@ void engineRuntimeRunCycle(void)
   const int16_t crankAngleSnapshot = currentStatus.decoder.getCrankAngle();
   unsigned int PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW1);
   uint16_t injectionStartAngles[INJ_CHANNELS] = {0U};
+  currentStatus.afrTarget = calculateAfrTarget(afrTable, currentStatus, configPage2, configPage6);
+  currentStatus.corrections = correctionsFuel();
   pulseWidths pulse_widths = computePulseWidths(
                                 configPage2,
                                 configPage6,
