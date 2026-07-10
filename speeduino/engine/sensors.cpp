@@ -810,7 +810,7 @@ static inline void readBat(void)
     }
   }
 
-  currentStatus.battery10 = LOW_PASS_FILTER((uint16_t)tempReading, configPage4.ADCFILTER_BAT, currentStatus.battery10);
+  currentStatus.battery10 = LOW_PASS_FILTER((uint16_t)tempReading, configPage4.ADCFILTER_BAT, (uint16_t)currentStatus.battery10);
 }
 
 #if defined(ANALOG_ISR)
