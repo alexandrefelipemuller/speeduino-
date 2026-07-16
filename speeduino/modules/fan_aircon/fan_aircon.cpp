@@ -402,6 +402,10 @@ void fanControl(void)
       currentAdvancedEngineStatus.fan_on = true;
       DISABLE_FAN_TIMER();
     }
+    else
+    {
+      ;
+    }
 #else
     if (currentAdvancedEngineStatus.fan_duty == 0)
     {
@@ -412,6 +416,10 @@ void fanControl(void)
     {
       fanOn();
       currentAdvancedEngineStatus.fan_on = true;
+    }
+    else
+    {
+      ;
     }
 #endif
   }

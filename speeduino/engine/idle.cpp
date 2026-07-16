@@ -93,6 +93,10 @@ static inline void enableIdle(void)
   {
 
   }
+  else
+  {
+    ;
+  }
 }
 
 static inline void initialiseIdleUpOutput(void)
@@ -237,11 +241,10 @@ False: If the motor is ready for another step
 */
 static inline uint8_t checkForStepping(void)
 {
-  bool isStepping = false;
-  unsigned int timeCheck;
-  
+   bool isStepping = false;
   if( (idleStepper.stepperStatus == STEPPING) || (idleStepper.stepperStatus == COOLING) )
   {
+    unsigned int timeCheck;
     if (idleStepper.stepperStatus == STEPPING)
     {
       timeCheck = iacStepTime_uS;
@@ -394,6 +397,10 @@ void idleControl(void)
         currentStatus.idleOn = false;
 		    currentStatus.idleLoad = 0;
       }
+  else
+  {
+    ;
+  }
       break;
 
     case IAC_ALGORITHM_PWM_OL:      //Case 2 is PWM open loop

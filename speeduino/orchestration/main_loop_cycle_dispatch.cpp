@@ -20,6 +20,10 @@ void runMainLoopCycleDispatchTasks(void)
       digitalWrite(pinResetControl, LOW);
       currentStatus.resetPreventActive = false;
     }
+  else
+  {
+    ;
+  }
 }
 
 #endif // UNIT_TEST

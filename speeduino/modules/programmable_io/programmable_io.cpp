@@ -74,6 +74,10 @@ void module_programmable_io_tick_10hz(void)
       else if ( (configPage13.operation[y].firstCompType == COMPARATOR_LESS_EQUAL) && (data <= data2) ) { firstCheck = true; }
       else if ( (configPage13.operation[y].firstCompType == COMPARATOR_AND) && ((data & data2) != 0) ) { firstCheck = true; }
       else if ( (configPage13.operation[y].firstCompType == COMPARATOR_XOR) && ((data ^ data2) != 0) ) { firstCheck = true; }
+  else
+  {
+    ;
+  }
 
       if (configPage13.operation[y].bitwise != BITWISE_DISABLED)
       {
@@ -96,6 +100,10 @@ void module_programmable_io_tick_10hz(void)
           else if ( (configPage13.operation[y].secondCompType == COMPARATOR_LESS_EQUAL) && (data <= data2) ) { secondCheck = true; }
           else if ( (configPage13.operation[y].secondCompType == COMPARATOR_AND) && ((data & data2) != 0) ) { secondCheck = true; }
           else if ( (configPage13.operation[y].secondCompType == COMPARATOR_XOR) && ((data ^ data2) != 0) ) { secondCheck = true; }
+  else
+  {
+    ;
+  }
 
           if (configPage13.operation[y].bitwise == BITWISE_AND) { firstCheck &= secondCheck; }
           if (configPage13.operation[y].bitwise == BITWISE_OR) { firstCheck |= secondCheck; }

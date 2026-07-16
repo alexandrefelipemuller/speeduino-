@@ -69,6 +69,35 @@ enum class module_hook_phase_t : uint8_t
   tick_1hz,
 };
 
+enum class module_capability_t : uint8_t
+{
+  none = 0U,
+  logging,
+  sd_logging,
+  secondary_serial,
+  comms_extended,
+  can,
+  boost,
+  knock,
+  vvt,
+  engine_protection,
+  launch,
+  launch_control,
+  launch_flatshift,
+  fan_aircon,
+  programmable_io,
+  nitrous,
+  wmi,
+  advanced_engine,
+  table_switching,
+};
+
+struct module_capability_list_t
+{
+  const module_capability_t *capabilities;
+  uint8_t count;
+};
+
 struct module_runtime_context_t
 {
   uint8_t sensor_status = 0U;
@@ -94,6 +123,8 @@ struct module_hooks_t
 
 struct module_descriptor_t
 {
+  module_capability_list_t provides;
+  module_capability_list_t requires;
   module_page_descriptors_t page_descriptors;
   module_storage_maps_t storage_maps;
   module_page_storage_t page_storage;
@@ -105,6 +136,10 @@ struct module_descriptor_t
 module_page_maps_t getCorePageMaps();
 module_storage_maps_t getCoreStorageMaps();
 module_page_descriptors_t getCorePageDescriptors();
+
+module_page_maps_t getCanPageMaps();
+module_storage_maps_t getCanStorageMaps();
+module_page_descriptors_t getCanPageDescriptors();
 
 module_page_maps_t getBoostPageMaps();
 module_storage_maps_t getBoostStorageMaps();
@@ -134,7 +169,12 @@ module_page_maps_t getLoggingPageMaps();
 module_storage_maps_t getLoggingStorageMaps();
 module_page_descriptors_t getLoggingPageDescriptors();
 
+module_page_maps_t getSdLoggingPageMaps();
+module_storage_maps_t getSdLoggingStorageMaps();
+module_page_descriptors_t getSdLoggingPageDescriptors();
+
 const module_descriptor_t *getRegisteredModules();
 uint8_t getRegisteredModuleCount();
+bool core_modules_validate_registry(void);
 bool core_modules_save_page(uint8_t pageNumber, uint16_t &writesRemaining);
 void core_modules_load_pages(void);

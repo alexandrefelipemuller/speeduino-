@@ -70,6 +70,8 @@ uint16_t freeRam() {
 void doSystemReset() { 
     // Not implemented on this platform yet 
 }
+void serviceWatchdog(void) { return; }
+
 void jumpToBootloader() {
     // Not implemented on this platform yet 
 }

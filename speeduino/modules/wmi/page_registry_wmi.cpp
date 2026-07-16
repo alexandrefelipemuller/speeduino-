@@ -37,6 +37,7 @@ static constexpr entity_t wmiPageMap[] PROGMEM = {
   makeTableEntity(&wmiTable),
   makeTableEntity(&vvt2Table),
   makeTableEntity(&dwellTable),
+  entity_t(EntityType::NoEntity, 8U),
 };
 
 static constexpr page_map_t wmiPageMaps[] PROGMEM = {

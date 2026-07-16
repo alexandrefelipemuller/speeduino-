@@ -14,19 +14,23 @@ STM32_CAN::STM32_CAN( CAN_TypeDef* canPort, CAN_PINS pins, RXQUEUE_TABLE rxSize,
     n_pCanHandle = &hcan1;
   }
   #ifdef CAN2
-  if( canPort == CAN2)
+  else if( canPort == CAN2)
   {
     _CAN2 = this;
     n_pCanHandle = &hcan2;
   }
   #endif
   #ifdef CAN3
-  if (canPort == CAN3)
+  else if (canPort == CAN3)
   {
     _CAN3 = this;
     n_pCanHandle = &hcan3;
   }
   #endif
+  else
+  {
+    ;
+  }
 
   _canPort = canPort;
   _pins = pins;
@@ -210,6 +214,11 @@ void STM32_CAN::begin( bool retransmission ) {
   }
 #endif
 
+  else
+  {
+    ;
+  }
+
   n_pCanHandle->Init.TimeTriggeredMode = DISABLE;
   n_pCanHandle->Init.AutoBusOff = DISABLE;
   n_pCanHandle->Init.AutoWakeUp = DISABLE;
@@ -334,7 +343,7 @@ void STM32_CAN::setMBFilter(CAN_BANK bank_num, CAN_FLTEN input)
 {
   CAN_FilterTypeDef sFilterConfig;
   sFilterConfig.FilterBank = uint8_t(bank_num);
-  if (input = ACCEPT_ALL) { sFilterConfig.FilterActivation = ENABLE; }
+  if (input == ACCEPT_ALL) { sFilterConfig.FilterActivation = ENABLE; }
   else { sFilterConfig.FilterActivation = DISABLE; }
   
   HAL_CAN_ConfigFilter(n_pCanHandle, &sFilterConfig);
@@ -348,11 +357,15 @@ void STM32_CAN::setMBFilter(CAN_FLTEN input)
   #ifdef CAN2
   if (_canPort == CAN1){ max_bank_num = 13;}
   else if (_canPort == CAN2){ min_bank_num = 14;}
+  else
+  {
+    ;
+  }
   #endif
   for (uint8_t bank_num = min_bank_num ; bank_num <= max_bank_num ; bank_num++)
   {
     sFilterConfig.FilterBank = bank_num;
-    if (input = ACCEPT_ALL) { sFilterConfig.FilterActivation = ENABLE; }
+    if (input == ACCEPT_ALL) { sFilterConfig.FilterActivation = ENABLE; }
     else { sFilterConfig.FilterActivation = DISABLE; }
     HAL_CAN_ConfigFilter(n_pCanHandle, &sFilterConfig);
   }
@@ -396,10 +409,14 @@ void STM32_CAN::initializeFilters()
   {
     sFilterConfig.SlaveStartFilterBank = 14;
   }
-  if (_canPort == CAN2)
+  else if (_canPort == CAN2)
   {
     sFilterConfig.FilterBank = 14;
-  } 
+  }
+  else
+  {
+    ;
+  }
   #endif
   
   HAL_CAN_ConfigFilter(n_pCanHandle, &sFilterConfig);
@@ -712,6 +729,10 @@ void STM32_CAN::enableMBInterrupts()
     HAL_NVIC_EnableIRQ(CAN3_TX_IRQn);
   }
 #endif
+  else
+  {
+    ;
+  }
 }
 
 void STM32_CAN::disableMBInterrupts()
@@ -732,6 +753,10 @@ void STM32_CAN::disableMBInterrupts()
     HAL_NVIC_DisableIRQ(CAN3_TX_IRQn);
   }
 #endif
+  else
+  {
+    ;
+  }
 }
 
 void STM32_CAN::enableLoopBack( bool yes ) {
@@ -788,6 +813,10 @@ extern "C" void HAL_CAN_TxMailbox0CompleteCallback( CAN_HandleTypeDef *CanHandle
     }
   }
 #endif
+  else
+  {
+    ;
+  }
 }
 
 extern "C" void HAL_CAN_TxMailbox1CompleteCallback( CAN_HandleTypeDef *CanHandle )
@@ -819,6 +848,10 @@ extern "C" void HAL_CAN_TxMailbox1CompleteCallback( CAN_HandleTypeDef *CanHandle
     }
   }
 #endif
+  else
+  {
+    ;
+  }
 }
 
 extern "C" void HAL_CAN_TxMailbox2CompleteCallback( CAN_HandleTypeDef *CanHandle )
@@ -850,6 +883,10 @@ extern "C" void HAL_CAN_TxMailbox2CompleteCallback( CAN_HandleTypeDef *CanHandle
     }
   }
 #endif
+  else
+  {
+    ;
+  }
 }
 
 // This is called by RX0_IRQHandler when there is message at RX FIFO0 buffer
@@ -891,12 +928,16 @@ extern "C" void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *CanHandle)
     }
 #endif
 #ifdef CAN3
-    else if (CanHandle->Instance == CAN3) 
-    {
-      rxmsg.bus = 3;
-      _CAN3->addToRingBuffer(_CAN3->rxRing, rxmsg);
-    }
+  else if (CanHandle->Instance == CAN3) 
+  {
+    rxmsg.bus = 3;
+    _CAN3->addToRingBuffer(_CAN3->rxRing, rxmsg);
+  }
 #endif
+  else
+  {
+    ;
+  }
   }
 }
 

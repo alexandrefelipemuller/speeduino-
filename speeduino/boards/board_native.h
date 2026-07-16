@@ -46,14 +46,7 @@ static constexpr uint8_t A5 = 0U;
 static constexpr uint8_t A6 = 0U;
 static constexpr uint8_t A7 = 0U;
 #endif
-static constexpr uint8_t A8 = 0U;
-static constexpr uint8_t A9 = 0U;
-static constexpr uint8_t A10 = 0U;
-static constexpr uint8_t A11 = 0U;
-static constexpr uint8_t A12 = 0U;
-static constexpr uint8_t A13 = 0U;
-static constexpr uint8_t A14 = 0U;
-static constexpr uint8_t A15 = 0U;
+// SimpleArduinoFake already provides A8..A15 in native coverage builds.
 
 #define PWM_FAN_AVAILABLE
 

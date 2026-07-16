@@ -331,6 +331,11 @@ void ftm0_isr(void)
   else if(interrupt6) { FTM0_C5SC &= ~FTM_CSC_CHF; moveToNextState(ignitionSchedule2); }
   else if(interrupt7) { FTM0_C6SC &= ~FTM_CSC_CHF; moveToNextState(ignitionSchedule3); }
   else if(interrupt8) { FTM0_C7SC &= ~FTM_CSC_CHF; moveToNextState(ignitionSchedule4); }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 
 }
 void ftm3_isr(void)
@@ -381,6 +386,11 @@ void ftm1_isr(void)
 
   if(interrupt1) { FTM1_C0SC &= ~FTM_CSC_CHF; boostInterrupt(); }
   else if(interrupt2) { FTM1_C1SC &= ~FTM_CSC_CHF; vvtInterrupt(); }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 
 }
 
@@ -394,6 +404,11 @@ void ftm2_isr(void)
 
   if(interrupt1) { FTM2_C0SC &= ~FTM_CSC_CHF; idleInterrupt(); }
   else if(interrupt2) { FTM2_C1SC &= ~FTM_CSC_CHF; fanInterrupt(); } //For PWM Fan
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 }
 
 uint16_t freeRam()
@@ -422,6 +437,8 @@ static time_t getTeensy3Time()
 }
 
 void doSystemReset() { return; }
+void serviceWatchdog(void) { return; }
+
 void jumpToBootloader() { return; }
 
 uint8_t getSystemTemp(void)

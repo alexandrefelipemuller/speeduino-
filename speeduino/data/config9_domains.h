@@ -58,12 +58,12 @@ struct can_extended_config_t
   uint8_t aux_input_digital_pin(uint8_t channel) const { return page.Auxinpinb[channel]; }
 };
 
-inline secondary_serial_config_t get_secondary_serial_config(const config9 &page)
+static inline secondary_serial_config_t get_secondary_serial_config(const config9 &page)
 {
   return { page };
 }
 
-inline can_extended_config_t get_can_extended_config(const config9 &page)
+static inline can_extended_config_t get_can_extended_config(const config9 &page)
 {
   return { page };
 }

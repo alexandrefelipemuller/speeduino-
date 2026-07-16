@@ -122,7 +122,7 @@ struct Schedule {
   volatile ScheduleStatus Status = OFF;  ///< Schedule status: OFF, PENDING, STAGED, RUNNING
   callback pStartCallback = &nullCallback; ///< Start Callback function for schedule
   callback pEndCallback = &nullCallback;   ///< End Callback function for schedule
-  COMPARE_TYPE nextStartCompare = 0U;   ///< Planned start of next schedule (when current schedule is RUNNING)
+  volatile COMPARE_TYPE nextStartCompare = 0U;   ///< Planned start of next schedule (when current schedule is RUNNING)
   
   counter_t &_counter;       ///< **Reference** to the counter register. E.g. TCNT3
   compare_t &_compare;       ///< **Reference**to the compare register. E.g. OCR3A

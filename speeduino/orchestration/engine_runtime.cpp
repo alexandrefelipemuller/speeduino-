@@ -3,6 +3,7 @@
 #include "data/config_pages.h"
 #include "data/pin_registry.h"
 #include "data/runtime_state.h"
+#include "data/table_registry.h"
 #include "data/tune_registry.h"
 #include "engine/corrections.h"
 #include "engine/dwell.h"
@@ -19,13 +20,18 @@
 
 void engineRuntimeRunCycle(void)
 {
+  const decoder_status_t decoderStatus = currentStatus.decoder.getStatus();
+  const decoder_features_t decoderFeatures = currentStatus.decoder.getFeatures();
+  const int16_t crankAngleSnapshot = currentStatus.decoder.getCrankAngle();
   unsigned int PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW1);
   uint16_t injectionStartAngles[INJ_CHANNELS] = {0U};
+  currentStatus.afrTarget = calculateAfrTarget(afrTable, currentStatus, configPage2, configPage6);
+  currentStatus.corrections = correctionsFuel();
   pulseWidths pulse_widths = computePulseWidths(
                                 configPage2,
                                 configPage6,
                                 configPage10, 
-                                currentStatus.decoder.getStatus(),
+                                decoderStatus,
                                 currentStatus);
   currentStatus.stagingActive = pulse_widths.secondary!=0U;
   applyPwToInjectorChannels(pulse_widths, configPage2, currentStatus);
@@ -95,7 +101,7 @@ void engineRuntimeRunCycle(void)
       break;
     case 4:
       injectionStartAngles[1] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel2InjDegrees, currentStatus.injAngle);
-      if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.decoder.getStatus().syncStatus==SyncStatus::Full)
+      if((configPage2.injLayout == INJ_SEQUENTIAL) && decoderStatus.syncStatus==SyncStatus::Full)
       {
         if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(configPage2, configPage4, currentStatus); }
         injectionStartAngles[2] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel3InjDegrees, currentStatus.injAngle);
@@ -126,7 +132,7 @@ void engineRuntimeRunCycle(void)
       }
       else
       {
-        if( currentStatus.decoder.getStatus().syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
+        if( decoderStatus.syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
       }
       break;
     case 5:
@@ -148,7 +154,7 @@ void engineRuntimeRunCycle(void)
       injectionStartAngles[1] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel2InjDegrees, currentStatus.injAngle);
       injectionStartAngles[2] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel3InjDegrees, currentStatus.injAngle);
 #if INJ_CHANNELS >= 6
-      if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.decoder.getStatus().syncStatus==SyncStatus::Full)
+      if((configPage2.injLayout == INJ_SEQUENTIAL) && decoderStatus.syncStatus==SyncStatus::Full)
       {
         if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(configPage2, configPage4, currentStatus); }
         injectionStartAngles[3] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel4InjDegrees, currentStatus.injAngle);
@@ -176,7 +182,7 @@ void engineRuntimeRunCycle(void)
       }
       else
       {
-        if( currentStatus.decoder.getStatus().syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
+        if( decoderStatus.syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
         if( (configPage10.stagingEnabled == true) && (currentStatus.stagingActive == true) )
         {
           PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW4);
@@ -192,7 +198,7 @@ void engineRuntimeRunCycle(void)
       injectionStartAngles[2] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel3InjDegrees, currentStatus.injAngle);
       injectionStartAngles[3] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel4InjDegrees, currentStatus.injAngle);
 #if INJ_CHANNELS >= 8
-      if((configPage2.injLayout == INJ_SEQUENTIAL) && currentStatus.decoder.getStatus().syncStatus==SyncStatus::Full)
+      if((configPage2.injLayout == INJ_SEQUENTIAL) && decoderStatus.syncStatus==SyncStatus::Full)
       {
         if( CRANK_ANGLE_MAX_INJ != 720 ) { changeHalfToFullSync(configPage2, configPage4, currentStatus); }
         injectionStartAngles[4] = calculateInjectorStartAngle(PWdivTimerPerDegree, channel5InjDegrees, currentStatus.injAngle);
@@ -214,7 +220,7 @@ void engineRuntimeRunCycle(void)
       }
       else
       {
-        if( currentStatus.decoder.getStatus().syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
+        if( decoderStatus.syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_INJ != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
         if( (configPage10.stagingEnabled == true) && (currentStatus.stagingActive == true) )
         {
           PWdivTimerPerDegree = timeToAngleDegPerMicroSec(currentStatus.PW5);
@@ -233,13 +239,13 @@ void engineRuntimeRunCycle(void)
   //***********************************************************************************************
   //| BEGIN IGNITION CALCULATIONS
   currentStatus.dwell = correctionsDwell(computeDwell(currentStatus, configPage2, configPage4, dwellTable));
-  calculateIgnitionAngles(timeToAngleDegPerMicroSec(currentStatus.dwell));
+  calculateIgnitionAngles(timeToAngleDegPerMicroSec(currentStatus.dwell), decoderStatus.syncStatus);
   if( (configPage2.perToothIgn == true) ) { currentStatus.decoder.setEndTeeth(); }
 
   currentStatus.schedulerCutState = core_modules_get_scheduler_cut(currentStatus);
-  setFuelSchedules(currentStatus, injectionStartAngles, injectorLimits(currentStatus.decoder.getCrankAngle()), currentStatus.schedulerCutState.fuelChannels);
+  setFuelSchedules(currentStatus, injectionStartAngles, injectorLimits(crankAngleSnapshot), currentStatus.schedulerCutState.fuelChannels);
 
-  if ( configPage4.ignCranklock && currentStatus.engineIsCranking && (currentStatus.decoder.getFeatures().hasFixedCrankingTiming) )
+  if ( configPage4.ignCranklock && currentStatus.engineIsCranking && (decoderFeatures.hasFixedCrankingTiming) )
   {
     fixedCrankingOverride = currentStatus.dwell * 3;
     if(currentStatus.RPM < 250)
@@ -264,7 +270,7 @@ void engineRuntimeRunCycle(void)
   }
   else { fixedCrankingOverride = 0; }
 
-  setIgnitionChannels(ignitionLimits(currentStatus.decoder.getCrankAngle()), currentStatus.dwell + fixedCrankingOverride, currentStatus.schedulerCutState.ignitionChannels);
+  setIgnitionChannels(ignitionLimits(crankAngleSnapshot), currentStatus.dwell + fixedCrankingOverride, currentStatus.schedulerCutState.ignitionChannels);
 
   if ( (!currentStatus.resetPreventActive) && (resetControl == RESET_CONTROL_PREVENT_WHEN_RUNNING) ) 
   {

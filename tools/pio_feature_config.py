@@ -7,11 +7,15 @@ from pathlib import Path
 
 MODULE_FLAGS = {
     "logging": "FEATURE_MODULE_LOGGING",
+    "sd_logging": "FEATURE_MODULE_SD_LOGGING",
     "secondary_serial": "FEATURE_MODULE_SECONDARY_SERIAL",
     "comms_extended": "FEATURE_MODULE_COMMS_EXTENDED",
+    "can": "FEATURE_MODULE_CAN",
     "table_switching": "FEATURE_MODULE_TABLE_SWITCHING",
     "engine_protection": "FEATURE_MODULE_ENGINE_PROTECTION",
     "launch_flatshift": "FEATURE_MODULE_LAUNCH_FLATSHIFT",
+    "launch_control": "FEATURE_MODULE_LAUNCH_CONTROL",
+    "launch_control": "FEATURE_MODULE_LAUNCH_CONTROL",
     "fan_aircon": "FEATURE_MODULE_FAN_AIRCON",
     "programmable_io": "FEATURE_MODULE_PROGRAMMABLE_IO",
     "nitrous": "FEATURE_MODULE_NITROUS",
@@ -33,9 +37,14 @@ MODULE_SOURCES = {
         "modules/logging/logger.cpp",
         "modules/logging/logger_readable.cpp",
         "modules/logging/logger_controls.cpp",
-        "modules/logging/SD_logger.cpp",
-        "modules/logging/rtc_common.cpp",
-        "modules/logging/TS_CommandButtonHandler.cpp",
+    ],
+    "sd_logging": [
+        "modules/sd_logging/module_sd_logging.cpp",
+        "modules/sd_logging/page_registry_sd_logging.cpp",
+        "modules/sd_logging/logger_status.cpp",
+        "modules/sd_logging/SD_logger.cpp",
+        "modules/sd_logging/rtc_common.cpp",
+        "modules/sd_logging/TS_CommandButtonHandler.cpp",
     ],
     "secondary_serial": [
         "modules/secondary_serial/module_secondary_serial.cpp",
@@ -44,8 +53,12 @@ MODULE_SOURCES = {
     "comms_extended": [
         "modules/comms_extended/module_comms_extended.cpp",
         "modules/comms_extended/page_registry_comms.cpp",
-        "modules/comms_extended/comms_CAN.cpp",
-        "modules/comms_extended/can_transport.cpp",
+    ],
+    "can": [
+        "modules/can/module_can.cpp",
+        "modules/can/page_registry_can.cpp",
+        "modules/can/can.cpp",
+        "modules/can/can_transport.cpp",
     ],
     "table_switching": [
         "modules/table_switching/module_table_switching.cpp",
@@ -62,6 +75,14 @@ MODULE_SOURCES = {
     "launch_flatshift": [
         "modules/launch_flatshift/module_launch_flatshift.cpp",
         "modules/launch_flatshift/launch_flatshift.cpp",
+    ],
+    "launch_control": [
+        "modules/launch_control/module_launch_control.cpp",
+        "modules/launch_control/launch_control.cpp",
+    ],
+    "launch_control": [
+        "modules/launch_control/module_launch_control.cpp",
+        "modules/launch_control/launch_control.cpp",
     ],
     "advanced_engine": [
         "modules/advanced_engine/module_advanced_engine.cpp",

@@ -7,7 +7,6 @@ A full copy of the license may be found in the projects root directory
 /*
 This is for handling the data broadcasted to various CAN dashes and instrument clusters.
 */
-#if defined(NATIVE_CAN_AVAILABLE)
 #include "comms/comms_CAN.h"
 #include "data/advanced_engine_status.h"
 #include "data/can_aux_status.h"
@@ -18,6 +17,8 @@ This is for handling the data broadcasted to various CAN dashes and instrument c
 #include "support/utilities.h"
 #include "support/maths.h"
 #include "support/units.h"
+
+#if defined(NATIVE_CAN_AVAILABLE)
 
 extern struct statuses currentStatus;
 extern struct config2 configPage2;
@@ -36,6 +37,11 @@ CAN_message_t outMsg;
 
 // Forward declare
 void DashMessage(uint16_t DashMessageID);
+
+static inline uint16_t safeStoichDiv32_16(uint32_t value)
+{
+  return (configPage2.stoich == 0U) ? 0U : fast_div32_16(value, configPage2.stoich);
+}
 
 
 void initCAN()
@@ -153,7 +159,7 @@ void receiveCANwbo()
     {
       uint32_t inLambda;
       inLambda = (word(inMsg.buf[3], inMsg.buf[2])); // Combining 2 bytes of data into single variable factor is 0.0001 so lambda 1 comes in as 10K
-      if(inMsg.buf[1] == 0x1) // Checking if lambda is valid
+      if((inMsg.buf[1] == 0x1) && (configPage2.stoich != 0U)) // Checking if lambda is valid
       {
         inLambda = (inLambda * configPage2.stoich) / 10000; // Multiplying lambda by stoich ratio to get AFR and dividing it by 10000 to get correct value
         switch(inMsg.id)
@@ -180,7 +186,7 @@ void receiveCANwbo()
     {
       uint32_t inLambda;
       inLambda = (word(inMsg.buf[0], inMsg.buf[1])); //Combining 2 bytes of data into single variable factor is 0.0001 so lambda 1 comes in as 10K
-      if(BIT_CHECK(inMsg.buf[6], 7)) //Checking if lambda is valid
+      if(BIT_CHECK(inMsg.buf[6], 7) && (configPage2.stoich != 0U)) //Checking if lambda is valid
       {
         inLambda = (inLambda * configPage2.stoich) / 10000; //Multiplying lambda by stoich ratio to get AFR and dividing it by 10000 to get correct value
         if (inLambda > UINT8_MAX) { currentStatus.O2 = UINT8_MAX; } //Check if we don't overflow the 8bit O2 variable
@@ -341,11 +347,11 @@ void DashMessage(uint16_t DashMessageID)
     break;
 
     case CAN_HALTECH_LAMBDA:
-      temp_Lambda = (currentStatus.O2 * 1000U) / configPage2.stoich;
+      temp_Lambda = safeStoichDiv32_16((uint32_t)currentStatus.O2 * 1000U);
       outMsg.len = 8;
       outMsg.buf[0] = highByte(temp_Lambda);
       outMsg.buf[1] = lowByte(temp_Lambda);
-      temp_Lambda = (currentStatus.O2_2 * 1000U) / configPage2.stoich;
+      temp_Lambda = safeStoichDiv32_16((uint32_t)currentStatus.O2_2 * 1000U);
       outMsg.buf[2] = highByte(temp_Lambda);
       outMsg.buf[3] = lowByte(temp_Lambda);
       outMsg.buf[4] = 0x00; //Lambda 3
@@ -615,7 +621,7 @@ void obd_response(uint8_t PIDmode, uint8_t requestedPIDlow, uint8_t requestedPID
         //uint16_t O2_1e ;
         //int16_t O2_1v ; 
         obdcalcF32 = currentStatus.O2;            // afr(is *10 so 25.5 is 255) , needs a 32bit else will overflow
-        obdcalcG16 = fast_div32_16((obdcalcF32 * 32768u), configPage2.stoich);
+        obdcalcG16 = safeStoichDiv32_16(obdcalcF32 * 32768u);
         obdcalcA = highByte(obdcalcG16);
         obdcalcB = lowByte(obdcalcG16);       
 
@@ -638,7 +644,7 @@ void obd_response(uint8_t PIDmode, uint8_t requestedPIDlow, uint8_t requestedPID
         //uint16_t O2_2e ;
         //int16_t O2_2V ; 
         obdcalcF32 = currentStatus.O2_2;            // afr(is *10 so 25.5 is 255) , needs a 32bit else will overflow
-        obdcalcG16 = fast_div32_16((obdcalcF32 * 32768u), configPage2.stoich);
+        obdcalcG16 = safeStoichDiv32_16(obdcalcF32 * 32768u);
         obdcalcA = highByte(obdcalcG16);
         obdcalcB = lowByte(obdcalcG16);       
 

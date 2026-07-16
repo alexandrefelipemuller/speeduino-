@@ -49,7 +49,7 @@ extern SerialStatus serialSecondaryStatusFlag;
  * Expectation is that ::serialTransmit is called until this
  * returns false
  */
-inline bool serialTransmitInProgress(void) {
+static inline bool serialTransmitInProgress(void) {
     return serialStatusFlag==SERIAL_TRANSMIT_INPROGRESS
     || serialStatusFlag==SERIAL_TRANSMIT_INPROGRESS_LEGACY
     || serialStatusFlag==SERIAL_TRANSMIT_TOOTH_INPROGRESS
@@ -64,7 +64,7 @@ inline bool serialTransmitInProgress(void) {
  * Expectation is the ::serialReceive is called until this
  * returns false.
  */
-inline bool serialRecieveInProgress(void) {
+static inline bool serialRecieveInProgress(void) {
   return serialStatusFlag==SERIAL_RECEIVE_INPROGRESS
   || serialStatusFlag==SERIAL_COMMAND_INPROGRESS_LEGACY;
 }

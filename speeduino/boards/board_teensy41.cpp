@@ -241,6 +241,11 @@ void PIT_isr()
   else if(interrupt2) { PIT_TFLG1 = 1; boostInterrupt(); }
   else if(interrupt3) { PIT_TFLG2 = 1; vvtInterrupt();   }
   else if(interrupt4) { PIT_TFLG3 = 1; oneMSInterval();  }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
   asm volatile ("dsb") ;
 }
 
@@ -256,6 +261,11 @@ void TMR1_isr(void)
   else if(interrupt2) { TMR1_CSCTRL1 &= ~TMR_CSCTRL_TCF1; moveToNextState(fuelSchedule2); }
   else if(interrupt3) { TMR1_CSCTRL2 &= ~TMR_CSCTRL_TCF1; moveToNextState(fuelSchedule3); }
   else if(interrupt4) { TMR1_CSCTRL3 &= ~TMR_CSCTRL_TCF1; moveToNextState(fuelSchedule4); }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 }
 void TMR2_isr(void)
 {
@@ -269,6 +279,11 @@ void TMR2_isr(void)
   else if(interrupt2) { TMR2_CSCTRL1 &= ~TMR_CSCTRL_TCF1; moveToNextState(ignitionSchedule2); }
   else if(interrupt3) { TMR2_CSCTRL2 &= ~TMR_CSCTRL_TCF1; moveToNextState(ignitionSchedule3); }
   else if(interrupt4) { TMR2_CSCTRL3 &= ~TMR_CSCTRL_TCF1; moveToNextState(ignitionSchedule4); }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 }
 void TMR3_isr(void)
 {
@@ -282,6 +297,11 @@ void TMR3_isr(void)
   else if(interrupt2) { TMR3_CSCTRL1 &= ~TMR_CSCTRL_TCF1; moveToNextState(fuelSchedule6); }
   else if(interrupt3) { TMR3_CSCTRL2 &= ~TMR_CSCTRL_TCF1; moveToNextState(fuelSchedule7); }
   else if(interrupt4) { TMR3_CSCTRL3 &= ~TMR_CSCTRL_TCF1; moveToNextState(fuelSchedule8); }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 }
 void TMR4_isr(void)
 {
@@ -295,6 +315,11 @@ void TMR4_isr(void)
   else if(interrupt2) { TMR4_CSCTRL1 &= ~TMR_CSCTRL_TCF1; moveToNextState(ignitionSchedule6); }
   else if(interrupt3) { TMR4_CSCTRL2 &= ~TMR_CSCTRL_TCF1; moveToNextState(ignitionSchedule7); }
   else if(interrupt4) { TMR4_CSCTRL3 &= ~TMR_CSCTRL_TCF1; moveToNextState(ignitionSchedule8); }
+  else
+  {
+    /* MISRA 15.7: explicit default branch */
+    ;
+  }
 }
 
 uint16_t freeRam()
@@ -321,6 +346,8 @@ static  time_t getTeensy3Time()
 }
 
 void doSystemReset() { return; }
+void serviceWatchdog(void) { return; }
+
 void jumpToBootloader() { return; }
 
 //Checks if the request pin is being used for rx/tx on secondary serial. Primary (USB) serial does not need to be checked as it is not broken out to an IO on Teensy
@@ -360,6 +387,11 @@ bool pinIsSerial(uint8_t pin)
   else if(&secondarySerial == &Serial8)
   {
     if( (pin == 34) || (pin == 35) ) { isSerial = true; }
+  }
+
+  else
+  {
+    ;
   }
 
   return isSerial;
