@@ -3,7 +3,6 @@
 #include "data/can_aux_status.h"
 #include "data/logger_status.h"
 #include "logger_private.h"
-#include "data/sd_logging_status.h"
 #include "support/maths.h"
 #include "support/utilities.h"
 #include "support/preprocessor.h"
@@ -23,22 +22,6 @@ byte buildEngineStatus(const statuses &current)
     current.isDeceleratingTPS,
   };
   return setStatusBits(0U, bits);
-}
-
-byte buildSdCardStatus(const statuses &current)
-{
-  UNUSED(current);
-  bool bits[] = {
-    currentSdLoggingStatus.card_present,
-    currentSdLoggingStatus.card_type == 1U,
-    currentSdLoggingStatus.card_ready,
-    currentSdLoggingStatus.card_logging,
-    currentSdLoggingStatus.card_error,
-    false, // Unused
-    currentSdLoggingStatus.card_fs == 1U,
-    currentSdLoggingStatus.card_unused,
-  };
-  return setStatusBits(0, bits);
 }
 
 /** 
@@ -321,7 +304,7 @@ uint8_t getLegacySecondarySerialLogEntry(uint16_t byteNum)
     case 81: statusValue = highByte(currentStatus.PW4); break; //Pulsewidth 4 multiplied by 10 in ms. Have to convert from uS to mS.
 
     case 82: statusValue = buildStatus3(currentStatus); break;
-    case 83: statusValue = buildEngineProtectStatus(currentStatus); break; //RPM(0), MAP(1), OIL(2), AFR(3), Unused(4:7)
+    case 83: statusValue = buildEngineProtectStatus(currentStatus); break; //RPM(0), MAP(1), OIL(2), AFR(3), Coolant(4), Unused(5:6), IOError(7)
     case 84: statusValue = lowByte(currentStatus.fuelLoad); break;
     case 85: statusValue = highByte(currentStatus.fuelLoad); break;
     case 86: statusValue = lowByte(currentStatus.ignLoad); break;

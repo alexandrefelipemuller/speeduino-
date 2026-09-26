@@ -236,7 +236,7 @@ static inline void addToothLogEntry(unsigned long toothTime, byte whichTooth)
     //If there has been a value logged above, update the indexes
     if(valueLogged == true)
     {
-      currentLoggerStatus.is_tooth_log_1_full = toothHistoryIndex < (TOOTH_LOG_SIZE-1);
+      currentLoggerStatus.is_tooth_log_1_full = toothHistoryIndex >= (TOOTH_LOG_SIZE-1);
       if (!currentLoggerStatus.is_tooth_log_1_full) { ++toothHistoryIndex; }
     }
 
@@ -437,7 +437,8 @@ static bool UpdateRevolutionTimeFromTeeth(bool isCamTeeth) {
 }
 
 static inline uint16_t RpmFromRevolutionTimeUs(uint32_t revTime) {
-  return clamp(fast_div_closest((uint32_t)MICROS_PER_MIN, revTime), (uint32_t)0UL, (uint32_t)MAX_RPM); //Calc RPM based on last full revolution time
+  const uint32_t rpm = clamp(fast_div_closest((uint32_t)MICROS_PER_MIN, revTime), (uint32_t)0UL, (uint32_t)MAX_RPM); //Calc RPM based on last full revolution time
+  return (rpm > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)rpm;
 }
 
 /** Compute RPM.
@@ -777,8 +778,7 @@ static inline void triggerRecordVVT1Angle (void)
   //Record the VVT Angle
   if( (configPage6.vvtEnabled > 0) && (revolutionOne == 1) )
   {
-    int16_t curAngle;
-    curAngle = currentStatus.decoder.getCrankAngle();
+    int16_t curAngle = currentStatus.decoder.getCrankAngle();
     while(curAngle > 360) { curAngle -= 360; }
     curAngle -= configPage4.triggerAngle; //Value at TDC
     if( configPage6.vvtMode == VVT_MODE_CLOSED_LOOP ) { curAngle -= configPage10.vvtCL0DutyAng; }
@@ -791,8 +791,6 @@ static void triggerThird_missingTooth(void)
 {
 //Record the VVT2 Angle (the only purpose of the third trigger)
 //NB no filtering of this signal with current implementation unlike Cam (VVT1)
-
-  int16_t curAngle;
   curTime3 = micros();
   curGap3 = curTime3 - toothLastThirdToothTime;
 
@@ -802,11 +800,10 @@ static void triggerThird_missingTooth(void)
     curGap3 = 0; 
     toothLastThirdToothTime = curTime3;
   }
-
   if ( curGap3 >= triggerThirdFilterTime )
   {
     triggerThirdFilterTime = curGap3 >> 2; //Next third filter is 25% the current gap
-    
+    int16_t curAngle;
     curAngle = currentStatus.decoder.getCrankAngle();
     while(curAngle > 360) { curAngle -= 360; }
     curAngle -= configPage4.triggerAngle; //Value at TDC
@@ -820,7 +817,7 @@ static void triggerThird_missingTooth(void)
 
 static uint16_t getRPM_missingTooth(void)
 {
-  uint16_t tempRPM = 0;
+  uint32_t tempRPM = 0U;
   if( currentStatus.RPM < currentStatus.crankRPM )
   {
     if(toothCurrentCount != 1)
@@ -833,7 +830,7 @@ static uint16_t getRPM_missingTooth(void)
   {
     tempRPM = stdGetRPM(configPage4.TrigSpeed==CAM_SPEED); //Account for cam speed
   }
-  return tempRPM;
+  return (tempRPM > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)tempRPM;
 }
 
 static int16_t getCrankAngle_missingTooth(void)
@@ -916,6 +913,11 @@ decoder_t __attribute__((optimize("Os"))) triggerSetup_missingTooth(void)
 {
   decoderFeatures = decoder_features_t();
 	sharedDecoderReset();
+  if ((configPage4.triggerTeeth == 0U) || (configPage4.triggerMissingTeeth >= configPage4.triggerTeeth))
+  {
+    return decoder_builder_t().build();
+  }
+
   decoderFeatures.supportsPerToothIgnition = true;
   triggerToothAngle = 360 / configPage4.triggerTeeth; //The number of degrees that passes from tooth to tooth
   if(configPage4.TrigSpeed == CAM_SPEED) 
@@ -1144,6 +1146,11 @@ decoder_t  __attribute__((optimize("Os"))) triggerSetup_DualWheel(void)
 {
   decoderFeatures = decoder_features_t();
 	sharedDecoderReset();
+  if (configPage4.triggerTeeth == 0U)
+  {
+    return decoder_builder_t().build();
+  }
+
   triggerToothAngle = 360 / configPage4.triggerTeeth; //The number of degrees that passes from tooth to tooth
   if(configPage4.TrigSpeed == CAM_SPEED) { triggerToothAngle = 720 / configPage4.triggerTeeth; } //Account for cam speed
   toothCurrentCount = UINT8_MAX; //Default value
@@ -1804,11 +1811,11 @@ static uint16_t getRPM_4G63(void)
   {
     if( (currentStatus.RPM < currentStatus.crankRPM)  )
     {
-      int tempToothAngle;
-      unsigned long toothTime;
       if( (toothLastToothTime == 0) || (toothLastMinusOneToothTime == 0) ) { tempRPM = 0; }
       else
       {
+        int tempToothAngle;
+        unsigned long toothTime;
         noInterrupts();
         tempToothAngle = triggerToothAngle;
         toothTime = (toothLastToothTime - toothLastMinusOneToothTime); //Note that trigger tooth angle changes between 70 and 110 depending on the last tooth that was seen (or 70/50 for 6 cylinders)
@@ -3234,7 +3241,7 @@ static void triggerSec_Nissan360(void)
 static uint16_t getRPM_Nissan360(void)
 {
   //Can't use stdGetRPM as there is no separate cranking RPM calc (stdGetRPM returns 0 if cranking)
-  uint16_t tempRPM;
+  uint32_t tempRPM;
   if( (decoderStatus.syncStatus==SyncStatus::Full) && (toothLastToothTime != 0) && (toothLastMinusOneToothTime != 0) )
   {
     if(currentStatus.startRevolutions < 2)
@@ -3254,7 +3261,7 @@ static uint16_t getRPM_Nissan360(void)
   }
   else { tempRPM = 0; }
 
-  return tempRPM;
+  return (tempRPM > (uint32_t)UINT16_MAX) ? UINT16_MAX : (uint16_t)tempRPM;
 }
 
 static int16_t getCrankAngle_Nissan360(void)
@@ -3836,11 +3843,11 @@ static uint16_t getRPM_Harley(void)
     if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100) )
     {
       // No difference with this option?
-      int tempToothAngle;
-      unsigned long toothTime;
       if ( (toothLastToothTime == 0) || (toothLastMinusOneToothTime == 0) ) { tempRPM = 0; }
       else
       {
+        int tempToothAngle;
+        unsigned long toothTime;
         noInterrupts();
         tempToothAngle = triggerToothAngle;
         /* High-res mode
@@ -5210,11 +5217,11 @@ static uint16_t getRPM_Vmax(void)
   {
     if ( currentStatus.RPM < (unsigned int)(configPage4.crankRPM * 100) )
     {
-      int tempToothAngle;
-      unsigned long toothTime;
       if ( (toothLastToothTime == 0) || (toothLastMinusOneToothTime == 0) ) { tempRPM = 0; }
       else
       {
+        int tempToothAngle;
+        unsigned long toothTime;
         noInterrupts();
         tempToothAngle = triggerToothAngle;
         SetRevolutionTime(toothOneTime - toothOneMinusOneTime); //The time in uS that one revolution would take at current speed (The time tooth 1 was last seen, minus the time it was seen prior to that)
@@ -6425,7 +6432,7 @@ decoder_t  __attribute__((optimize("Os"))) triggerSetup_FordTFI(void)
 
   triggerToothAngle = 720U / triggerActualTeeth; //The number of degrees that passes from tooth to tooth, half cylinder count
   toothCurrentCount = 0; //Default value
-  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 30U * configPage2.nCylinders)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
+  triggerFilterTime = (MICROS_PER_SEC / (MAX_RPM / 30U * triggerActualTeeth)); //Trigger filter time is the shortest possible time (in uS) that there can be between crank teeth (ie at max RPM). Any pulses that occur faster than this time will be discarded as noise
   triggerSecFilterTime = triggerFilterTime * 4U /5u; //Same as above, but slightly about lower due to signature trigger (about 80%)
   lastSyncRevolution = 0;
   decoderFeatures.supportsSequential = true;

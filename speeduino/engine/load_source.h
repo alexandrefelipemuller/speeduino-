@@ -34,7 +34,8 @@ static inline uint16_t getLoad(LoadSource algorithm, const statuses &current) {
   }
   else if (algorithm == LOAD_SOURCE_IMAPEMAP)
   {
-    //IMAP / EMAP
+    //IMAP / EMAP. Fall back to MAP if EMAP is invalid to avoid a divide-by-zero fault.
+    if (current.EMAP == 0U) { return (uint16_t)current.MAP; }
     return fast_div32_16((uint32_t)current.MAP * 100UL, current.EMAP);
   } else {
     // LOAD_SOURCE_MAP (the default). Aka Speed Density

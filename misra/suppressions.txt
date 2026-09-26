@@ -1,5 +1,4 @@
 #All Advisory rules are suppressed:
-misra-c2012-1.2
 misra-c2012-2.3
 misra-c2012-2.4
 misra-c2012-2.5
@@ -15,7 +14,6 @@ misra-c2012-11.4
 misra-c2012-11.5
 misra-c2012-12.1
 misra-c2012-12.3
-misra-c2012-12.4
 misra-c2012-13.3
 misra-c2012-13.4
 misra-c2012-15.1

@@ -12,22 +12,12 @@
 
 void runMainLoopTimerMaintenanceTasks(void)
 {
-    if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_1KHZ))
-    {
-      BIT_CLEAR(TIMER_mask, BIT_TIMER_1KHZ);
-    }
-    if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_200HZ))
-    {
-      BIT_CLEAR(TIMER_mask, BIT_TIMER_200HZ);
-    }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_50HZ))
     {
-      BIT_CLEAR(TIMER_mask, BIT_TIMER_50HZ);
       core_modules_tick_50hz();
     }
     if(BIT_CHECK(LOOP_TIMER, BIT_TIMER_30HZ))
     {
-      BIT_CLEAR(TIMER_mask, BIT_TIMER_30HZ);
       core_modules_tick_30hz();
       if( (isEepromWritePending() == true) && (serialStatusFlag == SERIAL_INACTIVE) && storageWriteTimeoutExpired()) { saveAllPages(); }
     }

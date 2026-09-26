@@ -15,18 +15,20 @@ A full copy of the license may be found in the projects root directory
 #include "support/maths.h"
 #include "support/preprocessor.h"
 #include "engine/decoders.h"
-#include "modules/logging/TS_CommandButtonHandler.h"
+#include "modules/sd_logging/TS_CommandButtonHandler.h"
 #include "storage/pages.h"
 #include "storage/page_crc.h"
 #include "modules/logging/logger.h"
 #include "modules/logging/logger_controls.h"
+#include "modules/sd_logging/module_sd_logging.h"
 #include "modules/boost/boost.h"
+#include "modules/can/module_can.h"
 #include "modules/comms_extended/module_comms_extended.h"
 #include "modules/logging/module_logging.h"
 #include "modules/table_switching/module_table_switching.h"
 #include "boards/board_definition.h"
 #ifdef RTC_ENABLED
-  #include "modules/logging/rtc_common.h"
+  #include "modules/sd_logging/rtc_common.h"
 #endif
 #include "support/units.h"
 #include "engine/sensors.h"
@@ -294,6 +296,10 @@ void legacySerialCommand(void)
         {
           currentPage -= 55;
         }
+        else
+        {
+          // No-op: keep currentPage when command payload is out-of-range
+        }
         serialStatusFlag = SERIAL_INACTIVE;
       }
       break;
@@ -387,6 +393,11 @@ void legacySerialCommand(void)
 
         if(currentLoggerStatus.tooth_log_enabled == true) { sendToothLog_legacy(0); } //Sends tooth log values as ints
         else if (currentLoggerStatus.composite_trigger_used > 0U) { sendCompositeLog_legacy(0); }
+        else
+        {
+          /* MISRA 15.7: explicit default branch */
+          ;
+        }
         serialStatusFlag = SERIAL_INACTIVE;
       }
       break;
@@ -669,7 +680,7 @@ void legacySerialHandler(byte cmd, Stream &targetPort, SerialStatus &targetStatu
       break;
 
     case 'Q': // send code version
-      targetPort.print(F("speeduino 202504-dev"));
+      targetPort.print(F("speeduino 202605-minus"));
       break;
 
     case 'r': //New format for the optimised OutputChannels
@@ -701,7 +712,7 @@ void legacySerialHandler(byte cmd, Stream &targetPort, SerialStatus &targetStatu
       break;
 
     case 'S': // send code version
-      targetPort.print(F("Speeduino 2025.04-dev"));
+      targetPort.print(F("Speeduino 202605-minus"));
       break;
   }
 }
@@ -739,6 +750,11 @@ void sendValues(uint16_t offset, uint16_t packetLength, byte cmd, Stream &target
           secondarySerial.write("n");                       // confirm command type
           secondarySerial.write(cmd);                       // send command type  , 0x32 (dec50) is ascii '0'
           secondarySerial.write(NEW_CAN_PACKET_SIZE);       // send the packet size the receiving device should expect.
+        }
+        else
+        {
+          /* MISRA 15.7: explicit default branch */
+          ;
         }
     }  
   }
@@ -916,7 +932,7 @@ namespace {
     primarySerial.write((byte *)iter.entity.pRaw, iter.entity.size);
   }
 
-  inline void send_table_values(table_value_iterator it)
+  static inline void send_table_values(table_value_iterator it)
   {
     while (!it.at_end())
     {
@@ -926,7 +942,7 @@ namespace {
     }
   }
 
-  inline void send_table_axis(table_axis_iterator it)
+  static inline void send_table_axis(table_axis_iterator it)
   {
     while (!it.at_end())
     {

@@ -12,5 +12,6 @@ void refreshIgnitionSchedule1(unsigned long timeToEnd);
 void initialiseFuelSchedulers(void);
 void startFuelSchedulers(void);
 void stopFuelSchedulers(void);
+void stopEngineOutputsAndSchedulers(void);
 
 #endif // SCHEDULER_LIFECYCLE_H

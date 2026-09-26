@@ -33,6 +33,9 @@ uint16_t freeRam(void);
 /** @brief Reset the board (optional) */
 void doSystemReset(void);
 
+/** @brief Service the watchdog from the main loop (optional) */
+void serviceWatchdog(void);
+
 /** @brief Trigger the boot loader (optional) */
 void jumpToBootloader(void);
 

@@ -9,6 +9,16 @@
 #include "orchestration/scheduler.h"
 #include "orchestration/timers.h"
 #include EEPROM_LIB_H
+#include <avr/interrupt.h>
+#include <avr/wdt.h>
+
+
+static void disableWatchdogAfterReset(void) __attribute__((naked, used, section(".init3")));
+static void disableWatchdogAfterReset(void)
+{
+    MCUSR = 0U;
+    wdt_disable();
+}
 
 // Prescaler values for timers 1-3-4-5. Refer to www.instructables.com/files/orig/F3T/TIKL/H3WSA4V7/F3TTIKLH3WSA4V7.jpg
 #define TIMER_PRESCALER_OFF  ((0<<CS12)|(0<<CS11)|(0<<CS10))
@@ -174,9 +184,9 @@ void initBoard(uint32_t baudRate)
     TCCR2B = (1<<CS22)  | (1<<CS20); // Set bits. This timer uses different prescaler values, thus we cannot use the defines above.
     TIFR2 = (1 << OCF2A) | (1<<OCF2B) | (1<<TOV2); //Clear the compare flag bits and overflow flag bit
 
-    //Enable the watchdog timer for 2 second resets (Good reference: www.tushev.org/articles/arduino/5/arduino-and-watchdog-timer)
-    //Boooooooooo WDT is currently broken on Mega 2560 bootloaders :(
-    //wdt_enable(WDTO_2S);
+    //Enable the watchdog timer for 2 second resets. The boot-time init3 hook disables any stale WDT state
+    //before the bootloader or runtime can get trapped in a reset loop.
+    wdt_enable(WDTO_2S);
 
     /*
     ***********************************************************************************************************
@@ -233,7 +243,18 @@ uint16_t freeRam(void)
     return (uint16_t) &v - currentVal; // cppcheck-suppress [misra-c2012-11.4, misra-c2012-10.4]
 }
 
-void doSystemReset(void) { return; }
+void doSystemReset(void)
+{
+    cli();
+    wdt_enable(WDTO_15MS);
+    for(;;) { }
+}
+
+void serviceWatchdog(void)
+{
+    wdt_reset();
+}
+
 void jumpToBootloader(void) { return; }
 
 uint8_t getSystemTemp(void)

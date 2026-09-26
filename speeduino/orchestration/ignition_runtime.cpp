@@ -15,13 +15,16 @@ constexpr table2D_u8_u8_8 rotarySplitTable(&configPage10.rotarySplitBins, &confi
 
 namespace {
 
+static constexpr uint32_t MINIMUM_SCHEDULE_DELAY_US = ticksToMicros((COMPARE_TYPE)1U);
+
 void set_ignition_channel(IgnitionSchedule &schedule, uint8_t channel, uint16_t channelDegrees, uint16_t startAngle, uint16_t crankAngle, uint16_t dwell, byte ignitionChannelsOn)
 {
   if ((currentStatus.maxIgnOutputs >= channel) && BIT_CHECK(ignitionChannelsOn, channel-1U))
   {
     uint32_t timeOut = calculateIgnitionTimeout(schedule, startAngle, channelDegrees, crankAngle);
-    if (timeOut > 0U)
+    if ((timeOut > 0U) || ignitionStartIsDueNow(startAngle, crankAngle))
     {
+      if (timeOut == 0U) { timeOut = MINIMUM_SCHEDULE_DELAY_US; }
       setIgnitionSchedule(schedule, timeOut, dwell);
     }
   }
@@ -53,7 +56,6 @@ void setIgnitionChannels(uint16_t crankAngle, uint16_t dwell, byte ignitionChann
   if( (isRunning(ignitionSchedule1)) && (ignition1EndAngle > (int)crankAngle) && (configPage4.StgCycles == 0) && (configPage2.perToothIgn != true) )
   {
     unsigned long uSToEnd = 0;
-    crankAngle = ignitionLimits(currentStatus.decoder.getCrankAngle());
     if(ignition1EndAngle > (int)crankAngle) { uSToEnd = angleToTimeMicroSecPerDegree( (ignition1EndAngle - crankAngle) ); }
     else { uSToEnd = angleToTimeMicroSecPerDegree( (360 + ignition1EndAngle - crankAngle) ); }
     refreshIgnitionSchedule1( uSToEnd + fixedCrankingOverride );
@@ -85,7 +87,7 @@ void setIgnitionChannels(uint16_t crankAngle, uint16_t dwell, byte ignitionChann
 #undef SET_IGNITION_CHANNEL
 }
 
-void calculateIgnitionAngles(uint16_t dwellAngle)
+void calculateIgnitionAngles(uint16_t dwellAngle, SyncStatus syncStatus)
 {
   switch (configPage2.nCylinders)
   {
@@ -106,7 +108,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       calculateIgnitionAngle(dwellAngle, channel2IgnDegrees, currentStatus.advance, &ignition2EndAngle, &ignition2StartAngle);
 
 #if IGN_CHANNELS >= 4
-      if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.decoder.getStatus().syncStatus==SyncStatus::Full)
+      if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && syncStatus==SyncStatus::Full)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(configPage2, configPage4, currentStatus); }
 
@@ -121,7 +123,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       }
       else
       {
-        if( currentStatus.decoder.getStatus().syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_IGN != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
+        if( syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_IGN != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
       }
 #endif
       break;
@@ -140,7 +142,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       calculateIgnitionAngle(dwellAngle, channel3IgnDegrees, currentStatus.advance, &ignition3EndAngle, &ignition3StartAngle);
 
 #if IGN_CHANNELS >= 6
-      if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.decoder.getStatus().syncStatus==SyncStatus::Full)
+      if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && syncStatus==SyncStatus::Full)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(configPage2, configPage4, currentStatus); }
 
@@ -150,7 +152,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       }
       else
       {
-        if( currentStatus.decoder.getStatus().syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_IGN != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
+        if( syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_IGN != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
       }
 #endif
       break;
@@ -172,7 +174,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       calculateIgnitionAngle(dwellAngle, channel4IgnDegrees, currentStatus.advance, &ignition4EndAngle, &ignition4StartAngle);
 
 #if IGN_CHANNELS >= 8
-      if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && currentStatus.decoder.getStatus().syncStatus==SyncStatus::Full)
+      if((configPage4.sparkMode == IGN_MODE_SEQUENTIAL) && syncStatus==SyncStatus::Full)
       {
         if( CRANK_ANGLE_MAX_IGN != 720 ) { changeHalfToFullSync(configPage2, configPage4, currentStatus); }
 
@@ -183,7 +185,7 @@ void calculateIgnitionAngles(uint16_t dwellAngle)
       }
       else
       {
-        if( currentStatus.decoder.getStatus().syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_IGN != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
+        if( syncStatus==SyncStatus::Partial && (CRANK_ANGLE_MAX_IGN != 360) ) { changeFullToHalfSync(configPage2, configPage4, currentStatus); }
       }
 #endif
       break;

@@ -69,12 +69,11 @@ void secondserial_Command(void)
 
     case 'G': // this is the reply command sent by the Can interface
       serialSecondaryStatusFlag = SERIAL_COMMAND_INPROGRESS_LEGACY;
-      byte destcaninchannel;
       if (secondarySerial.available() >= 9)
       {
         serialSecondaryStatusFlag = SERIAL_INACTIVE;
         uint8_t cmdSuccessful = secondarySerial.read();        //0 == fail,  1 == good.
-        destcaninchannel = secondarySerial.read();  // the input channel that requested the data value
+        const byte destcaninchannel = secondarySerial.read();  // the input channel that requested the data value
         if (cmdSuccessful != 0)
         {                                 // read all 8 bytes of data.
           uint8_t Gdata[9];

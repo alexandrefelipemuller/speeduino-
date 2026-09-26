@@ -59,6 +59,9 @@ static constexpr uint16_t TS_CMD_IGN8_ON      = 790;
 static constexpr uint16_t TS_CMD_IGN8_OFF     = 791;
 static constexpr uint16_t TS_CMD_IGN8_PULSED  = 792;
 
+static constexpr uint16_t TS_CMD_FUELPUMP_ON  = 1025;
+static constexpr uint16_t TS_CMD_FUELPUMP_OFF = 1026;
+
 static constexpr uint16_t TS_CMD_STM32_REBOOT     = 12800;
 static constexpr uint16_t TS_CMD_STM32_BOOTLOADER = 12801;
 

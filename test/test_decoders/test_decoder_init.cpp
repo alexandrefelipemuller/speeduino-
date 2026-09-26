@@ -112,6 +112,45 @@ static void test_buildDecoder_TurnsOffPerToothIgn(void)
     TEST_ASSERT_FALSE(configPage2.perToothIgn);
 }
 
+static void test_buildDecoder_missingTooth_invalidTeeth_is_safe_decoder(void)
+{
+    configPage4.triggerTeeth = 0;
+    configPage4.triggerMissingTeeth = 1;
+    auto decoder = buildDecoder(DECODER_MISSING_TOOTH);
+    auto defaultDecoder = decoder_builder_t().build();
+
+    TEST_ASSERT_EQUAL_PTR(defaultDecoder.getRPM, decoder.getRPM);
+    TEST_ASSERT_EQUAL_PTR(defaultDecoder.primary.callback, decoder.primary.callback);
+}
+
+static void test_buildDecoder_missingTooth_missingCount_invalid_is_safe_decoder(void)
+{
+    configPage4.triggerTeeth = 1;
+    configPage4.triggerMissingTeeth = 1;
+    auto decoder = buildDecoder(DECODER_MISSING_TOOTH);
+    auto defaultDecoder = decoder_builder_t().build();
+
+    TEST_ASSERT_EQUAL_PTR(defaultDecoder.getRPM, decoder.getRPM);
+    TEST_ASSERT_EQUAL_PTR(defaultDecoder.primary.callback, decoder.primary.callback);
+}
+
+static void test_buildDecoder_dualWheel_invalidTeeth_is_safe_decoder(void)
+{
+    configPage4.triggerTeeth = 0;
+    auto decoder = buildDecoder(DECODER_DUAL_WHEEL);
+    auto defaultDecoder = decoder_builder_t().build();
+
+    TEST_ASSERT_EQUAL_PTR(defaultDecoder.getRPM, decoder.getRPM);
+    TEST_ASSERT_EQUAL_PTR(defaultDecoder.primary.callback, decoder.primary.callback);
+}
+
+static void test_buildDecoder_fordTfi_zeroCylinders_does_not_crash(void)
+{
+    configPage2.nCylinders = 0;
+    auto decoder = buildDecoder(DECODER_FORD_TFI);
+    assert_decoder(decoder);
+}
+
 static void test_buildDecoder_OutOfRange(void)
 {
     auto decoder = buildDecoder(DECODER_MAX+1U); // Check this doesn't crash.
@@ -124,6 +163,10 @@ void testDecoderInit(void)
     test_buildDecoder_all();
     RUN_TEST(test_buildDecoder_attachesInterrupts);
     RUN_TEST(test_buildDecoder_TurnsOffPerToothIgn);
+    RUN_TEST(test_buildDecoder_missingTooth_invalidTeeth_is_safe_decoder);
+    RUN_TEST(test_buildDecoder_missingTooth_missingCount_invalid_is_safe_decoder);
+    RUN_TEST(test_buildDecoder_dualWheel_invalidTeeth_is_safe_decoder);
+    RUN_TEST(test_buildDecoder_fordTfi_zeroCylinders_does_not_crash);
     RUN_TEST(test_buildDecoder_OutOfRange);
   }
 }

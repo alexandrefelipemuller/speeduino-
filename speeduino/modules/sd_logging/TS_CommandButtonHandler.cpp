@@ -19,6 +19,7 @@
 #include "storage/pages.h"
 #include "engine/scheduledIO_ign.h"
 #include "engine/scheduledIO_inj.h"
+#include "engine/auxiliaries.h"
 #ifdef USE_MC33810
   #include "engine/acc_mc33810.h"
 #endif
@@ -31,7 +32,13 @@ extern volatile byte HWTest_IGN_Pulsed;
 static bool commandRequiresStoppedEngine(uint16_t buttonCommand)
 {
   return ((buttonCommand >= TS_CMD_INJ1_ON) && (buttonCommand <= TS_CMD_IGN8_PULSED)) 
+      || (buttonCommand == TS_CMD_FUELPUMP_ON)
       || ((buttonCommand == TS_CMD_TEST_ENBL) || (buttonCommand == TS_CMD_TEST_DSBL));
+}
+
+static bool engineIsActive(void)
+{
+  return (currentStatus.RPM > 0U) || currentStatus.engineIsRunning || currentStatus.engineIsCranking;
 }
 
 /**
@@ -41,7 +48,7 @@ static bool commandRequiresStoppedEngine(uint16_t buttonCommand)
  */
 bool TS_CommandButtonsHandler(uint16_t buttonCommand)
 {
-  if (commandRequiresStoppedEngine(buttonCommand) && currentStatus.RPM != 0)
+  if (commandRequiresStoppedEngine(buttonCommand) && engineIsActive())
   {
     return false;
   }
@@ -84,6 +91,8 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       #if INJ_CHANNELS >= 8
       closeInjector8();
       #endif
+
+      fuelPumpOff();
 
       HWTest_INJ_Pulsed = 0;
       HWTest_IGN_Pulsed = 0;
@@ -301,6 +310,14 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       if(!BIT_CHECK(HWTest_IGN_Pulsed, IGN8_CMD_BIT)) { endCoil8Charge(); } //Ensure this output is turned off (Otherwise the output may stay on permanently)
       break;
 
+    case TS_CMD_FUELPUMP_ON: // cmd group is for fuel pump on actions
+      if( currentStatus.isTestModeActive ) { fuelPumpOn(); }
+      break;
+
+    case TS_CMD_FUELPUMP_OFF: // cmd group is for fuel pump off actions
+      if( currentStatus.isTestModeActive ) { fuelPumpOff(); }
+      break;
+
     //VSS Calibration routines
     case TS_CMD_VSS_60KMH:
       {
@@ -327,7 +344,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
 
     //Calculate the RPM to speed ratio for each gear
     case TS_CMD_VSS_RATIO1:
-      if(currentStatus.vss > 0)
+      if((currentStatus.vss > 0) && (currentStatus.RPM > 0U))
       {
         configPage2.vssRatio1 = (currentStatus.vss * 10000UL) / currentStatus.RPM;
         savePage(1); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority
@@ -336,7 +353,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_VSS_RATIO2:
-      if(currentStatus.vss > 0)
+      if((currentStatus.vss > 0) && (currentStatus.RPM > 0U))
       {
         configPage2.vssRatio2 = (currentStatus.vss * 10000UL) / currentStatus.RPM;
         savePage(1); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority
@@ -345,7 +362,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_VSS_RATIO3:
-      if(currentStatus.vss > 0)
+      if((currentStatus.vss > 0) && (currentStatus.RPM > 0U))
       {
         configPage2.vssRatio3 = (currentStatus.vss * 10000UL) / currentStatus.RPM;
         savePage(1); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority
@@ -354,7 +371,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_VSS_RATIO4: 
-      if(currentStatus.vss > 0)
+      if((currentStatus.vss > 0) && (currentStatus.RPM > 0U))
       {
         configPage2.vssRatio4 = (currentStatus.vss * 10000UL) / currentStatus.RPM;
         savePage(1); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority
@@ -363,7 +380,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_VSS_RATIO5:
-      if(currentStatus.vss > 0)
+      if((currentStatus.vss > 0) && (currentStatus.RPM > 0U))
       {
         configPage2.vssRatio5 = (currentStatus.vss * 10000UL) / currentStatus.RPM;
         savePage(1); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority
@@ -372,7 +389,7 @@ bool TS_CommandButtonsHandler(uint16_t buttonCommand)
       break;
 
     case TS_CMD_VSS_RATIO6:
-      if(currentStatus.vss > 0)
+      if((currentStatus.vss > 0) && (currentStatus.RPM > 0U))
       {
         configPage2.vssRatio6 = (currentStatus.vss * 10000UL) / currentStatus.RPM;
         savePage(1); // Need to manually save the new config value as it will not trigger a burn in tunerStudio due to use of ControllerPriority

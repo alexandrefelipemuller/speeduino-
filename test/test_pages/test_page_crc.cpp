@@ -11,6 +11,14 @@ static void setPageValues_Incremental(uint8_t pageNum, char seedValue)
     }
 }
 
+static void test_calculatePageCRC32_invalid_page(void)
+{
+    TEST_ASSERT_EQUAL_UINT16(0U, getPageSize(0U));
+    TEST_ASSERT_EQUAL_UINT32(0U, calculatePageCRC32(0U));
+    TEST_ASSERT_EQUAL_UINT16(0U, getPageSize(MAX_PAGE_NUM + 1U));
+    TEST_ASSERT_EQUAL_UINT32(0U, calculatePageCRC32(MAX_PAGE_NUM + 1U));
+}
+
 static void test_calculatePageCRC32(void)
 {
     // boostvvtPage2 (12) & wmiMapPage contain multiple types of entities
@@ -24,6 +32,7 @@ static void test_calculatePageCRC32(void)
 
 void testPageCrc(void) {
     SET_UNITY_FILENAME() {
+        RUN_TEST(test_calculatePageCRC32_invalid_page);
         RUN_TEST(test_calculatePageCRC32);
     }
 }

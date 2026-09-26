@@ -210,10 +210,10 @@ static inline uint32_t div360(uint32_t n) {
  * @return uint32_t 
  */
 template <uint8_t b> 
-static inline uint32_t rshift_round(uint32_t a) { 
-    constexpr uint8_t CORRECTION_SHIFT = b-1U; // cppcheck-suppress misra-c2012-10.4
-    constexpr uint32_t CORRECTION = 1UL<<CORRECTION_SHIFT;
-    return rshift<b>((uint32_t)(a+CORRECTION));
+static inline uint32_t rshift_round(uint32_t a) {
+    constexpr uint8_t CORRECTION_SHIFT = (b > 0U) ? (b - 1U) : 0U;
+    constexpr uint32_t CORRECTION = (b > 0U) ? (UINT32_C(1) << CORRECTION_SHIFT) : 0UL;
+    return rshift<b>((uint32_t)(a + CORRECTION));
 }
 
 /// @cond
@@ -414,7 +414,17 @@ static inline int16_t LOW_PASS_FILTER(int16_t input, uint8_t alpha, int16_t prio
  */
 static inline uint8_t scale(const uint8_t from, const uint8_t fromRange, const uint8_t toRange) {
   // Using uint16_t to avoid overflow when calculating the result
-  return fromRange==0U ? 0U : (((uint16_t)from * (uint16_t)toRange) / (uint16_t)fromRange);
+  uint8_t result = 0U;
+
+  if (fromRange != 0U)
+  {
+    const uint32_t scaled = (uint32_t)from * (uint32_t)toRange;
+    const uint32_t scaledResult = scaled / (uint32_t)fromRange;
+    result = (scaledResult > UINT8_MAX) ? UINT8_MAX : (uint8_t)scaledResult;
+  }
+
+  return result;
+
 }
 
 /**

@@ -39,6 +39,21 @@ static integerPID vvt2PID(&vvt2_pid_current_angle, &currentAdvancedEngineStatus.
 
 #define VVT_TIME_DELAY_MULTIPLIER  50
 
+static inline uint16_t calculateVvtPwmMaxCount(uint8_t configuredFrequency)
+{
+  uint8_t frequency = (configuredFrequency == 0U) ? 1U : configuredFrequency;
+#if defined(CORE_AVR)
+  const uint32_t result = MICROS_PER_SEC / (16U * (uint32_t)frequency * 2U);
+#elif defined(CORE_TEENSY35)
+  const uint32_t result = MICROS_PER_SEC / (32U * (uint32_t)frequency * 2U);
+#elif defined(CORE_TEENSY41)
+  const uint32_t result = MICROS_PER_SEC / (2U * (uint32_t)frequency * 2U);
+#else
+  const uint32_t result = MICROS_PER_SEC / (2U * (uint32_t)frequency * 2U);
+#endif
+  return (result > UINT16_MAX) ? UINT16_MAX : (uint16_t)result;
+}
+
 #if(defined(CORE_TEENSY) || defined(CORE_STM32))
 
 #define VVT1_PIN_LOW()          (digitalWrite(pinVVT_1, LOW))
@@ -132,13 +147,7 @@ void initialiseVVT(uint8_t pin1, uint8_t pin2)
     currentAdvancedEngineStatus.vvt1_angle = 0;
     currentAdvancedEngineStatus.vvt2_angle = 0;
 
-    #if defined(CORE_AVR)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage6.vvtFreq * 2U));
-    #elif defined(CORE_TEENSY35)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage6.vvtFreq * 2U));
-    #elif defined(CORE_TEENSY41)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (2U * configPage6.vvtFreq * 2U));
-    #endif
+    vvt_pwm_max_count = calculateVvtPwmMaxCount(configPage6.vvtFreq);
 
     if(configPage6.vvtMode == VVT_MODE_CLOSED_LOOP)
     {
@@ -166,13 +175,7 @@ void initialiseVVT(uint8_t pin1, uint8_t pin2)
 
   if((configPage6.vvtEnabled == 0) && (configPage10.wmiEnabled >= 1))
   {
-    #if defined(CORE_AVR)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (16U * configPage6.vvtFreq * 2U));
-    #elif defined(CORE_TEENSY35)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (32U * configPage6.vvtFreq * 2U));
-    #elif defined(CORE_TEENSY41)
-      vvt_pwm_max_count = (uint16_t)(MICROS_PER_SEC / (2U * configPage6.vvtFreq * 2U));
-    #endif
+    vvt_pwm_max_count = calculateVvtPwmMaxCount(configPage6.vvtFreq);
     currentAdvancedEngineStatus.wmi_tank_empty = false;
     currentAdvancedEngineStatus.wmi_pw = 0;
     vvt1_pwm_value = 0;

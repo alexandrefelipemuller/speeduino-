@@ -129,6 +129,7 @@ static inline byte buildEngineProtectStatus(const statuses &current)
     current.engineProtectAfr,
     current.engineProtectClt,
     false,
+    false,
     current.engineProtectIoError,
   };
   return setStatusBits(0U, bits);

@@ -23,7 +23,8 @@ void beginInjectorPriming(void)
     // The prime pulse value is in ms*2, so need to multiply by 500 to get to µS
     constexpr uint16_t PULSE_TS_SCALE_FACTOR = 100U * 5U;
 
-    primingValue = primingValue * PULSE_TS_SCALE_FACTOR;
+    const uint32_t scaledPrimingValue = (uint32_t)primingValue * (uint32_t)PULSE_TS_SCALE_FACTOR;
+    primingValue = (scaledPrimingValue > UINT16_MAX) ? UINT16_MAX : (uint16_t)scaledPrimingValue;
     if ( currentStatus.maxInjOutputs >= 1U ) { setFuelSchedule(fuelSchedule1, PRIMING_DELAY, primingValue); }
 #if (INJ_CHANNELS >= 2)
     if ( currentStatus.maxInjOutputs >= 2U ) { setFuelSchedule(fuelSchedule2, PRIMING_DELAY, primingValue); }
